@@ -1,0 +1,16 @@
+# Env
+.env
+.env.local
+
+# Go
+backend/bin/
+backend/web/
+
+# Node
+web/node_modules/
+web/.svelte-kit/
+web/build/
+
+# OS
+.DS_Store
+Thumbs.db

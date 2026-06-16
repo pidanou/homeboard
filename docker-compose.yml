@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: familyboard
+      POSTGRES_USER: familyboard
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U familyboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://familyboard:${POSTGRES_PASSWORD}@db:5432/familyboard
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 8080
+    ports:
+      - "8080:8080"
+
+  web:
+    build: ./web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8080}
+    ports:
+      - "3000:3000"
+
+volumes:
+  db_data:
