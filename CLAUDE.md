@@ -175,6 +175,7 @@ cd web && npm run build
 - All dates stored and transmitted as UTC ISO 8601 strings
 - Database models in `internal/model/`, HTTP request/response DTOs in `internal/handler/dto/`
 - Feature flags or tenant-level config live in a `settings` table — don't hardcode feature availability
+- **Tasks with a due date must appear on the calendar view** on their due date alongside calendar events
 
 ---
 

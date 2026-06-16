@@ -20,12 +20,11 @@ export default defineConfig({
 				name: 'Family Board',
 				short_name: 'FamilyBoard',
 				description: 'Your family, organised.',
-				theme_color: '#ffffff',
-				background_color: '#ffffff',
+				theme_color: '#9a6022',
+				background_color: '#2b1f14',
 				display: 'standalone',
 				icons: [
-					{ src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-					{ src: '/icon-512.png', sizes: '512x512', type: 'image/png' }
+					{ src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }
 				]
 			},
 			workbox: {
