@@ -1,90 +1,145 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
-	import { api } from '$lib/api/client';
+	import { onMount, onDestroy } from 'svelte';
+	import { api, sseUrl } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import { Checkbox } from '$lib/components/ui/checkbox';
 
-	type Family = { id: string; name: string };
-	type Invite = { token: string; expires_at: string };
+	type Task = {
+		id: string;
+		title: string;
+		status: string;
+		start_date?: string;
+		end_date?: string;
+		created_by: string;
+	};
 
 	const familyID = $derived($page.params.id);
 
-	let family = $state<Family | null>(null);
-	let invites = $state<Invite[]>([]);
+	let tasks = $state<Task[]>([]);
 	let error = $state('');
-	let copied = $state<string | null>(null);
+	let newTaskTitle = $state('');
+	let newTaskStart = $state('');
+	let newTaskEnd = $state('');
+	let addingTask = $state(false);
+
+	let es: EventSource | null = null;
 
 	onMount(async () => {
 		try {
-			[family, invites] = await Promise.all([
-				api.get<Family>(`/api/v1/families/${familyID}`),
-				api.get<Invite[]>(`/api/v1/families/${familyID}/invites`).then(r => r ?? [])
-			]);
+			tasks = (await api.get<Task[]>(`/api/v1/families/${familyID}/tasks`)) ?? [];
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to load family';
+			error = err instanceof Error ? err.message : 'Failed to load tasks';
 		}
+
+		es = new EventSource(sseUrl(`/api/v1/families/${familyID}/stream`));
+		es.onmessage = async (e) => {
+			if (e.data === 'refresh') {
+				tasks = (await api.get<Task[]>(`/api/v1/families/${familyID}/tasks`)) ?? [];
+			}
+		};
+		es.onerror = () => { es?.close(); es = null; };
 	});
 
-	async function createInvite() {
+	onDestroy(() => es?.close());
+
+	async function addTask() {
+		if (!newTaskTitle.trim()) return;
+		addingTask = true;
 		try {
-			const inv = await api.post<Invite>(`/api/v1/families/${familyID}/invites`, {});
-			invites = [inv, ...invites];
+			await api.post<Task>(`/api/v1/families/${familyID}/tasks`, {
+				title: newTaskTitle.trim(),
+				start_date: newTaskStart ? new Date(newTaskStart).toISOString() : undefined,
+				end_date: newTaskEnd ? new Date(newTaskEnd).toISOString() : undefined
+			});
+			newTaskTitle = '';
+			newTaskStart = '';
+			newTaskEnd = '';
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to create invite';
+			error = err instanceof Error ? err.message : 'Failed to create task';
+		} finally {
+			addingTask = false;
 		}
 	}
 
-	async function revokeInvite(token: string) {
+	async function toggleTask(task: Task) {
+		const newStatus = task.status === 'done' ? 'todo' : 'done';
 		try {
-			await api.delete(`/api/v1/families/${familyID}/invites/${token}`);
-			invites = invites.filter(i => i.token !== token);
+			await api.patch(`/api/v1/families/${familyID}/tasks/${task.id}`, {
+				title: task.title,
+				status: newStatus,
+				start_date: task.start_date,
+				end_date: task.end_date
+			});
+			tasks = tasks.map(t => t.id === task.id ? { ...t, status: newStatus } : t);
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to revoke invite';
+			error = err instanceof Error ? err.message : 'Failed to update task';
 		}
 	}
 
-	function copyLink(token: string) {
-		navigator.clipboard.writeText(`${location.origin}/invite/${token}`);
-		copied = token;
-		setTimeout(() => (copied = null), 2000);
+	async function deleteTask(taskID: string) {
+		try {
+			await api.delete(`/api/v1/families/${familyID}/tasks/${taskID}`);
+			tasks = tasks.filter(t => t.id !== taskID);
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to delete task';
+		}
 	}
+
+	const todo = $derived(tasks.filter(t => t.status !== 'done'));
+	const done = $derived(tasks.filter(t => t.status === 'done'));
 </script>
 
-<div class="max-w-lg mx-auto flex flex-col gap-6">
-	{#if error}
-		<p class="text-sm text-destructive">{error}</p>
-	{:else if family}
-		<h2 class="text-xl font-semibold">{family.name}</h2>
+{#if error}
+	<p class="text-sm text-destructive">{error}</p>
+{/if}
 
-		<Card>
-			<CardHeader class="flex flex-row items-center justify-between">
-				<CardTitle class="text-base">Invite links</CardTitle>
-				<Button size="sm" variant="outline" onclick={createInvite}>Generate new</Button>
-			</CardHeader>
-			<CardContent class="flex flex-col gap-3">
-				{#if invites.length === 0}
-					<p class="text-sm text-muted-foreground">No active invites. Generate one to share.</p>
-				{:else}
-					{#each invites as invite (invite.token)}
-						<div class="flex flex-col gap-1">
-							<div class="flex gap-2">
-								<Input readonly value="{location.origin}/invite/{invite.token}" class="flex-1 text-xs" />
-								<Button variant="outline" size="sm" onclick={() => copyLink(invite.token)}>
-									{copied === invite.token ? 'Copied!' : 'Copy'}
-								</Button>
-								<Button variant="destructive" size="sm" onclick={() => revokeInvite(invite.token)}>
-									Revoke
-								</Button>
-							</div>
-							<p class="text-xs text-muted-foreground">
-								Expires {new Date(invite.expires_at).toLocaleDateString()}
-							</p>
-						</div>
-					{/each}
-				{/if}
-			</CardContent>
-		</Card>
-	{/if}
-</div>
+<form class="flex flex-col gap-2" onsubmit={(e) => { e.preventDefault(); addTask(); }}>
+	<Input placeholder="New task…" bind:value={newTaskTitle} />
+	<div class="flex gap-2">
+		<Input type="date" bind:value={newTaskStart} class="flex-1" placeholder="Start date" />
+		<Input type="date" bind:value={newTaskEnd} class="flex-1" placeholder="End date" />
+		<Button type="submit" disabled={addingTask || !newTaskTitle.trim()}>Add</Button>
+	</div>
+</form>
+
+{#if tasks.length === 0}
+	<p class="text-sm text-muted-foreground">No tasks yet.</p>
+{:else}
+	<div class="flex flex-col gap-3">
+		{#each todo as task (task.id)}
+			<div class="flex items-center gap-3">
+				<Checkbox checked={false} onCheckedChange={() => toggleTask(task)} id="task-{task.id}" />
+				<div class="flex-1 min-w-0">
+					<label for="task-{task.id}" class="text-sm cursor-pointer truncate block">{task.title}</label>
+					{#if task.start_date || task.end_date}
+						<p class="text-xs text-muted-foreground">
+							{#if task.start_date && task.end_date}
+								{new Date(task.start_date).toLocaleDateString()} → {new Date(task.end_date).toLocaleDateString()}
+							{:else if task.end_date}
+								Due {new Date(task.end_date).toLocaleDateString()}
+							{:else if task.start_date}
+								From {new Date(task.start_date).toLocaleDateString()}
+							{/if}
+						</p>
+					{/if}
+				</div>
+				<Button variant="ghost" size="sm" class="text-muted-foreground hover:text-destructive h-7 px-2" onclick={() => deleteTask(task.id)}>✕</Button>
+			</div>
+		{/each}
+
+		{#if done.length > 0}
+			<p class="text-xs text-muted-foreground font-medium mt-2">Completed</p>
+			{#each done as task (task.id)}
+				<div class="flex items-center gap-3 opacity-50">
+					<Checkbox checked={true} onCheckedChange={() => toggleTask(task)} id="task-{task.id}" />
+					<div class="flex-1 min-w-0">
+						<label for="task-{task.id}" class="text-sm cursor-pointer line-through truncate block">{task.title}</label>
+					</div>
+					<Button variant="ghost" size="sm" class="text-muted-foreground hover:text-destructive h-7 px-2" onclick={() => deleteTask(task.id)}>✕</Button>
+				</div>
+			{/each}
+		{/if}
+	</div>
+{/if}

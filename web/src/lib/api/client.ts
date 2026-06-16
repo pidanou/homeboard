@@ -29,5 +29,14 @@ export const api = {
 		request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
 	put: <T>(path: string, body: unknown) =>
 		request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
+	patch: <T>(path: string, body: unknown) =>
+		request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
 	delete: <T>(path: string) => request<T>(path, { method: 'DELETE' })
 };
+
+/** Returns an EventSource URL with the JWT token as a query param (EventSource can't set headers). */
+export function sseUrl(path: string): string {
+	const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+	const url = `${BASE_URL}${path}`;
+	return token ? `${url}?token=${encodeURIComponent(token)}` : url;
+}

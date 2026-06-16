@@ -1,10 +1,23 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { isLoggedIn, logout } from '$lib/auth';
+	import { page } from '$app/stores';
+	import { isLoggedIn } from '$lib/auth';
+	import Sidebar from '$lib/components/Sidebar.svelte';
+	import { Menu, CheckSquare, CalendarDays, Settings } from 'lucide-svelte';
 
 	let { children } = $props();
 	let ready = $state(false);
+	let mobileMenuOpen = $state(false);
+
+	const familyID = $derived($page.params.id);
+	const currentPath = $derived($page.url.pathname);
+
+	// Close mobile menu on navigation
+	$effect(() => {
+		currentPath;
+		mobileMenuOpen = false;
+	});
 
 	onMount(() => {
 		if (!isLoggedIn()) {
@@ -13,16 +26,68 @@
 			ready = true;
 		}
 	});
+
+	const mobileTabNav = $derived(familyID ? [
+		{ label: 'Tasks', href: `/families/${familyID}`, icon: CheckSquare },
+		{ label: 'Calendar', href: `/families/${familyID}/calendar`, icon: CalendarDays },
+		{ label: 'Settings', href: `/families/${familyID}/settings`, icon: Settings },
+	] : []);
 </script>
 
 {#if ready}
-	<div class="min-h-screen flex flex-col">
-		<header class="border-b px-4 py-3 flex items-center justify-between">
-			<a href="/" class="font-semibold text-lg">Family Board</a>
-			<button onclick={logout} class="text-sm text-muted-foreground hover:underline">Sign out</button>
-		</header>
-		<main class="flex-1 p-4">
-			{@render children()}
-		</main>
+	<div class="min-h-screen flex bg-background">
+		<!-- Desktop sidebar (always visible md+) -->
+		<aside class="hidden md:flex w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar fixed top-0 left-0 bottom-0 z-30">
+			<Sidebar />
+		</aside>
+
+		<!-- Mobile sidebar overlay -->
+		{#if mobileMenuOpen}
+			<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+			<div class="fixed inset-0 z-40 md:hidden" onclick={() => mobileMenuOpen = false}>
+				<div class="absolute inset-0 bg-black/40"></div>
+				<aside class="absolute left-0 top-0 bottom-0 w-64 bg-sidebar flex flex-col z-50" onclick={(e) => e.stopPropagation()}>
+					<Sidebar onclose={() => mobileMenuOpen = false} />
+				</aside>
+			</div>
+		{/if}
+
+		<!-- Main area -->
+		<div class="flex-1 flex flex-col min-w-0 md:ml-56">
+			<!-- Mobile top bar -->
+			<header class="md:hidden sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-sm px-4 h-14 flex items-center justify-between shrink-0">
+				<a href="/" class="font-bold text-base">Family Board</a>
+				<button
+					onclick={() => mobileMenuOpen = !mobileMenuOpen}
+					class="p-2 rounded-lg hover:bg-muted transition-colors"
+					aria-label="Open menu"
+				>
+					<Menu class="w-5 h-5" />
+				</button>
+			</header>
+
+			<main class="flex-1 p-4 md:p-6 overflow-auto">
+				{@render children()}
+			</main>
+
+			<!-- Mobile bottom tab bar (only when in a family) -->
+			{#if mobileTabNav.length > 0}
+				<nav class="md:hidden border-t border-border bg-background shrink-0 flex safe-area-bottom">
+					{#each mobileTabNav as item (item.href)}
+						{@const Icon = item.icon}
+						<a
+							href={item.href}
+							class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-xs font-medium transition-colors min-h-[56px]
+								{currentPath === item.href
+									? 'text-primary'
+									: 'text-muted-foreground hover:text-foreground'}"
+						>
+							<Icon class="w-5 h-5" />
+							{item.label}
+						</a>
+					{/each}
+				</nav>
+			{/if}
+		</div>
 	</div>
 {/if}

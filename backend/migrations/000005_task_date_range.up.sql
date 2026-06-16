@@ -1,0 +1,2 @@
+ALTER TABLE tasks ADD COLUMN start_date TIMESTAMPTZ;
+ALTER TABLE tasks RENAME COLUMN due_date TO end_date;

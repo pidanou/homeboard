@@ -50,16 +50,26 @@ func main() {
 	userRepo := postgres.NewUserRepository(pool)
 	familyRepo := postgres.NewFamilyRepository(pool)
 	inviteRepo := postgres.NewInviteRepository(pool)
+	taskRepo := postgres.NewTaskRepository(pool)
+	eventRepo := postgres.NewEventRepository(pool)
 
 	// Services
 	authService := service.NewAuthService(userRepo, os.Getenv("JWT_SECRET"))
 	familyService := service.NewFamilyService(familyRepo)
 	inviteService := service.NewInviteService(inviteRepo, familyRepo)
+	taskService := service.NewTaskService(taskRepo)
+	eventService := service.NewEventService(eventRepo)
+
+	// SSE hub
+	hub := handler.NewHub()
 
 	// Handlers
 	authHandler := handler.NewAuthHandler(authService)
 	familyHandler := handler.NewFamilyHandler(familyService)
 	inviteHandler := handler.NewInviteHandler(inviteService, os.Getenv("JWT_SECRET"))
+	taskHandler := handler.NewTaskHandler(taskService, hub)
+	eventHandler := handler.NewEventHandler(eventService, hub)
+	sseHandler := handler.NewSSEHandler(hub, os.Getenv("JWT_SECRET"))
 
 	allowedOrigins := []string{"http://localhost:5173"}
 	if origin := os.Getenv("APP_BASE_URL"); origin != "" {
@@ -81,11 +91,21 @@ func main() {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Mount("/auth", authHandler.Routes())
 		r.Mount("/invites", inviteHandler.PublicRoutes())
+		// SSE stream: does its own JWT auth via ?token= (EventSource can't set headers)
+		r.Route("/families/{familyID}/stream", func(r chi.Router) {
+			r.Mount("/", sseHandler.Routes())
+		})
 		r.Group(func(r chi.Router) {
 			r.Use(handler.AuthMiddleware(os.Getenv("JWT_SECRET")))
 			r.Mount("/families", familyHandler.Routes())
 			r.Route("/families/{familyID}/invites", func(r chi.Router) {
 				r.Mount("/", inviteHandler.Routes())
+			})
+			r.Route("/families/{familyID}/tasks", func(r chi.Router) {
+				r.Mount("/", taskHandler.Routes())
+			})
+			r.Route("/families/{familyID}/events", func(r chi.Router) {
+				r.Mount("/", eventHandler.Routes())
 			})
 		})
 	})
