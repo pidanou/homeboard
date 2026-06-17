@@ -97,12 +97,15 @@ Close the gap between current month-only calendar and the Calendar spec.
 
 ---
 
-## M9 — Calendar week / day views ⬜
+## M9 — Calendar week / day views ✅
 Secondary calendar views; lower priority than M8.
 
-- ⬜ Week view (7-column grid, hourly slots, events as sized blocks)
-- ⬜ Day view (single day, hourly slots, reached from month/week tap)
-- ⬜ Swipe navigation for month and week
+- ✅ Week view (7-column grid, hourly slots, events as sized blocks)
+- ✅ Day view (single day, hourly slots, reached from month/week tap or day panel "Day view" button)
+- ✅ Swipe navigation for month, week, and day views
+- ✅ Current-time red indicator line (updates every minute)
+- ✅ Click time grid to pre-fill event start/end time
+- ✅ All-day events and tasks in pinned row above time grid
 
 ---
 
