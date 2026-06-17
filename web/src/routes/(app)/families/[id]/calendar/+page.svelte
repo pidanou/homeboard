@@ -6,6 +6,13 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Textarea } from '$lib/components/ui/textarea';
+	import { Checkbox } from '$lib/components/ui/checkbox';
+	import * as Dialog from '$lib/components/ui/dialog';
+	import * as Popover from '$lib/components/ui/popover';
+	import { RangeCalendar } from '$lib/components/ui/range-calendar';
+	import { CalendarDate, type DateValue } from '@internationalized/date';
+	import type { DateRange } from 'bits-ui';
+	import { CalendarDays } from 'lucide-svelte';
 
 	type CalEvent = {
 		id: string;
@@ -14,39 +21,93 @@
 		end_at: string;
 		all_day: boolean;
 		description?: string;
+		location?: string;
+		label_ids?: string[];
 	};
 
 	type Task = { id: string; title: string; start_date?: string; end_date?: string; status: string };
+
+	type AppLabel = { id: string; family_id: string; name: string; color: string };
+
+	type LabelColor = 'red' | 'orange' | 'yellow' | 'green' | 'teal' | 'blue' | 'purple' | 'pink' | 'gray';
+
+	const LABEL_CHIP: Record<LabelColor, string> = {
+		red: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+		orange: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+		yellow: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+		green: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+		teal: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+		blue: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+		purple: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+		pink: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400',
+		gray: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+	};
+
+	const LABEL_DOT: Record<LabelColor, string> = {
+		red: 'bg-red-500', orange: 'bg-orange-500', yellow: 'bg-yellow-500',
+		green: 'bg-green-500', teal: 'bg-teal-500', blue: 'bg-blue-500',
+		purple: 'bg-purple-500', pink: 'bg-pink-500', gray: 'bg-gray-400',
+	};
+
+	function chipClass(color: string) { return LABEL_CHIP[color as LabelColor] ?? LABEL_CHIP.gray; }
+	function dotClass(color: string) { return LABEL_DOT[color as LabelColor] ?? LABEL_DOT.gray; }
 
 	const familyID = $derived($page.params.id);
 
 	let today = new Date();
 	let viewYear = $state(today.getFullYear());
-	let viewMonth = $state(today.getMonth()); // 0-indexed
+	let viewMonth = $state(today.getMonth());
 
 	let events = $state<CalEvent[]>([]);
 	let tasks = $state<Task[]>([]);
+	let labels = $state<AppLabel[]>([]);
 	let error = $state('');
 
-	// Create/edit dialog state
+	function labelByID(id: string) { return labels.find((l) => l.id === id); }
+
 	let showForm = $state(false);
 	let editing = $state<CalEvent | null>(null);
 	let formTitle = $state('');
-	let formStart = $state('');
-	let formEnd = $state('');
 	let formAllDay = $state(false);
+	let formLabelIDs = $state<string[]>([]);
 	let formDesc = $state('');
+	let formLocation = $state('');
 	let saving = $state(false);
+	let pickerOpen = $state(false);
+
+	let dateRange = $state<DateRange>({ start: undefined, end: undefined });
+	let startTime = $state('09:00');
+	let endTime = $state('10:00');
+
+	function toCalDate(isoStr: string): CalendarDate {
+		const d = new Date(isoStr);
+		return new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
+	}
+
+	function toISO(date: DateValue, time: string, allDay: boolean): string {
+		const pad = (n: number) => String(n).padStart(2, '0');
+		const dateStr = `${date.year}-${pad(date.month)}-${pad(date.day)}`;
+		return new Date(`${dateStr}T${allDay ? '00:00' : time}`).toISOString();
+	}
+
+	const rangeLabel = $derived((() => {
+		const { start, end } = dateRange;
+		if (!start) return 'Select dates';
+		const fmt = (d: DateValue) => `${d.month}/${d.day}/${d.year}`;
+		if (!end || (end.day === start.day && end.month === start.month && end.year === start.year)) return fmt(start);
+		return `${fmt(start)} – ${fmt(end)}`;
+	})());
 
 	async function loadMonth() {
 		const from = new Date(viewYear, viewMonth, 1);
 		const to = new Date(viewYear, viewMonth + 1, 1);
 		try {
-			[events, tasks] = await Promise.all([
+			[events, tasks, labels] = await Promise.all([
 				api.get<CalEvent[]>(
 					`/api/v1/families/${familyID}/events?from=${from.toISOString()}&to=${to.toISOString()}`
 				).then(r => r ?? []),
-				api.get<Task[]>(`/api/v1/families/${familyID}/tasks`).then(r => r ?? [])
+				api.get<Task[]>(`/api/v1/families/${familyID}/tasks`).then(r => r ?? []),
+				api.get<AppLabel[]>(`/api/v1/families/${familyID}/labels`).then(r => r ?? []),
 			]);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load calendar';
@@ -74,11 +135,10 @@
 		loadMonth();
 	}
 
-	// Build the 6-row grid of days
 	const calDays = $derived((() => {
 		const first = new Date(viewYear, viewMonth, 1);
 		const last = new Date(viewYear, viewMonth + 1, 0);
-		const startPad = first.getDay(); // 0=Sun
+		const startPad = first.getDay();
 		const days: (Date | null)[] = [];
 		for (let i = 0; i < startPad; i++) days.push(null);
 		for (let d = 1; d <= last.getDate(); d++) days.push(new Date(viewYear, viewMonth, d));
@@ -110,7 +170,6 @@
 			.map(t => {
 				const s = t.start_date ? new Date(t.start_date) : new Date(t.end_date!);
 				const e = t.end_date ? new Date(t.end_date) : new Date(t.start_date!);
-				// treat week boundaries as visual start/end so bars wrap cleanly
 				const isStart = s >= dayStart || date.getDay() === 0;
 				const isEnd   = e <= dayEnd   || date.getDay() === 6;
 				return { task: t, isStart, isEnd };
@@ -125,14 +184,16 @@
 		editing = null;
 		formTitle = '';
 		formDesc = '';
+		formLocation = '';
 		formAllDay = false;
+		formLabelIDs = [];
+		startTime = '09:00';
+		endTime = '10:00';
 		if (date) {
-			const iso = date.toISOString().slice(0, 10);
-			formStart = `${iso}T09:00`;
-			formEnd = `${iso}T10:00`;
+			const cd = new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+			dateRange = { start: cd, end: cd };
 		} else {
-			formStart = '';
-			formEnd = '';
+			dateRange = { start: undefined, end: undefined };
 		}
 		showForm = true;
 	}
@@ -141,22 +202,30 @@
 		editing = e;
 		formTitle = e.title;
 		formDesc = e.description ?? '';
+		formLocation = e.location ?? '';
 		formAllDay = e.all_day;
-		formStart = e.start_at.slice(0, 16);
-		formEnd = e.end_at.slice(0, 16);
+		formLabelIDs = [...(e.label_ids ?? [])];
+		const s = new Date(e.start_at);
+		const en = new Date(e.end_at);
+		dateRange = { start: toCalDate(e.start_at), end: toCalDate(e.end_at) };
+		startTime = `${String(s.getHours()).padStart(2, '0')}:${String(s.getMinutes()).padStart(2, '0')}`;
+		endTime = `${String(en.getHours()).padStart(2, '0')}:${String(en.getMinutes()).padStart(2, '0')}`;
 		showForm = true;
 	}
 
 	async function saveEvent() {
-		if (!formTitle.trim() || !formStart || !formEnd) return;
+		if (!formTitle.trim() || !dateRange.start) return;
 		saving = true;
+		const endDate = dateRange.end ?? dateRange.start;
 		try {
 			const body = {
 				title: formTitle.trim(),
 				description: formDesc,
-				start_at: new Date(formStart).toISOString(),
-				end_at: new Date(formEnd).toISOString(),
-				all_day: formAllDay
+				location: formLocation,
+				start_at: toISO(dateRange.start, startTime, formAllDay),
+				end_at: toISO(endDate, endTime, formAllDay),
+				all_day: formAllDay,
+				label_ids: formLabelIDs,
 			};
 			if (editing) {
 				await api.patch(`/api/v1/families/${familyID}/events/${editing.id}`, body);
@@ -218,7 +287,6 @@
 			onkeydown={(e) => e.key === 'Enter' && day && openNew(day)}
 		>
 			{#if day}
-				<!-- date number -->
 				<div class="px-1.5 pt-1.5 pb-1">
 					<span class="text-xs font-medium inline-flex items-center justify-center w-6 h-6 rounded-full
 						{isToday(day)
@@ -228,7 +296,6 @@
 					</span>
 				</div>
 
-				<!-- calendar events (single-day chips) -->
 				<div class="flex flex-col gap-0.5 px-1 pb-0.5">
 					{#each eventsForDay(day) as ev}
 						<button
@@ -240,7 +307,6 @@
 					{/each}
 				</div>
 
-				<!-- task spanning bars -->
 				<div class="flex flex-col gap-0.5 pb-1.5">
 					{#each taskSpansForDay(day) as { task, isStart, isEnd }}
 						<div class="
@@ -262,41 +328,105 @@
 </div>
 
 <!-- Event form dialog -->
-{#if showForm}
-	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onclick={() => showForm = false}>
-		<div class="bg-background border rounded-lg p-6 w-full max-w-sm flex flex-col gap-4" onclick={(e) => e.stopPropagation()}>
-			<h3 class="font-semibold">{editing ? 'Edit event' : 'New event'}</h3>
+<Dialog.Root bind:open={showForm}>
+	<Dialog.Portal>
+		<Dialog.Overlay />
+		<Dialog.Content class="sm:max-w-md">
+			<Dialog.Header>
+				<Dialog.Title>{editing ? 'Edit event' : 'New event'}</Dialog.Title>
+			</Dialog.Header>
 
-			<div class="flex flex-col gap-1">
-				<Label for="ev-title">Title</Label>
-				<Input id="ev-title" bind:value={formTitle} placeholder="Event title" />
-			</div>
+			<div class="flex flex-col gap-4 py-2">
+				<div class="flex flex-col gap-1.5">
+					<Label for="ev-title">Title</Label>
+					<Input id="ev-title" bind:value={formTitle} placeholder="Event title" />
+				</div>
 
-			<div class="flex flex-col gap-1">
-				<Label for="ev-start">Start</Label>
-				<Input id="ev-start" type="datetime-local" bind:value={formStart} />
-			</div>
+				<!-- Date range picker -->
+				<div class="flex flex-col gap-1.5">
+					<Label>Dates</Label>
+					<Popover.Root bind:open={pickerOpen}>
+						<Popover.Trigger>
+							<Button variant="outline" class="w-full justify-start gap-2 font-normal">
+								<CalendarDays class="w-4 h-4 text-muted-foreground" />
+								{rangeLabel}
+							</Button>
+						</Popover.Trigger>
+						<Popover.Content class="w-auto p-0" align="start">
+							<RangeCalendar
+								bind:value={dateRange}
+								onValueChange={() => { if (dateRange.start && dateRange.end) pickerOpen = false; }}
+							/>
+						</Popover.Content>
+					</Popover.Root>
+				</div>
 
-			<div class="flex flex-col gap-1">
-				<Label for="ev-end">End</Label>
-				<Input id="ev-end" type="datetime-local" bind:value={formEnd} />
-			</div>
-
-			<div class="flex flex-col gap-1">
-				<Label for="ev-desc">Description (optional)</Label>
-				<Textarea id="ev-desc" bind:value={formDesc} placeholder="Add a description…" rows={3} />
-			</div>
-
-			<div class="flex gap-2 justify-end">
-				{#if editing}
-					<Button variant="destructive" size="sm" onclick={deleteEvent}>Delete</Button>
+				<!-- Time inputs (hidden when all-day) -->
+				{#if !formAllDay}
+					<div class="flex gap-3">
+						<div class="flex flex-col gap-1.5 flex-1">
+							<Label for="ev-start-time">Start time</Label>
+							<Input id="ev-start-time" type="time" bind:value={startTime} />
+						</div>
+						<div class="flex flex-col gap-1.5 flex-1">
+							<Label for="ev-end-time">End time</Label>
+							<Input id="ev-end-time" type="time" bind:value={endTime} />
+						</div>
+					</div>
 				{/if}
-				<Button variant="outline" size="sm" onclick={() => showForm = false}>Cancel</Button>
-				<Button size="sm" onclick={saveEvent} disabled={saving || !formTitle.trim()}>
-					{saving ? 'Saving…' : 'Save'}
-				</Button>
+
+				<label class="flex items-center gap-2 text-sm cursor-pointer">
+					<Checkbox bind:checked={formAllDay} />
+					All day
+				</label>
+
+				<div class="flex flex-col gap-1.5">
+					<Label for="ev-location">Location</Label>
+					<Input id="ev-location" bind:value={formLocation} placeholder="Optional location…" />
+				</div>
+
+				<div class="flex flex-col gap-1.5">
+					<Label for="ev-desc">Description</Label>
+					<Textarea id="ev-desc" bind:value={formDesc} placeholder="Optional details…" rows={2} />
+				</div>
+
+				{#if labels.length > 0}
+					<div class="flex flex-col gap-1.5">
+						<Label>Labels</Label>
+						<div class="flex flex-wrap gap-1.5">
+							{#each labels as lbl}
+								<button
+									type="button"
+									onclick={() => {
+										formLabelIDs = formLabelIDs.includes(lbl.id)
+											? formLabelIDs.filter((id) => id !== lbl.id)
+											: [...formLabelIDs, lbl.id];
+									}}
+									class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all border
+										{formLabelIDs.includes(lbl.id)
+										? 'border-foreground ring-1 ring-foreground ' + chipClass(lbl.color)
+										: 'border-transparent ' + chipClass(lbl.color)}"
+								>
+									<span class="w-1.5 h-1.5 rounded-full {dotClass(lbl.color)} shrink-0"></span>
+									{lbl.name}
+								</button>
+							{/each}
+						</div>
+					</div>
+				{/if}
 			</div>
-		</div>
-	</div>
-{/if}
+
+			<Dialog.Footer class="flex-col-reverse sm:flex-row gap-2">
+				{#if editing}
+					<Button variant="destructive" onclick={deleteEvent}>Delete</Button>
+				{/if}
+				<div class="flex gap-2 sm:ml-auto">
+					<Button variant="outline" onclick={() => (showForm = false)}>Cancel</Button>
+					<Button onclick={saveEvent} disabled={saving || !formTitle.trim() || !dateRange.start}>
+						{saving ? 'Saving…' : 'Save'}
+					</Button>
+				</div>
+			</Dialog.Footer>
+		</Dialog.Content>
+	</Dialog.Portal>
+</Dialog.Root>

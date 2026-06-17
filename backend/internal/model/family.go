@@ -11,6 +11,8 @@ type Family struct {
 type FamilyMember struct {
 	FamilyID  string    `json:"family_id"`
 	UserID    string    `json:"user_id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
 	Role      string    `json:"role"` // "admin" | "member"
 	JoinedAt  time.Time `json:"joined_at"`
 }

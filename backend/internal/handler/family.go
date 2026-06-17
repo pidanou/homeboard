@@ -21,6 +21,7 @@ func (h *FamilyHandler) Routes() http.Handler {
 	r.Get("/", h.list)
 	r.Post("/", h.create)
 	r.Get("/{familyID}", h.get)
+	r.Get("/{familyID}/members", h.members)
 	return r
 }
 
@@ -70,4 +71,17 @@ func (h *FamilyHandler) get(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(family)
+}
+
+func (h *FamilyHandler) members(w http.ResponseWriter, r *http.Request) {
+	familyID := chi.URLParam(r, "familyID")
+
+	members, err := h.families.GetMembers(r.Context(), familyID)
+	if err != nil {
+		http.Error(w, "failed to get members", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(members)
 }

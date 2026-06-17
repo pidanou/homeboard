@@ -17,18 +17,25 @@ func NewTaskService(tasks repository.TaskRepository) *TaskService {
 	return &TaskService{tasks: tasks}
 }
 
-func (s *TaskService) Create(ctx context.Context, familyID, userID, title string, startDate, endDate *time.Time) (*model.Task, error) {
+func (s *TaskService) Create(ctx context.Context, familyID, userID, title, description, priority string, assignedTo *string, startDate, endDate *time.Time, labelIDs []string) (*model.Task, error) {
+	if priority == "" {
+		priority = "medium"
+	}
 	now := time.Now().UTC()
 	task := &model.Task{
-		ID:        uuid.NewString(),
-		FamilyID:  familyID,
-		Title:     title,
-		Status:    "todo",
-		StartDate: startDate,
-		EndDate:   endDate,
-		CreatedBy: userID,
-		CreatedAt: now,
-		UpdatedAt: now,
+		ID:          uuid.NewString(),
+		FamilyID:    familyID,
+		Title:       title,
+		Description: description,
+		Priority:    priority,
+		Status:      "todo",
+		AssignedTo:  assignedTo,
+		StartDate:   startDate,
+		EndDate:     endDate,
+		LabelIDs:    labelIDs,
+		CreatedBy:   userID,
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
 	if err := s.tasks.Create(ctx, task); err != nil {
 		return nil, err
@@ -41,6 +48,9 @@ func (s *TaskService) ListForFamily(ctx context.Context, familyID string) ([]*mo
 }
 
 func (s *TaskService) Update(ctx context.Context, task *model.Task) error {
+	if task.Priority == "" {
+		task.Priority = "medium"
+	}
 	task.UpdatedAt = time.Now().UTC()
 	return s.tasks.Update(ctx, task)
 }
