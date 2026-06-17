@@ -49,3 +49,7 @@ func (s *FamilyService) GetByID(ctx context.Context, id string) (*model.Family, 
 func (s *FamilyService) ListForUser(ctx context.Context, userID string) ([]*model.Family, error) {
 	return s.families.GetFamiliesByUserID(ctx, userID)
 }
+
+func (s *FamilyService) GetMembers(ctx context.Context, familyID string) ([]*model.FamilyMember, error) {
+	return s.families.GetMembers(ctx, familyID)
+}

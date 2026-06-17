@@ -1,0 +1,3 @@
+ALTER TABLE tasks ADD COLUMN priority TEXT NOT NULL DEFAULT 'medium';
+ALTER TABLE tasks ADD COLUMN description TEXT;
+ALTER TABLE events ADD COLUMN location TEXT;

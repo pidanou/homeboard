@@ -17,16 +17,19 @@ func NewEventService(events repository.EventRepository) *EventService {
 	return &EventService{events: events}
 }
 
-func (s *EventService) Create(ctx context.Context, familyID, userID, title, description string, startAt, endAt time.Time, allDay bool) (*model.Event, error) {
+func (s *EventService) Create(ctx context.Context, familyID, userID, title, description, location string, startAt, endAt time.Time, allDay bool, attendeeIDs, labelIDs []string) (*model.Event, error) {
 	now := time.Now().UTC()
 	event := &model.Event{
 		ID:          uuid.NewString(),
 		FamilyID:    familyID,
 		Title:       title,
 		Description: description,
+		Location:    location,
 		StartAt:     startAt.UTC(),
 		EndAt:       endAt.UTC(),
 		AllDay:      allDay,
+		AttendeeIDs: attendeeIDs,
+		LabelIDs:    labelIDs,
 		CreatedBy:   userID,
 		CreatedAt:   now,
 		UpdatedAt:   now,

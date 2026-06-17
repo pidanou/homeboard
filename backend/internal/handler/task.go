@@ -58,9 +58,13 @@ func (h *TaskHandler) create(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(ContextKeyUserID).(string)
 
 	var body struct {
-		Title     string  `json:"title"`
-		StartDate *string `json:"start_date"`
-		EndDate   *string `json:"end_date"`
+		Title       string   `json:"title"`
+		Description string   `json:"description"`
+		Priority    string   `json:"priority"`
+		AssignedTo  *string  `json:"assigned_to"`
+		StartDate   *string  `json:"start_date"`
+		EndDate     *string  `json:"end_date"`
+		LabelIDs    []string `json:"label_ids"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Title == "" {
 		http.Error(w, "title is required", http.StatusBadRequest)
@@ -78,7 +82,7 @@ func (h *TaskHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := h.tasks.Create(r.Context(), familyID, userID, body.Title, startDate, endDate)
+	task, err := h.tasks.Create(r.Context(), familyID, userID, body.Title, body.Description, body.Priority, body.AssignedTo, startDate, endDate, body.LabelIDs)
 	if err != nil {
 		http.Error(w, "failed to create task", http.StatusInternalServerError)
 		return
@@ -94,11 +98,14 @@ func (h *TaskHandler) update(w http.ResponseWriter, r *http.Request) {
 	taskID := chi.URLParam(r, "taskID")
 
 	var body struct {
-		Title      *string `json:"title"`
-		Status     *string `json:"status"`
-		AssignedTo *string `json:"assigned_to"`
-		StartDate  *string `json:"start_date"`
-		EndDate    *string `json:"end_date"`
+		Title       *string  `json:"title"`
+		Description *string  `json:"description"`
+		Priority    *string  `json:"priority"`
+		Status      *string  `json:"status"`
+		AssignedTo  *string  `json:"assigned_to"`
+		StartDate   *string  `json:"start_date"`
+		EndDate     *string  `json:"end_date"`
+		LabelIDs    []string `json:"label_ids"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid request", http.StatusBadRequest)
@@ -109,6 +116,12 @@ func (h *TaskHandler) update(w http.ResponseWriter, r *http.Request) {
 	task := &model.Task{ID: taskID, FamilyID: familyID}
 	if body.Title != nil {
 		task.Title = *body.Title
+	}
+	if body.Description != nil {
+		task.Description = *body.Description
+	}
+	if body.Priority != nil {
+		task.Priority = *body.Priority
 	}
 	if body.Status != nil {
 		task.Status = *body.Status
@@ -126,6 +139,7 @@ func (h *TaskHandler) update(w http.ResponseWriter, r *http.Request) {
 	}
 	task.StartDate = startDate
 	task.EndDate = endDate
+	task.LabelIDs = body.LabelIDs
 
 	if err := h.tasks.Update(r.Context(), task); err != nil {
 		http.Error(w, "failed to update task", http.StatusInternalServerError)

@@ -52,6 +52,7 @@ func main() {
 	inviteRepo := postgres.NewInviteRepository(pool)
 	taskRepo := postgres.NewTaskRepository(pool)
 	eventRepo := postgres.NewEventRepository(pool)
+	labelRepo := postgres.NewLabelRepository(pool)
 
 	// Services
 	authService := service.NewAuthService(userRepo, os.Getenv("JWT_SECRET"))
@@ -59,6 +60,7 @@ func main() {
 	inviteService := service.NewInviteService(inviteRepo, familyRepo)
 	taskService := service.NewTaskService(taskRepo)
 	eventService := service.NewEventService(eventRepo)
+	labelService := service.NewLabelService(labelRepo)
 
 	// SSE hub
 	hub := handler.NewHub()
@@ -69,9 +71,10 @@ func main() {
 	inviteHandler := handler.NewInviteHandler(inviteService, os.Getenv("JWT_SECRET"))
 	taskHandler := handler.NewTaskHandler(taskService, hub)
 	eventHandler := handler.NewEventHandler(eventService, hub)
+	labelHandler := handler.NewLabelHandler(labelService, hub)
 	sseHandler := handler.NewSSEHandler(hub, os.Getenv("JWT_SECRET"))
 
-	allowedOrigins := []string{"http://localhost:5173"}
+	allowedOrigins := []string{"http://localhost:5173", "https://*.ngrok-free.app", "https://*.ngrok.io"}
 	if origin := os.Getenv("APP_BASE_URL"); origin != "" {
 		allowedOrigins = append(allowedOrigins, origin)
 	}
@@ -106,6 +109,9 @@ func main() {
 			})
 			r.Route("/families/{familyID}/events", func(r chi.Router) {
 				r.Mount("/", eventHandler.Routes())
+			})
+			r.Route("/families/{familyID}/labels", func(r chi.Router) {
+				r.Mount("/", labelHandler.Routes())
 			})
 		})
 	})

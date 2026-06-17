@@ -48,7 +48,9 @@ func (r *FamilyRepository) AddMember(ctx context.Context, member *model.FamilyMe
 
 func (r *FamilyRepository) GetMembers(ctx context.Context, familyID string) ([]*model.FamilyMember, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT family_id, user_id, role, joined_at FROM family_members WHERE family_id = $1`,
+		`SELECT fm.family_id, fm.user_id, u.name, u.email, fm.role, fm.joined_at
+		 FROM family_members fm JOIN users u ON u.id = fm.user_id
+		 WHERE fm.family_id = $1`,
 		familyID,
 	)
 	if err != nil {
@@ -59,7 +61,7 @@ func (r *FamilyRepository) GetMembers(ctx context.Context, familyID string) ([]*
 	var members []*model.FamilyMember
 	for rows.Next() {
 		m := &model.FamilyMember{}
-		if err := rows.Scan(&m.FamilyID, &m.UserID, &m.Role, &m.JoinedAt); err != nil {
+		if err := rows.Scan(&m.FamilyID, &m.UserID, &m.Name, &m.Email, &m.Role, &m.JoinedAt); err != nil {
 			return nil, err
 		}
 		members = append(members, m)
