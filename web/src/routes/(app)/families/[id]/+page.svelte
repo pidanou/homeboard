@@ -3,9 +3,10 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { api, sseUrl } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
-	import { CheckSquare } from 'lucide-svelte';
-	import type { Task, CalEvent, Member, AppLabel, Filter } from '$lib/types';
-	import BoardToolbar from '$lib/components/BoardToolbar.svelte';
+	import { Input } from '$lib/components/ui/input';
+	import { CalendarDays } from 'lucide-svelte';
+	import type { Task, CalEvent, Member, AppLabel } from '$lib/types';
+	import { localDayMs, fmtDateTime } from '$lib/dates';
 	import TaskCard from '$lib/components/TaskCard.svelte';
 	import EventCard from '$lib/components/EventCard.svelte';
 	import CreateDialog from '$lib/components/CreateDialog.svelte';
@@ -13,17 +14,14 @@
 
 	const familyID = $derived($page.params.id ?? '');
 	const now = new Date();
+	const todayMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
 	let members = $state<Member[]>([]);
 	let tasks = $state<Task[]>([]);
 	let events = $state<CalEvent[]>([]);
 	let labels = $state<AppLabel[]>([]);
 	let error = $state('');
-	let filter = $state<Filter>('all');
-	let filterMembers = $state(new Set<string>());
-	let filterLabels = $state(new Set<string>());
-	let sortBy = $state<'date' | 'priority' | 'title'>('date');
-	let sortAsc = $state(true);
+	let quickTitle = $state('');
 
 	let createDialog: { open: (t?: 'task' | 'event') => void } | undefined = $state();
 	let editDialog: { openTask: (t: Task) => void; openEvent: (e: CalEvent) => void } | undefined = $state();
@@ -32,13 +30,12 @@
 	let errorTimer: ReturnType<typeof setTimeout> | null = null;
 
 	async function loadData() {
-		const from = new Date();
-		const to = new Date();
-		to.setDate(to.getDate() + 90);
+		const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+		const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 		const [membersRes, tasksRes, eventsRes, labelsRes] = await Promise.allSettled([
 			api.get<Member[]>(`/api/v1/families/${familyID}/members`),
 			api.get<Task[]>(`/api/v1/families/${familyID}/tasks`),
-			api.get<CalEvent[]>(`/api/v1/families/${familyID}/events?from=${from.toISOString()}&to=${to.toISOString()}`),
+			api.get<CalEvent[]>(`/api/v1/families/${familyID}/events?from=${todayStart.toISOString()}&to=${todayEnd.toISOString()}`),
 			api.get<AppLabel[]>(`/api/v1/families/${familyID}/labels`),
 		]);
 		if (membersRes.status === 'fulfilled') members = membersRes.value ?? [];
@@ -85,56 +82,39 @@
 		}
 	}
 
-	// ── Filtered + sorted list ────────────────────────────────────────────────
+	async function quickAdd(e: SubmitEvent) {
+		e.preventDefault();
+		if (!quickTitle.trim()) return;
+		try {
+			await api.post(`/api/v1/families/${familyID}/tasks`, {
+				title: quickTitle.trim(), priority: 'medium', label_ids: [],
+			});
+			quickTitle = '';
+			loadData();
+		} catch (err) {
+			setError(err);
+		}
+	}
+
 	const PRIORITY_RANK: Record<string, number> = { high: 0, medium: 1 };
 
-	type ListItem =
-		| { kind: 'task'; data: Task; sortKey: number }
-		| { kind: 'event'; data: CalEvent; sortKey: number };
-
-	const visibleItems = $derived(
-		(() => {
-			const items: ListItem[] = [];
-			const FAR_FUTURE = 9999999999999;
-			const matchesMember = (t: Task) =>
-				filterMembers.size === 0 || (!!t.assigned_to && filterMembers.has(t.assigned_to));
-			const matchesMemberEv = (ev: CalEvent) =>
-				filterMembers.size === 0 || (ev.attendee_ids ?? []).some((id) => filterMembers.has(id));
-			const matchesLabel = (ids: string[] | undefined) =>
-				filterLabels.size === 0 || (ids ?? []).some((id) => filterLabels.has(id));
-
-			if (filter === 'all' || filter === 'tasks') {
-				for (const t of tasks.filter((t) => t.status !== 'done' && matchesMember(t) && matchesLabel(t.label_ids))) {
-					const sortKey = t.end_date
-						? new Date(t.end_date).getTime()
-						: FAR_FUTURE + (PRIORITY_RANK[t.priority] ?? 1);
-					items.push({ kind: 'task', data: t, sortKey });
-				}
-			}
-			if (filter === 'all' || filter === 'events') {
-				for (const ev of events.filter((ev) => new Date(ev.end_at) >= now && matchesMemberEv(ev) && matchesLabel(ev.label_ids))) {
-					items.push({ kind: 'event', data: ev, sortKey: new Date(ev.start_at).getTime() });
-				}
-			}
-			if (filter === 'done') {
-				for (const t of tasks.filter((t) => t.status === 'done' && matchesMember(t))) {
-					items.push({ kind: 'task', data: t, sortKey: 0 });
-				}
-			}
-
-			const dir = sortAsc ? 1 : -1;
-			if (sortBy === 'date') return items.sort((a, b) => (a.sortKey - b.sortKey) * dir);
-			if (sortBy === 'priority')
-				return items.sort((a, b) => {
-					const pa = a.kind === 'task' ? (PRIORITY_RANK[a.data.priority] ?? 1) : 3;
-					const pb = b.kind === 'task' ? (PRIORITY_RANK[b.data.priority] ?? 1) : 3;
-					return (pa !== pb ? pa - pb : a.sortKey - b.sortKey) * dir;
-				});
-			return items.sort((a, b) => a.data.title.localeCompare(b.data.title) * dir);
-		})(),
+	const overdueTasks = $derived(
+		tasks
+			.filter((t) => t.status !== 'done' && t.end_date && localDayMs(t.end_date) < todayMs)
+			.sort((a, b) => new Date(a.end_date!).getTime() - new Date(b.end_date!).getTime()),
 	);
 
-	const doneCnt = $derived(tasks.filter((t) => t.status === 'done').length);
+	const dueTodayTasks = $derived(
+		tasks
+			.filter((t) => t.status !== 'done' && t.end_date && localDayMs(t.end_date) === todayMs)
+			.sort((a, b) => (PRIORITY_RANK[a.priority] ?? 2) - (PRIORITY_RANK[b.priority] ?? 2)),
+	);
+
+	const todayEvents = $derived(
+		[...events].sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()),
+	);
+
+	const isEmpty = $derived(overdueTasks.length === 0 && dueTodayTasks.length === 0 && todayEvents.length === 0);
 </script>
 
 {#if error}
@@ -145,69 +125,66 @@
 {/if}
 
 <div class="flex items-center justify-between mb-4">
-	<h1 class="text-xl font-semibold">Board</h1>
-	<Button onclick={() => createDialog?.open(filter === 'events' ? 'event' : 'task')}>+ New</Button>
+	<div>
+		<h1 class="text-xl font-semibold">Today</h1>
+		<p class="text-xs text-muted-foreground">{now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+	</div>
+	<Button size="sm" onclick={() => createDialog?.open('event')}>
+		<CalendarDays class="w-3.5 h-3.5 mr-1" />Event
+	</Button>
 </div>
 
-<BoardToolbar
-	bind:filter
-	bind:filterMembers
-	bind:filterLabels
-	bind:sortBy
-	bind:sortAsc
-	{members}
-	{labels}
-	{doneCnt}
-	{familyID}
-/>
+<form onsubmit={quickAdd} class="mb-5">
+	<Input bind:value={quickTitle} placeholder="Add a task for today…" class="bg-muted/20 border-dashed focus-visible:border-solid" />
+</form>
 
-{#if visibleItems.length === 0}
+{#if isEmpty}
 	<div class="flex flex-col items-center gap-2 py-16 text-muted-foreground">
-		<CheckSquare class="w-10 h-10 opacity-30" />
-		<p class="text-sm">
-			{filter === 'done' ? 'Nothing completed yet.' : 'Nothing here yet. Add a task or event above.'}
-		</p>
+		<p class="text-2xl">✓</p>
+		<p class="text-sm font-medium">All clear for today</p>
+		<p class="text-xs">No events, no tasks due.</p>
 	</div>
 {:else}
-	<div class="flex flex-col gap-2">
-		{#each visibleItems as item (item.kind + item.data.id)}
-			{#if item.kind === 'task'}
-				<TaskCard
-					task={item.data}
-					{members}
-					{labels}
-					isDoneFilter={filter === 'done'}
-					onclick={() => editDialog?.openTask(item.data)}
-					ontoggle={(e) => toggleTask(item.data, e)}
-				/>
-			{:else}
-				<EventCard
-					event={item.data}
-					{members}
-					{labels}
-					{now}
-					onclick={() => editDialog?.openEvent(item.data)}
-				/>
-			{/if}
-		{/each}
-	</div>
+	{#if overdueTasks.length > 0}
+		<div class="flex items-center gap-3 mb-2">
+			<span class="text-xs font-semibold uppercase tracking-wide shrink-0 text-destructive">Overdue</span>
+			<div class="flex-1 h-px bg-destructive/20"></div>
+		</div>
+		<div class="flex flex-col gap-2 mb-5">
+			{#each overdueTasks as task (task.id)}
+				<TaskCard {task} {members} {labels} isDoneFilter={false}
+					onclick={() => editDialog?.openTask(task)}
+					ontoggle={(e) => toggleTask(task, e)} />
+			{/each}
+		</div>
+	{/if}
+
+	{#if todayEvents.length > 0}
+		<div class="flex items-center gap-3 mb-2">
+			<span class="text-xs font-semibold uppercase tracking-wide shrink-0 text-foreground">Events</span>
+			<div class="flex-1 h-px bg-border"></div>
+		</div>
+		<div class="flex flex-col gap-2 mb-5">
+			{#each todayEvents as event (event.id)}
+				<EventCard {event} {members} {labels} {now} onclick={() => editDialog?.openEvent(event)} />
+			{/each}
+		</div>
+	{/if}
+
+	{#if dueTodayTasks.length > 0}
+		<div class="flex items-center gap-3 mb-2">
+			<span class="text-xs font-semibold uppercase tracking-wide shrink-0 text-foreground">Due today</span>
+			<div class="flex-1 h-px bg-border"></div>
+		</div>
+		<div class="flex flex-col gap-2">
+			{#each dueTodayTasks as task (task.id)}
+				<TaskCard {task} {members} {labels} isDoneFilter={false}
+					onclick={() => editDialog?.openTask(task)}
+					ontoggle={(e) => toggleTask(task, e)} />
+			{/each}
+		</div>
+	{/if}
 {/if}
 
-<CreateDialog
-	bind:this={createDialog}
-	{familyID}
-	{members}
-	{labels}
-	onCreated={loadData}
-	onError={setError}
-/>
-
-<EditDialog
-	bind:this={editDialog}
-	{familyID}
-	{members}
-	{labels}
-	onSaved={loadData}
-	onDeleted={loadData}
-	onError={setError}
-/>
+<CreateDialog bind:this={createDialog} {familyID} {members} {labels} onCreated={loadData} onError={setError} />
+<EditDialog bind:this={editDialog} {familyID} {members} {labels} onSaved={loadData} onDeleted={loadData} onError={setError} />

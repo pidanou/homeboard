@@ -93,10 +93,12 @@ func (h *InviteHandler) accept(w http.ResponseWriter, r *http.Request) {
 	}
 	token := chi.URLParam(r, "token")
 
-	if err := h.invites.Accept(r.Context(), token, userID); err != nil {
+	result, err := h.invites.Accept(r.Context(), token, userID)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
 }

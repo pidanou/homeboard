@@ -53,6 +53,7 @@ func main() {
 	taskRepo := postgres.NewTaskRepository(pool)
 	eventRepo := postgres.NewEventRepository(pool)
 	labelRepo := postgres.NewLabelRepository(pool)
+	listRepo := postgres.NewListRepository(pool)
 
 	// Services
 	authService := service.NewAuthService(userRepo, os.Getenv("JWT_SECRET"))
@@ -61,6 +62,7 @@ func main() {
 	taskService := service.NewTaskService(taskRepo)
 	eventService := service.NewEventService(eventRepo)
 	labelService := service.NewLabelService(labelRepo)
+	listService := service.NewListService(listRepo)
 
 	// SSE hub
 	hub := handler.NewHub()
@@ -72,6 +74,7 @@ func main() {
 	taskHandler := handler.NewTaskHandler(taskService, hub)
 	eventHandler := handler.NewEventHandler(eventService, hub)
 	labelHandler := handler.NewLabelHandler(labelService, hub)
+	listHandler := handler.NewListHandler(listService, hub)
 	sseHandler := handler.NewSSEHandler(hub, os.Getenv("JWT_SECRET"))
 
 	allowedOrigins := []string{"http://localhost:5173", "https://*.ngrok-free.app", "https://*.ngrok.io"}
@@ -112,6 +115,9 @@ func main() {
 			})
 			r.Route("/families/{familyID}/labels", func(r chi.Router) {
 				r.Mount("/", labelHandler.Routes())
+			})
+			r.Route("/families/{familyID}/lists", func(r chi.Router) {
+				r.Mount("/", listHandler.Routes())
 			})
 		})
 	})

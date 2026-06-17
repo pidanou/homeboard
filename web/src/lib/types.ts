@@ -3,6 +3,13 @@ export type Member = {
 	name: string;
 	email: string;
 	role: string;
+	virtual?: boolean;
+};
+
+export type VirtualMember = {
+	id: string;
+	family_id: string;
+	name: string;
 };
 
 export type AppLabel = {
@@ -37,3 +44,18 @@ export type CalEvent = {
 };
 
 export type Filter = 'all' | 'tasks' | 'events' | 'done';
+
+export type AppList = {
+	id: string;
+	family_id: string;
+	name: string;
+};
+
+export type AppListItem = {
+	id: string;
+	list_id: string;
+	name: string;
+	checked: boolean;
+	created_at: string;
+	checked_at?: string;
+};

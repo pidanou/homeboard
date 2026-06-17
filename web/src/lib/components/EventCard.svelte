@@ -2,7 +2,7 @@
 	import type { CalEvent, Member, AppLabel } from '$lib/types';
 	import { chipClass, dotClass } from '$lib/labels';
 	import { fmtDate, fmtDateTime } from '$lib/dates';
-	import { AlarmClock, MapPin, User } from 'lucide-svelte';
+	import { MapPin, User } from 'lucide-svelte';
 
 	let { event, members, labels, now, onclick }: {
 		event: CalEvent;
@@ -22,10 +22,9 @@
 </script>
 
 <button
-	class="w-full text-left flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-sm hover:bg-accent/50 transition-colors cursor-pointer"
+	class="w-full text-left flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-sm hover:bg-accent/50 transition-colors cursor-pointer border-l-4 border-l-blue-400"
 	{onclick}
 >
-	<AlarmClock class="w-4 h-4 mt-0.5 shrink-0 text-blue-400" />
 	<div class="flex-1 min-w-0">
 		<div class="flex items-start justify-between gap-2">
 			<p class="text-sm font-medium truncate">{event.title}</p>

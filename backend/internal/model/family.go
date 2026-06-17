@@ -9,10 +9,19 @@ type Family struct {
 }
 
 type FamilyMember struct {
-	FamilyID  string    `json:"family_id"`
-	UserID    string    `json:"user_id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Role      string    `json:"role"` // "admin" | "member"
-	JoinedAt  time.Time `json:"joined_at"`
+	FamilyID string    `json:"family_id"`
+	UserID   string    `json:"user_id"`
+	Name     string    `json:"name"`
+	Email    string    `json:"email"`
+	Role     string    `json:"role"` // "admin" | "member"
+	JoinedAt time.Time `json:"joined_at"`
+	Virtual  bool      `json:"virtual"`
+}
+
+type VirtualMember struct {
+	ID            string    `json:"id"`
+	FamilyID      string    `json:"family_id"`
+	Name          string    `json:"name"`
+	LinkedUserID  *string   `json:"linked_user_id,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
 }

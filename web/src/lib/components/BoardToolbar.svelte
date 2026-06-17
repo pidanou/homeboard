@@ -41,7 +41,7 @@
 	]);
 </script>
 
-<div class="flex items-center gap-2 mb-4">
+<div class="flex items-center gap-2">
 	<!-- Filter -->
 	<div class="relative">
 		{#if filterOpen}

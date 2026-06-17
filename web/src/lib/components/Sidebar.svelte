@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api/client';
 	import { logout } from '$lib/auth';
-	import { Home, CalendarDays, Settings, Plus, LogOut, CheckSquare, Users } from 'lucide-svelte';
+	import { Sun, LayoutList, CalendarDays, Settings, Plus, LogOut, ListChecks, Users } from 'lucide-svelte';
 
 	let { onclose }: { onclose?: () => void } = $props();
 
@@ -24,9 +24,11 @@
 	}
 
 	const subNav = $derived(familyID ? [
-		{ label: 'Tasks', href: `/families/${familyID}`, icon: CheckSquare },
-		{ label: 'Calendar', href: `/families/${familyID}/calendar`, icon: CalendarDays },
-		{ label: 'Settings', href: `/families/${familyID}/settings`, icon: Settings },
+		{ label: 'Today',    href: `/families/${familyID}`,          icon: Sun },
+		{ label: 'Board',    href: `/families/${familyID}/board`,     icon: LayoutList },
+		{ label: 'Calendar', href: `/families/${familyID}/calendar`,  icon: CalendarDays },
+		{ label: 'Lists',    href: `/families/${familyID}/lists`,     icon: ListChecks },
+		{ label: 'Settings', href: `/families/${familyID}/settings`,  icon: Settings },
 	] : []);
 </script>
 

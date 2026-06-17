@@ -4,7 +4,7 @@
 	import { page } from '$app/stores';
 	import { isLoggedIn } from '$lib/auth';
 	import Sidebar from '$lib/components/Sidebar.svelte';
-	import { Menu, CheckSquare, CalendarDays, Settings } from 'lucide-svelte';
+	import { Menu, Sun, LayoutList, CalendarDays, ListChecks, Settings } from 'lucide-svelte';
 
 	let { children } = $props();
 	let ready = $state(false);
@@ -28,14 +28,15 @@
 	});
 
 	const mobileTabNav = $derived(familyID ? [
-		{ label: 'Tasks', href: `/families/${familyID}`, icon: CheckSquare },
+		{ label: 'Today',    href: `/families/${familyID}`,         icon: Sun },
+		{ label: 'Board',    href: `/families/${familyID}/board`,    icon: LayoutList },
 		{ label: 'Calendar', href: `/families/${familyID}/calendar`, icon: CalendarDays },
-		{ label: 'Settings', href: `/families/${familyID}/settings`, icon: Settings },
+		{ label: 'Lists',    href: `/families/${familyID}/lists`,    icon: ListChecks },
 	] : []);
 </script>
 
 {#if ready}
-	<div class="min-h-screen flex bg-background">
+	<div class="h-screen flex bg-background overflow-hidden">
 		<!-- Desktop sidebar (always visible md+) -->
 		<aside class="hidden md:flex w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar fixed top-0 left-0 bottom-0 z-30">
 			<Sidebar />
@@ -57,13 +58,24 @@
 			<!-- Mobile top bar -->
 			<header class="md:hidden sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-sm px-4 h-14 flex items-center justify-between shrink-0">
 				<a href="/" class="font-bold text-base">Family Board</a>
-				<button
-					onclick={() => mobileMenuOpen = !mobileMenuOpen}
-					class="p-2 rounded-lg hover:bg-muted transition-colors"
-					aria-label="Open menu"
-				>
-					<Menu class="w-5 h-5" />
-				</button>
+				<div class="flex items-center gap-1">
+					{#if familyID}
+						<a
+							href="/families/{familyID}/settings"
+							class="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+							aria-label="Settings"
+						>
+							<Settings class="w-5 h-5" />
+						</a>
+					{/if}
+					<button
+						onclick={() => mobileMenuOpen = !mobileMenuOpen}
+						class="p-2 rounded-lg hover:bg-muted transition-colors"
+						aria-label="Open menu"
+					>
+						<Menu class="w-5 h-5" />
+					</button>
+				</div>
 			</header>
 
 			<main class="flex-1 p-4 md:p-6 overflow-auto">

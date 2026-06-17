@@ -41,16 +41,21 @@ func (s *InviteService) Create(ctx context.Context, familyID, createdBy string) 
 	return invite, nil
 }
 
-func (s *InviteService) Accept(ctx context.Context, token, userID string) error {
+type AcceptResult struct {
+	FamilyID               string                  `json:"family_id"`
+	UnlinkedVirtualMembers []*model.VirtualMember  `json:"unlinked_virtual_members"`
+}
+
+func (s *InviteService) Accept(ctx context.Context, token, userID string) (*AcceptResult, error) {
 	invite, err := s.invites.GetByToken(ctx, token)
 	if err != nil {
-		return errors.New("invite not found")
+		return nil, errors.New("invite not found")
 	}
 	if invite.UsedAt != nil {
-		return errors.New("invite already used")
+		return nil, errors.New("invite already used")
 	}
 	if time.Now().UTC().After(invite.ExpiresAt) {
-		return errors.New("invite expired")
+		return nil, errors.New("invite expired")
 	}
 
 	member := &model.FamilyMember{
@@ -60,10 +65,22 @@ func (s *InviteService) Accept(ctx context.Context, token, userID string) error 
 		JoinedAt: time.Now().UTC(),
 	}
 	if err := s.families.AddMember(ctx, member); err != nil {
-		return fmt.Errorf("add member: %w", err)
+		return nil, fmt.Errorf("add member: %w", err)
 	}
 
-	return s.invites.MarkUsed(ctx, token)
+	if err := s.invites.MarkUsed(ctx, token); err != nil {
+		return nil, err
+	}
+
+	unlinked, err := s.families.GetUnlinkedVirtualMembers(ctx, invite.FamilyID)
+	if err != nil {
+		unlinked = nil // non-fatal
+	}
+
+	return &AcceptResult{
+		FamilyID:               invite.FamilyID,
+		UnlinkedVirtualMembers: unlinked,
+	}, nil
 }
 
 func (s *InviteService) GetByToken(ctx context.Context, token string) (*model.Invite, error) {

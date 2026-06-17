@@ -4,7 +4,7 @@
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { X } from 'lucide-svelte';
+	import { X, UserX } from 'lucide-svelte';
 
 	type Invite = { token: string; expires_at: string };
 	type Member = { user_id: string; name: string; email: string; role: string; joined_at: string };
@@ -27,6 +27,8 @@
 	let copied = $state<string | null>(null);
 	let newLabelName = $state('');
 	let newLabelColor = $state<LabelColor>('blue');
+	let addingVirtual = $state(false);
+	let newVirtualName = $state('');
 
 	onMount(async () => {
 		const [membersResult, invitesResult, labelsResult] = await Promise.allSettled([
@@ -62,6 +64,27 @@
 			labels = labels.filter((l) => l.id !== labelID);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to delete label';
+		}
+	}
+
+	async function createVirtualMember() {
+		if (!newVirtualName.trim()) return;
+		try {
+			const vm = await api.post<{ id: string; name: string }>(`/api/v1/families/${familyID}/members/virtual`, { name: newVirtualName.trim() });
+			members = [...members, { user_id: vm.id, name: vm.name, email: '', role: '', virtual: true }];
+			newVirtualName = '';
+			addingVirtual = false;
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to add member';
+		}
+	}
+
+	async function deleteVirtualMember(id: string) {
+		try {
+			await api.delete(`/api/v1/families/${familyID}/members/virtual/${id}`);
+			members = members.filter((m) => m.user_id !== id);
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to remove member';
 		}
 	}
 
@@ -102,21 +125,60 @@
 
 	<!-- Members -->
 	<div class="flex flex-col gap-3">
-		<h3 class="text-sm font-semibold">Members ({members.length})</h3>
+		<div class="flex items-center justify-between">
+			<h3 class="text-sm font-semibold">Members ({members.length})</h3>
+			<Button size="sm" variant="outline" onclick={() => (addingVirtual = !addingVirtual)}>
+				+ Without account
+			</Button>
+		</div>
+
+		{#if addingVirtual}
+			<div class="flex gap-2">
+				<Input
+					bind:value={newVirtualName}
+					placeholder="Name (e.g. Lucas)…"
+					class="flex-1"
+					onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); createVirtualMember(); } if (e.key === 'Escape') addingVirtual = false; }}
+				/>
+				<Button size="sm" onclick={createVirtualMember} disabled={!newVirtualName.trim()}>Add</Button>
+				<Button size="sm" variant="ghost" onclick={() => (addingVirtual = false)}>Cancel</Button>
+			</div>
+		{/if}
+
 		{#if members.length === 0}
 			<p class="text-sm text-muted-foreground">No members yet.</p>
 		{:else}
 			<div class="flex flex-col gap-2">
 				{#each members as member (member.user_id)}
 					<div class="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
-						<div class="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
-							{initials(member.name)}
+						<div class="w-8 h-8 rounded-full {member.virtual ? 'bg-muted text-muted-foreground' : 'bg-primary/15 text-primary'} flex items-center justify-center text-xs font-semibold shrink-0">
+							{#if member.virtual}
+								<UserX class="w-4 h-4" />
+							{:else}
+								{initials(member.name)}
+							{/if}
 						</div>
 						<div class="flex-1 min-w-0">
 							<p class="text-sm font-medium truncate">{member.name}</p>
-							<p class="text-xs text-muted-foreground truncate">{member.email}</p>
+							<p class="text-xs text-muted-foreground truncate">
+								{#if member.virtual}
+									No account
+								{:else}
+									{member.email}
+								{/if}
+							</p>
 						</div>
-						<span class="text-xs text-muted-foreground capitalize">{member.role}</span>
+						{#if member.virtual}
+							<button
+								onclick={() => deleteVirtualMember(member.user_id)}
+								class="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+								aria-label="Remove"
+							>
+								<X class="w-3.5 h-3.5" />
+							</button>
+						{:else}
+							<span class="text-xs text-muted-foreground capitalize">{member.role}</span>
+						{/if}
 					</div>
 				{/each}
 			</div>
