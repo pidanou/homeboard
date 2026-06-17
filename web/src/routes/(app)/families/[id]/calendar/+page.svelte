@@ -39,32 +39,71 @@
 	const today = new Date();
 	const todayMs = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
 
-	// View
-	let view = $state<'month' | 'agenda'>('month');
+	// ── View ─────────────────────────────────────────────────────────────────
+	let view = $state<'month' | 'week' | 'day' | 'agenda'>('month');
 
-	// Month nav
+	// ── Month nav ─────────────────────────────────────────────────────────────
 	let viewYear = $state(today.getFullYear());
 	let viewMonth = $state(today.getMonth());
 
-	// Data
+	// ── Week / day nav ────────────────────────────────────────────────────────
+	function getWeekStart(d: Date): Date {
+		const s = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+		s.setDate(s.getDate() - s.getDay()); // Sunday
+		return s;
+	}
+	let weekStart = $state(getWeekStart(today));
+	let dayViewDate = $state(new Date(today.getFullYear(), today.getMonth(), today.getDate()));
+
+	const viewDays = $derived(
+		view === 'week'
+			? Array.from({ length: 7 }, (_, i) => { const d = new Date(weekStart); d.setDate(d.getDate() + i); return d; })
+			: [dayViewDate]
+	);
+
+	// ── Time grid ─────────────────────────────────────────────────────────────
+	const HOUR_H = 56; // px per hour
+	const HOURS = Array.from({ length: 24 }, (_, i) => i);
+	let timeGridEl: HTMLElement | null = null;
+	let now = $state(new Date());
+
+	function fmtHour(h: number): string {
+		if (h === 0) return '12am';
+		if (h === 12) return '12pm';
+		return h < 12 ? `${h}am` : `${h - 12}pm`;
+	}
+	function eventTop(ev: CalEvent): number {
+		const d = new Date(ev.start_at);
+		return (d.getHours() + d.getMinutes() / 60) * HOUR_H;
+	}
+	function eventHeight(ev: CalEvent): number {
+		const mins = (new Date(ev.end_at).getTime() - new Date(ev.start_at).getTime()) / 60000;
+		return Math.max(mins, 30) * (HOUR_H / 60);
+	}
+	function scrollToCurrentTime() {
+		const target = Math.max((now.getHours() - 1) * HOUR_H, 0);
+		tick().then(() => timeGridEl?.scrollTo({ top: target }));
+	}
+
+	// ── Data ──────────────────────────────────────────────────────────────────
 	let events = $state<CalEvent[]>([]);
 	let tasks = $state<Task[]>([]);
 	let members = $state<Member[]>([]);
 	let labels = $state<AppLabel[]>([]);
 	let error = $state('');
 
-	// Filters
+	// ── Filters ───────────────────────────────────────────────────────────────
 	let filterOpen = $state(false);
 	let filterMemberIDs = $state<string[]>([]);
 	let filterLabelIDs = $state<string[]>([]);
 	const activeFilterCount = $derived(filterMemberIDs.length + filterLabelIDs.length);
 
-	// Day panel
+	// ── Day panel ─────────────────────────────────────────────────────────────
 	let selectedDay = $state<Date | null>(null);
 	let dayPanelOpen = $state(false);
 	let dayQuickTask = $state('');
 
-	// Event form
+	// ── Event form ────────────────────────────────────────────────────────────
 	let showForm = $state(false);
 	let editing = $state<CalEvent | null>(null);
 	let formTitle = $state('');
@@ -95,14 +134,36 @@
 		return `${fmt(start)} – ${fmt(end)}`;
 	})());
 
+	// ── Period label ──────────────────────────────────────────────────────────
+	const monthLabel = $derived(new Date(viewYear, viewMonth, 1).toLocaleString('default', { month: 'long', year: 'numeric' }));
+	const periodLabel = $derived((() => {
+		if (view === 'month') return monthLabel;
+		if (view === 'week') {
+			const end = new Date(weekStart); end.setDate(end.getDate() + 6);
+			const s = weekStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+			const e = end.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+			return `${s} – ${e}`;
+		}
+		if (view === 'day') return dayViewDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+		return '';
+	})());
+
+	// ── Load data ─────────────────────────────────────────────────────────────
 	async function loadData() {
-		const from = new Date(viewYear, viewMonth, 1);
-		const to = new Date(viewYear, viewMonth + 1, 1);
-		// Agenda uses wider window; fetch enough for both
-		const agendaFrom = new Date(today); agendaFrom.setDate(agendaFrom.getDate() - 30);
-		const agendaTo = new Date(today); agendaTo.setDate(agendaTo.getDate() + 120);
-		const fetchFrom = view === 'agenda' ? agendaFrom : from;
-		const fetchTo   = view === 'agenda' ? agendaTo   : to;
+		let fetchFrom: Date, fetchTo: Date;
+		if (view === 'month') {
+			fetchFrom = new Date(viewYear, viewMonth, 1);
+			fetchTo   = new Date(viewYear, viewMonth + 1, 1);
+		} else if (view === 'week') {
+			fetchFrom = new Date(weekStart);
+			fetchTo   = new Date(weekStart); fetchTo.setDate(fetchTo.getDate() + 7);
+		} else if (view === 'day') {
+			fetchFrom = new Date(dayViewDate); fetchFrom.setHours(0, 0, 0, 0);
+			fetchTo   = new Date(dayViewDate); fetchTo.setDate(fetchTo.getDate() + 1);
+		} else {
+			fetchFrom = new Date(today); fetchFrom.setDate(fetchFrom.getDate() - 30);
+			fetchTo   = new Date(today); fetchTo.setDate(fetchTo.getDate() + 120);
+		}
 		try {
 			[events, tasks, members, labels] = await Promise.all([
 				api.get<CalEvent[]>(`/api/v1/families/${familyID}/events?from=${fetchFrom.toISOString()}&to=${fetchTo.toISOString()}`).then(r => r ?? []),
@@ -115,7 +176,10 @@
 		}
 	}
 
+	// ── SSE ───────────────────────────────────────────────────────────────────
 	let es: EventSource | null = null;
+	let clockInterval: ReturnType<typeof setInterval>;
+
 	onMount(async () => {
 		view = window.innerWidth < 768 ? 'agenda' : 'month';
 		await loadData();
@@ -126,35 +190,67 @@
 		es = new EventSource(sseUrl(`/api/v1/families/${familyID}/stream`));
 		es.onmessage = (e) => { if (e.data === 'refresh') loadData(); };
 		es.onerror = () => { es?.close(); es = null; };
+		clockInterval = setInterval(() => { now = new Date(); }, 60000);
 	});
-	onDestroy(() => es?.close());
+	onDestroy(() => { es?.close(); clearInterval(clockInterval); });
 
-	async function switchView(v: 'month' | 'agenda') {
+	// ── Navigation ────────────────────────────────────────────────────────────
+	async function switchView(v: typeof view) {
 		view = v;
 		await loadData();
 		if (v === 'agenda') {
 			await tick();
 			document.getElementById('agenda-today')?.scrollIntoView({ block: 'start' });
+		} else if (v === 'week' || v === 'day') {
+			scrollToCurrentTime();
 		}
 	}
 
-	function prevMonth() {
-		if (viewMonth === 0) { viewYear--; viewMonth = 11; } else { viewMonth--; }
-		loadData();
+	function prevPeriod() {
+		if (view === 'month') {
+			if (viewMonth === 0) { viewYear--; viewMonth = 11; } else { viewMonth--; }
+			loadData();
+		} else if (view === 'week') {
+			weekStart = new Date(weekStart); weekStart.setDate(weekStart.getDate() - 7);
+			loadData();
+		} else if (view === 'day') {
+			dayViewDate = new Date(dayViewDate); dayViewDate.setDate(dayViewDate.getDate() - 1);
+			loadData();
+		}
 	}
-	function nextMonth() {
-		if (viewMonth === 11) { viewYear++; viewMonth = 0; } else { viewMonth++; }
-		loadData();
+	function nextPeriod() {
+		if (view === 'month') {
+			if (viewMonth === 11) { viewYear++; viewMonth = 0; } else { viewMonth++; }
+			loadData();
+		} else if (view === 'week') {
+			weekStart = new Date(weekStart); weekStart.setDate(weekStart.getDate() + 7);
+			loadData();
+		} else if (view === 'day') {
+			dayViewDate = new Date(dayViewDate); dayViewDate.setDate(dayViewDate.getDate() + 1);
+			loadData();
+		}
 	}
+
 	function jumpToToday() {
-		viewYear = today.getFullYear();
-		viewMonth = today.getMonth();
+		viewYear = today.getFullYear(); viewMonth = today.getMonth();
+		weekStart = getWeekStart(today);
+		dayViewDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 		if (view === 'agenda') {
 			tick().then(() => document.getElementById('agenda-today')?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+		} else if (view === 'week' || view === 'day') {
+			loadData().then(() => scrollToCurrentTime());
 		}
 	}
 
-	// ── Filtering ────────────────────────────────────────────────────────────
+	// ── Swipe ─────────────────────────────────────────────────────────────────
+	let touchStartX = 0;
+	function onTouchStart(e: TouchEvent) { touchStartX = e.touches[0].clientX; }
+	function onTouchEnd(e: TouchEvent) {
+		const dx = e.changedTouches[0].clientX - touchStartX;
+		if (Math.abs(dx) > 60) { dx > 0 ? prevPeriod() : nextPeriod(); }
+	}
+
+	// ── Filtering ─────────────────────────────────────────────────────────────
 	function filterEvents(evs: CalEvent[]): CalEvent[] {
 		return evs.filter(ev => {
 			if (filterMemberIDs.length > 0 && !filterMemberIDs.some(id => ev.attendee_ids?.includes(id))) return false;
@@ -171,7 +267,7 @@
 		});
 	}
 
-	// ── Day helpers ──────────────────────────────────────────────────────────
+	// ── Day helpers ───────────────────────────────────────────────────────────
 	function dayMs(date: Date) {
 		return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 	}
@@ -195,9 +291,8 @@
 	function isToday(date: Date) { return dayMs(date) === todayMs; }
 	function isPast(date: Date)  { return dayMs(date) < todayMs; }
 
-	// ── Month grid ───────────────────────────────────────────────────────────
+	// ── Month grid ────────────────────────────────────────────────────────────
 	const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-	const monthLabel = $derived(new Date(viewYear, viewMonth, 1).toLocaleString('default', { month: 'long', year: 'numeric' }));
 	const calDays = $derived((() => {
 		const first = new Date(viewYear, viewMonth, 1);
 		const last  = new Date(viewYear, viewMonth + 1, 0);
@@ -208,17 +303,17 @@
 		return days;
 	})());
 
-	const CAP = 2; // items shown per cell before "+N more"
+	const CAP = 2;
 
-	// ── Agenda ───────────────────────────────────────────────────────────────
+	// ── Week/day all-day row visibility ───────────────────────────────────────
+	const hasAllDay = $derived(
+		viewDays.some(d => eventsForDay(d).some(ev => ev.all_day) || tasksForDay(d).length > 0)
+	);
+
+	// ── Agenda ────────────────────────────────────────────────────────────────
 	const agendaDays = $derived((() => {
 		const from = new Date(today); from.setDate(from.getDate() - 30);
-		const days: Date[] = [];
-		for (let i = 0; i < 150; i++) {
-			const d = new Date(from); d.setDate(d.getDate() + i);
-			days.push(d);
-		}
-		return days;
+		return Array.from({ length: 150 }, (_, i) => { const d = new Date(from); d.setDate(d.getDate() + i); return d; });
 	})());
 
 	function fmtAgendaDate(date: Date) {
@@ -228,7 +323,7 @@
 		return new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 	}
 
-	// ── Day panel ────────────────────────────────────────────────────────────
+	// ── Day panel ─────────────────────────────────────────────────────────────
 	function selectDay(date: Date) {
 		selectedDay = date;
 		dayPanelOpen = true;
@@ -250,10 +345,22 @@
 		}
 	}
 
-	// ── Event form ───────────────────────────────────────────────────────────
-	function openNew(date?: Date) {
+	// ── Time grid click ───────────────────────────────────────────────────────
+	function handleTimeGridClick(e: MouseEvent & { currentTarget: HTMLElement }, day: Date) {
+		const rect = e.currentTarget.getBoundingClientRect();
+		const totalMins = Math.round((e.clientY - rect.top) / HOUR_H * 60 / 15) * 15;
+		const h = Math.min(Math.floor(totalMins / 60), 23);
+		const m = totalMins % 60;
+		const pad = (n: number) => String(n).padStart(2, '0');
+		openNew(day, { start: `${pad(h)}:${pad(m)}`, end: `${pad(Math.min(h + 1, 23))}:${pad(m)}` });
+	}
+
+	// ── Event form ────────────────────────────────────────────────────────────
+	function openNew(date?: Date, time?: { start: string; end: string }) {
 		editing = null; formTitle = ''; formDesc = ''; formLocation = '';
-		formAllDay = false; formLabelIDs = []; startTime = '09:00'; endTime = '10:00';
+		formAllDay = false; formLabelIDs = [];
+		startTime = time?.start ?? '09:00';
+		endTime   = time?.end   ?? '10:00';
 		if (date) {
 			const cd = new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
 			dateRange = { start: cd, end: cd };
@@ -315,24 +422,25 @@
 {/if}
 
 <!-- Header -->
-<div class="flex items-center justify-between mb-3 gap-2">
-	<div class="flex items-center gap-1.5">
+<div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
+	<div class="flex items-center gap-1.5 flex-wrap">
 		<!-- View toggle -->
 		<div class="flex rounded-md border border-border overflow-hidden text-sm shrink-0">
-			<button
-				onclick={() => switchView('month')}
-				class="px-3 py-1.5 transition-colors cursor-pointer {view === 'month' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}"
-			>Month</button>
-			<button
-				onclick={() => switchView('agenda')}
-				class="px-3 py-1.5 transition-colors cursor-pointer {view === 'agenda' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}"
-			>Agenda</button>
+			{#each [['month','M','Month'],['week','W','Week'],['day','D','Day'],['agenda','A','Agenda']] as [v, short, long]}
+				<button
+					onclick={() => switchView(v as typeof view)}
+					class="px-2.5 py-1.5 transition-colors cursor-pointer {view === v ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}"
+				>
+					<span class="sm:hidden">{short}</span>
+					<span class="hidden sm:inline">{long}</span>
+				</button>
+			{/each}
 		</div>
 
-		{#if view === 'month'}
-			<Button variant="outline" size="sm" onclick={prevMonth}>‹</Button>
-			<span class="text-sm font-medium w-32 text-center hidden sm:block">{monthLabel}</span>
-			<Button variant="outline" size="sm" onclick={nextMonth}>›</Button>
+		{#if view !== 'agenda'}
+			<Button variant="outline" size="sm" onclick={prevPeriod}>‹</Button>
+			<span class="text-sm font-medium hidden sm:block max-w-48 truncate text-center">{periodLabel}</span>
+			<Button variant="outline" size="sm" onclick={nextPeriod}>›</Button>
 		{/if}
 
 		<Button variant="outline" size="sm" onclick={jumpToToday}>Today</Button>
@@ -401,12 +509,19 @@
 	</div>
 </div>
 
-{#if view === 'month'}
-	<!-- Month label (mobile) -->
-	<p class="text-sm font-medium text-center mb-2 sm:hidden">{monthLabel}</p>
+<!-- Period label (mobile, non-agenda) -->
+{#if view !== 'agenda'}
+	<p class="text-sm font-medium text-center mb-2 sm:hidden truncate">{periodLabel}</p>
+{/if}
 
-	<!-- Month grid -->
-	<div class="grid grid-cols-7 border-l border-t rounded-lg overflow-hidden text-xs">
+{#if view === 'month'}
+	<!-- ── Month grid ──────────────────────────────────────────────────────── -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="grid grid-cols-7 border-l border-t rounded-lg overflow-hidden text-xs"
+		ontouchstart={onTouchStart}
+		ontouchend={onTouchEnd}
+	>
 		{#each DAYS as d}
 			<div class="border-r border-b px-1 py-1.5 text-center text-muted-foreground font-semibold bg-muted/40 text-[11px] uppercase tracking-wide">{d}</div>
 		{/each}
@@ -457,8 +572,107 @@
 		{/each}
 	</div>
 
+{:else if view === 'week' || view === 'day'}
+	<!-- ── Week / Day time grid ────────────────────────────────────────────── -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="overflow-auto rounded-lg border border-border"
+		style="max-height: calc(100vh - 12rem)"
+		bind:this={timeGridEl}
+		ontouchstart={onTouchStart}
+		ontouchend={onTouchEnd}
+	>
+		<!-- Day column headers -->
+		<div class="sticky top-0 z-20 bg-background border-b flex" style="padding-left: 3rem">
+			{#each viewDays as day (day.toDateString())}
+				<button
+					class="flex-1 text-center py-2 border-l first:border-l-0 cursor-pointer hover:bg-muted/30 transition-colors"
+					onclick={() => { dayViewDate = new Date(day.getFullYear(), day.getMonth(), day.getDate()); switchView('day'); }}
+				>
+					<p class="text-[10px] uppercase text-muted-foreground">{day.toLocaleDateString(undefined, { weekday: 'short' })}</p>
+					<p class="text-lg font-bold leading-none mt-0.5 {isToday(day) ? 'text-primary' : isPast(day) ? 'text-muted-foreground' : 'text-foreground'}">{day.getDate()}</p>
+				</button>
+			{/each}
+		</div>
+
+		<!-- All-day + tasks row (shown when non-empty) -->
+		{#if hasAllDay}
+			<div class="flex border-b" style="padding-left: 3rem">
+				{#each viewDays as day (day.toDateString())}
+					<div class="flex-1 p-1 border-l first:border-l-0 flex flex-col gap-0.5 min-h-8">
+						{#each eventsForDay(day).filter(ev => ev.all_day) as ev (ev.id)}
+							<button
+								onclick={() => openEdit(ev)}
+								class="w-full text-left truncate rounded px-1.5 py-0.5 bg-blue-500/15 text-blue-700 dark:text-blue-300 text-[11px] font-medium cursor-pointer hover:bg-blue-500/25"
+							>{ev.title}</button>
+						{/each}
+						{#each tasksForDay(day) as task (task.id)}
+							<div class="flex items-center gap-0.5 rounded px-1 py-0.5 bg-primary/10 text-primary text-[11px] truncate">
+								<SquareCheckBig class="w-2.5 h-2.5 shrink-0" /><span class="truncate">{task.title}</span>
+							</div>
+						{/each}
+					</div>
+				{/each}
+			</div>
+		{/if}
+
+		<!-- Time grid -->
+		<div class="flex">
+			<!-- Hour labels -->
+			<div class="w-12 shrink-0 relative select-none" style="height: {24 * HOUR_H}px">
+				{#each HOURS as h}
+					<div
+						class="absolute text-[10px] text-muted-foreground text-right pr-2 leading-none w-full"
+						style="top: {h * HOUR_H - 6}px"
+					>{h > 0 ? fmtHour(h) : ''}</div>
+				{/each}
+			</div>
+
+			<!-- Day columns -->
+			{#each viewDays as day (day.toDateString())}
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<div
+					class="flex-1 relative border-l first:border-l-0"
+					style="height: {24 * HOUR_H}px; min-width: 0"
+					role="button"
+					tabindex="0"
+					onclick={(e) => handleTimeGridClick(e, day)}
+				>
+					<!-- Hour lines -->
+					{#each HOURS as h}
+						<div class="absolute w-full border-t border-border/40 pointer-events-none" style="top: {h * HOUR_H}px" />
+						<div class="absolute w-full border-t border-dashed border-border/20 pointer-events-none" style="top: {h * HOUR_H + HOUR_H / 2}px" />
+					{/each}
+
+					<!-- Current time indicator -->
+					{#if isToday(day)}
+						{@const nowFrac = now.getHours() + now.getMinutes() / 60}
+						<div class="absolute w-full z-10 flex items-center pointer-events-none" style="top: {nowFrac * HOUR_H}px">
+							<div class="w-2 h-2 rounded-full bg-red-500 shrink-0 -ml-1" />
+							<div class="flex-1 h-0.5 bg-red-500" />
+						</div>
+					{/if}
+
+					<!-- Timed events -->
+					{#each eventsForDay(day).filter(ev => !ev.all_day) as ev (ev.id)}
+						<button
+							onclick={(e) => { e.stopPropagation(); openEdit(ev); }}
+							class="absolute left-0.5 right-0.5 rounded-sm bg-blue-500/20 border-l-2 border-blue-500 px-1 py-0.5 text-left overflow-hidden hover:bg-blue-500/30 transition-colors cursor-pointer"
+							style="top: {eventTop(ev)}px; height: {eventHeight(ev)}px; z-index: 5; min-height: 20px"
+						>
+							<p class="text-[11px] font-medium text-blue-700 dark:text-blue-300 leading-tight truncate">{ev.title}</p>
+							{#if eventHeight(ev) > 32}
+								<p class="text-[10px] text-blue-600/70 dark:text-blue-400/70">{fmtTime(ev.start_at)}</p>
+							{/if}
+						</button>
+					{/each}
+				</div>
+			{/each}
+		</div>
+	</div>
+
 {:else}
-	<!-- Agenda view -->
+	<!-- ── Agenda view ─────────────────────────────────────────────────────── -->
 	<div class="flex flex-col">
 		{#each agendaDays as day (day.toDateString())}
 			{@const dayEvs = eventsForDay(day)}
@@ -555,7 +769,14 @@
 				<form onsubmit={(e) => { e.preventDefault(); addTaskForDay(); }} class="mt-2">
 					<Input bind:value={dayQuickTask} placeholder="Add a task for this day…" class="bg-muted/20 border-dashed focus-visible:border-solid" />
 				</form>
-				<Dialog.Footer class="mt-3">
+				<Dialog.Footer class="mt-3 flex gap-2 justify-between sm:justify-between">
+					<Button variant="ghost" size="sm" onclick={() => {
+						if (selectedDay) {
+							dayViewDate = new Date(selectedDay.getFullYear(), selectedDay.getMonth(), selectedDay.getDate());
+							switchView('day');
+						}
+						dayPanelOpen = false;
+					}}>Day view</Button>
 					<Button variant="outline" size="sm" onclick={() => { if (selectedDay) openNew(selectedDay); }}>
 						+ Event
 					</Button>

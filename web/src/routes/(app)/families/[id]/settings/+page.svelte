@@ -7,7 +7,7 @@
 	import { X, UserX } from 'lucide-svelte';
 
 	type Invite = { token: string; expires_at: string };
-	type Member = { user_id: string; name: string; email: string; role: string; joined_at: string };
+	type Member = { user_id: string; name: string; email: string; role: string; joined_at: string; virtual?: boolean };
 	type LabelColor = 'red' | 'orange' | 'yellow' | 'green' | 'teal' | 'blue' | 'purple' | 'pink' | 'gray';
 	type AppLabel = { id: string; name: string; color: LabelColor };
 
