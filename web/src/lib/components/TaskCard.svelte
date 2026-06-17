@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Task, Member, AppLabel } from '$lib/types';
 	import { chipClass, dotClass } from '$lib/labels';
-	import { fmtDate } from '$lib/dates';
+	import { relativeDate } from '$lib/dates';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { User } from 'lucide-svelte';
 
@@ -14,7 +14,10 @@
 		ontoggle: (e: MouseEvent) => void;
 	} = $props();
 
-	const priorityBorder: Record<string, string> = { high: 'border-l-4 border-l-red-500' };
+	const priorityBorder: Record<string, string> = {
+		high: 'border-l-4 border-l-red-500',
+		medium: 'border-l-4 border-l-yellow-400',
+	};
 
 	function memberName(uid: string | undefined): string | null {
 		if (!uid) return null;
@@ -51,7 +54,7 @@
 			<div class="flex items-center gap-2 mt-1 flex-wrap">
 				{#if task.end_date}
 					<p class="text-xs {isOverdue(task) ? 'text-destructive font-medium' : 'text-muted-foreground'}">
-						Due {fmtDate(task.end_date)}
+						Due {relativeDate(task.end_date)}
 					</p>
 				{/if}
 				{#if task.assigned_to}

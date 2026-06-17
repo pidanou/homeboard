@@ -1,0 +1,1 @@
+ALTER TABLE list_items ADD COLUMN checked_at TIMESTAMPTZ;

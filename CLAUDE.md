@@ -8,7 +8,7 @@ This file provides guidance to Claude Code when working in this repository.
 
 **Family Board** — a self-hostable family wall app. A family can share a calendar, tasks, and (eventually) more. The UI is a SvelteKit PWA (web + mobile/tablet via browser). Designed to be self-hostable first; SaaS compatibility must be kept in mind during every architectural decision.
 
-> **Flutter note:** Native mobile (Flutter) was considered but deferred. The backend API is fully decoupled, so migrating to Flutter later is low-risk if PWA limitations (iOS push notifications, offline sync) become a problem.
+> **Native mobile note:** The preferred path for native distribution is **Capacitor** — it wraps the existing SvelteKit app in a native shell (iOS + Android) without a rewrite. This gives access to native push notifications, haptics, and App Store distribution while keeping one codebase. Flutter was considered but deferred; the backend API is fully decoupled so either path remains viable.
 
 ---
 
@@ -176,6 +176,29 @@ cd web && npm run build
 - Database models in `internal/model/`, HTTP request/response DTOs in `internal/handler/dto/`
 - Feature flags or tenant-level config live in a `settings` table — don't hardcode feature availability
 - **Tasks with a due date must appear on the calendar view** on their due date alongside calendar events
+
+---
+
+## Specs
+
+Feature specs live in `docs/specs/`. When implementing or modifying a feature that has a spec:
+
+- Update the spec's **Delta vs current implementation** table to reflect what has been built
+- Move implemented items out of **What's out of scope** if they've been built
+- Add new out-of-scope items discovered during implementation
+- If a spec does not exist yet for the feature being worked on, create one before or alongside the implementation
+
+---
+
+## Roadmap
+
+The implementation roadmap lives in `docs/roadmap.md`. Keep it current:
+
+- Mark items ✅ as they are completed
+- Mark items 🚧 when actively being worked on
+- When a full milestone is done, mark the milestone header ✅
+- When promoting a deferred item to a milestone, add it to the relevant milestone (or create a new one)
+- Do not remove items — completed items stay in the roadmap as history
 
 ---
 
