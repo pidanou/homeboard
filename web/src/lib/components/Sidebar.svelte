@@ -3,9 +3,13 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api/client';
 	import { logout } from '$lib/auth';
+	import { currentUser } from '$lib/stores/user';
+	import UserAvatar from '$lib/components/UserAvatar.svelte';
 	import { Sun, LayoutList, CalendarDays, Settings, Plus, LogOut, ListChecks, Users } from 'lucide-svelte';
 
 	let { onclose }: { onclose?: () => void } = $props();
+
+	const user = $derived($currentUser);
 
 	type Family = { id: string; name: string };
 	let families = $state<Family[]>([]);
@@ -103,8 +107,19 @@
 		{/if}
 	</div>
 
-	<!-- Sign out -->
-	<div class="px-3 pb-4 pt-2 border-t border-sidebar-border shrink-0">
+	<!-- User profile + sign out -->
+	<div class="px-3 pb-4 pt-2 border-t border-sidebar-border shrink-0 space-y-0.5">
+		{#if user}
+			<a
+				href="/profile"
+				onclick={onclose}
+				class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm w-full text-left
+					text-sidebar-foreground hover:bg-sidebar-accent/60 transition-colors"
+			>
+				<UserAvatar name={user.name} avatarUrl={user.avatar_url} userId={user.id} size={24} />
+				<span class="truncate flex-1">{user.name}</span>
+			</a>
+		{/if}
 		<button
 			onclick={logout}
 			class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm w-full text-left

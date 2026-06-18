@@ -63,3 +63,44 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (string
 	}
 	return signed, nil
 }
+
+func (s *AuthService) GetProfile(ctx context.Context, userID string) (*model.User, error) {
+	return s.users.GetByID(ctx, userID)
+}
+
+func (s *AuthService) UpdateName(ctx context.Context, userID, name string) (*model.User, error) {
+	user, err := s.users.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	user.Name = name
+	if err := s.users.Update(ctx, user); err != nil {
+		return nil, fmt.Errorf("update user: %w", err)
+	}
+	return user, nil
+}
+
+func (s *AuthService) ChangePassword(ctx context.Context, userID, currentPassword, newPassword string) error {
+	user, err := s.users.GetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(currentPassword)); err != nil {
+		return errors.New("invalid current password")
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+	user.PasswordHash = string(hash)
+	return s.users.Update(ctx, user)
+}
+
+func (s *AuthService) SetAvatar(ctx context.Context, userID string, avatarURL *string) error {
+	user, err := s.users.GetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	user.AvatarURL = avatarURL
+	return s.users.Update(ctx, user)
+}

@@ -31,7 +31,18 @@ export const api = {
 		request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
 	patch: <T>(path: string, body: unknown) =>
 		request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
-	delete: <T>(path: string) => request<T>(path, { method: 'DELETE' })
+	delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+	upload: async <T>(path: string, formData: FormData): Promise<T> => {
+		const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+		const res = await fetch(`${BASE_URL}${path}`, {
+			method: 'POST',
+			body: formData,
+			headers: token ? { Authorization: `Bearer ${token}` } : {}
+		});
+		if (!res.ok) throw new Error((await res.text()) || res.statusText);
+		if (res.status === 204) return null as T;
+		return res.json() as Promise<T>;
+	}
 };
 
 /** Returns an EventSource URL with the JWT token as a query param (EventSource can't set headers). */
