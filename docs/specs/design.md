@@ -46,8 +46,8 @@ Design for the phone first. The kitchen tablet gets the same design at a larger 
 
 ### Color as signal, not decoration
 - Red: overdue, destructive actions, errors
-- Blue: events (consistent across all views)
-- Yellow/orange: medium priority, live/ongoing events
+- Blue: events (consistent across all views) — solid fill
+- Amber/orange: tasks (consistent across all views) — outlined (light tint bg, amber border); also used for important task star indicator
 - Green: success, done states
 - Label colors: a curated palette of ~10 warm, distinct colors (not neon)
 
@@ -99,7 +99,8 @@ Exact hex values live in `tailwind.config.ts` and `app.css`. This table describe
 - Border: `border border-border`
 - Background: `bg-card` (same as background or slightly elevated)
 - Hover: subtle `bg-muted/40` lift
-- Left accent border: 4px solid — red for high priority, yellow for medium, blue for events
+- Left accent border: 4px solid amber for tasks in calendar view; events use solid fill (label color or default blue)
+- Important tasks: amber star icon (filled) inline with title; non-important tasks have no indicator
 - Tap target: the full card is tappable; min height ensures 44px
 
 ### Buttons

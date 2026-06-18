@@ -1,32 +1,25 @@
 <script lang="ts">
-	import type { Task, Member, AppLabel } from '$lib/types';
-	import { chipClass, dotClass } from '$lib/labels';
+	import type { Task, Member, AppCategory } from '$lib/types';
+	import { chipClass, dotClass } from '$lib/categories';
 	import { relativeDate } from '$lib/dates';
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { User } from 'lucide-svelte';
+	import { User, Star } from 'lucide-svelte';
 
-	let { task, members, labels, isDoneFilter, onclick, ontoggle }: {
+	let { task, members, categories, isDoneFilter, onclick, ontoggle }: {
 		task: Task;
 		members: Member[];
-		labels: AppLabel[];
+		categories: AppCategory[];
 		isDoneFilter: boolean;
 		onclick: () => void;
 		ontoggle: (e: MouseEvent) => void;
 	} = $props();
-
-	const priorityBorder: Record<string, string> = {
-		high: 'border-l-4 border-l-red-500',
-		medium: 'border-l-4 border-l-yellow-400',
-	};
 
 	function memberName(uid: string | undefined): string | null {
 		if (!uid) return null;
 		return members.find((m) => m.user_id === uid)?.name ?? null;
 	}
 
-	function labelByID(id: string): AppLabel | undefined {
-		return labels.find((l) => l.id === id);
-	}
+	const category = $derived(categories.find((c) => c.id === task.category_id));
 
 	function isOverdue(t: Task): boolean {
 		return !!(t.end_date && t.status !== 'done' && new Date(t.end_date) < new Date());
@@ -34,10 +27,8 @@
 </script>
 
 <button
-	class="w-full text-left flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-sm hover:bg-accent/50 transition-colors cursor-pointer
-		{isDoneFilter
-			? 'border-l-4 border-l-slate-300 dark:border-l-slate-600 opacity-60'
-			: (priorityBorder[task.priority] ?? '')}"
+	class="w-full text-left flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer
+		{isDoneFilter ? 'opacity-60' : ''}"
 	{onclick}
 >
 	<div role="presentation" onclick={ontoggle} class="mt-0.5">
@@ -45,7 +36,9 @@
 	</div>
 	<div class="flex-1 min-w-0">
 		<p class="text-sm font-medium truncate {task.status === 'done' ? 'line-through text-muted-foreground' : ''}">
-			{task.title}
+			{#if task.important && task.status !== 'done'}
+				<Star class="inline w-3 h-3 fill-amber-400 text-amber-400 mr-1 -mt-0.5" />
+			{/if}{task.title}
 		</p>
 		{#if task.description && task.status !== 'done'}
 			<p class="text-xs text-muted-foreground truncate mt-0.5">{task.description}</p>
@@ -65,15 +58,12 @@
 						</span>
 					{/if}
 				{/if}
-				{#each task.label_ids ?? [] as lid}
-					{@const lbl = labelByID(lid)}
-					{#if lbl}
-						<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium {chipClass(lbl.color)}">
-							<span class="w-1.5 h-1.5 rounded-full {dotClass(lbl.color)} shrink-0"></span>
-							{lbl.name}
-						</span>
-					{/if}
-				{/each}
+				{#if category}
+					<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium {chipClass(category.color)}">
+						<span class="w-1.5 h-1.5 rounded-full {dotClass(category.color)} shrink-0"></span>
+						{category.name}
+					</span>
+				{/if}
 			</div>
 		{/if}
 	</div>

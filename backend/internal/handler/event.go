@@ -67,7 +67,7 @@ func (h *EventHandler) create(w http.ResponseWriter, r *http.Request) {
 		EndAt       string   `json:"end_at"`
 		AllDay      bool     `json:"all_day"`
 		AttendeeIDs []string `json:"attendee_ids"`
-		LabelIDs    []string `json:"label_ids"`
+		CategoryID  *string  `json:"category_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Title == "" {
 		http.Error(w, "title is required", http.StatusBadRequest)
@@ -85,7 +85,7 @@ func (h *EventHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	event, err := h.events.Create(r.Context(), familyID, userID, body.Title, body.Description, body.Location, startAt, endAt, body.AllDay, body.AttendeeIDs, body.LabelIDs)
+	event, err := h.events.Create(r.Context(), familyID, userID, body.Title, body.Description, body.Location, startAt, endAt, body.AllDay, body.AttendeeIDs, body.CategoryID)
 	if err != nil {
 		http.Error(w, "failed to create event", http.StatusInternalServerError)
 		return
@@ -108,7 +108,7 @@ func (h *EventHandler) update(w http.ResponseWriter, r *http.Request) {
 		EndAt       string   `json:"end_at"`
 		AllDay      bool     `json:"all_day"`
 		AttendeeIDs []string `json:"attendee_ids"`
-		LabelIDs    []string `json:"label_ids"`
+		CategoryID  *string  `json:"category_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid request", http.StatusBadRequest)
@@ -137,7 +137,7 @@ func (h *EventHandler) update(w http.ResponseWriter, r *http.Request) {
 		EndAt:       endAt,
 		AllDay:      body.AllDay,
 		AttendeeIDs: body.AttendeeIDs,
-		LabelIDs:    body.LabelIDs,
+		CategoryID:  body.CategoryID,
 	}
 
 	if err := h.events.Update(r.Context(), event); err != nil {

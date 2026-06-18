@@ -161,24 +161,28 @@
 {/if}
 
 <!-- List tabs -->
-<div class="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
+<div class="sticky top-0 z-10 bg-background px-4 md:px-6 pt-4 md:pt-6 pb-2">
+<div class="flex items-center gap-2 overflow-x-auto pb-1">
 	<div class="flex items-center gap-1.5 flex-1">
 		{#each lists as list (list.id)}
-			<div class="relative group shrink-0">
-				<button
-					onclick={() => (activeListID = list.id)}
-					class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer whitespace-nowrap
-						{activeListID === list.id ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-				>{list.name}</button>
+			<div class="shrink-0">
 				{#if activeListID === list.id && lists.length > 1}
+					<div class="flex items-center gap-1 pl-3 pr-1.5 py-1.5 rounded-full bg-primary text-primary-foreground">
+						<button onclick={() => (activeListID = list.id)} class="text-sm font-medium whitespace-nowrap cursor-pointer">{list.name}</button>
+						<button
+							onclick={() => (confirmDeleteList = list)}
+							class="flex items-center justify-center w-5 h-5 rounded-full hover:bg-primary-foreground/20 cursor-pointer"
+							aria-label="Delete list"
+						>
+							<X class="w-3 h-3" />
+						</button>
+					</div>
+				{:else}
 					<button
-						onclick={() => (confirmDeleteList = list)}
-						class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-muted-foreground text-background
-							flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-						aria-label="Delete list"
-					>
-						<X class="w-2.5 h-2.5" />
-					</button>
+						onclick={() => (activeListID = list.id)}
+						class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer whitespace-nowrap
+							{activeListID === list.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+					>{list.name}</button>
 				{/if}
 			</div>
 		{/each}
@@ -199,7 +203,9 @@
 		<Button size="sm" variant="outline" class="shrink-0" onclick={() => (addingList = true)}>+ List</Button>
 	{/if}
 </div>
+</div>
 
+<div class="px-4 md:px-6 pb-8">
 <!-- Delete list confirmation -->
 {#if confirmDeleteList}
 	<div class="mb-4 p-3 rounded-lg border border-destructive/30 bg-destructive/5 flex items-center justify-between gap-3 text-sm">
@@ -225,7 +231,9 @@
 
 	{#if uncheckedItems.length === 0 && checkedItems.length === 0}
 		<div class="flex flex-col items-center gap-2 py-12 text-muted-foreground">
-			<p class="text-sm">List is empty. Add items above.</p>
+			<ShoppingCart class="w-8 h-8 opacity-30" />
+			<p class="text-sm font-medium">List is empty</p>
+			<p class="text-xs">Add items above to get started.</p>
 		</div>
 	{:else}
 		<!-- To buy -->
@@ -276,3 +284,4 @@
 		{/if}
 	{/if}
 {/if}
+</div>

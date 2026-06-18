@@ -2,7 +2,7 @@ package model
 
 import "time"
 
-type Label struct {
+type Category struct {
 	ID        string    `json:"id"`
 	FamilyID  string    `json:"family_id"`
 	Name      string    `json:"name"`

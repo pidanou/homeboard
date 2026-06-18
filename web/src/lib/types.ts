@@ -12,7 +12,7 @@ export type VirtualMember = {
 	name: string;
 };
 
-export type AppLabel = {
+export type AppCategory = {
 	id: string;
 	family_id: string;
 	name: string;
@@ -24,11 +24,11 @@ export type Task = {
 	title: string;
 	description?: string;
 	status: string;
-	priority: string;
+	important: boolean;
 	assigned_to?: string;
 	end_date?: string;
 	start_date?: string;
-	label_ids?: string[];
+	category_id?: string;
 };
 
 export type CalEvent = {
@@ -40,7 +40,7 @@ export type CalEvent = {
 	end_at: string;
 	all_day: boolean;
 	attendee_ids?: string[];
-	label_ids?: string[];
+	category_id?: string;
 };
 
 export type Filter = 'all' | 'tasks' | 'events' | 'done';

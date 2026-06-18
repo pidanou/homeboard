@@ -8,35 +8,35 @@ import (
 	"github.com/pidanou/family-board/internal/service"
 )
 
-type LabelHandler struct {
-	labels *service.LabelService
-	hub    *Hub
+type CategoryHandler struct {
+	categories *service.CategoryService
+	hub        *Hub
 }
 
-func NewLabelHandler(labels *service.LabelService, hub *Hub) *LabelHandler {
-	return &LabelHandler{labels: labels, hub: hub}
+func NewCategoryHandler(categories *service.CategoryService, hub *Hub) *CategoryHandler {
+	return &CategoryHandler{categories: categories, hub: hub}
 }
 
-func (h *LabelHandler) Routes() http.Handler {
+func (h *CategoryHandler) Routes() http.Handler {
 	r := chi.NewRouter()
 	r.Get("/", h.list)
 	r.Post("/", h.create)
-	r.Delete("/{labelID}", h.delete)
+	r.Delete("/{categoryID}", h.delete)
 	return r
 }
 
-func (h *LabelHandler) list(w http.ResponseWriter, r *http.Request) {
+func (h *CategoryHandler) list(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
-	labels, err := h.labels.ListForFamily(r.Context(), familyID)
+	categories, err := h.categories.ListForFamily(r.Context(), familyID)
 	if err != nil {
-		http.Error(w, "failed to list labels", http.StatusInternalServerError)
+		http.Error(w, "failed to list categories", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(labels)
+	json.NewEncoder(w).Encode(categories)
 }
 
-func (h *LabelHandler) create(w http.ResponseWriter, r *http.Request) {
+func (h *CategoryHandler) create(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	var body struct {
 		Name  string `json:"name"`
@@ -49,22 +49,22 @@ func (h *LabelHandler) create(w http.ResponseWriter, r *http.Request) {
 	if body.Color == "" {
 		body.Color = "gray"
 	}
-	label, err := h.labels.Create(r.Context(), familyID, body.Name, body.Color)
+	category, err := h.categories.Create(r.Context(), familyID, body.Name, body.Color)
 	if err != nil {
-		http.Error(w, "failed to create label", http.StatusInternalServerError)
+		http.Error(w, "failed to create category", http.StatusInternalServerError)
 		return
 	}
 	h.hub.Broadcast(familyID)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(label)
+	json.NewEncoder(w).Encode(category)
 }
 
-func (h *LabelHandler) delete(w http.ResponseWriter, r *http.Request) {
+func (h *CategoryHandler) delete(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
-	labelID := chi.URLParam(r, "labelID")
-	if err := h.labels.Delete(r.Context(), labelID, familyID); err != nil {
-		http.Error(w, "failed to delete label", http.StatusInternalServerError)
+	categoryID := chi.URLParam(r, "categoryID")
+	if err := h.categories.Delete(r.Context(), categoryID, familyID); err != nil {
+		http.Error(w, "failed to delete category", http.StatusInternalServerError)
 		return
 	}
 	h.hub.Broadcast(familyID)

@@ -6,8 +6,8 @@ import (
 	"github.com/pidanou/family-board/internal/model"
 )
 
-type LabelRepository interface {
-	Create(ctx context.Context, label *model.Label) error
-	ListByFamilyID(ctx context.Context, familyID string) ([]*model.Label, error)
-	Delete(ctx context.Context, labelID, familyID string) error
+type CategoryRepository interface {
+	Create(ctx context.Context, category *model.Category) error
+	ListByFamilyID(ctx context.Context, familyID string) ([]*model.Category, error)
+	Delete(ctx context.Context, categoryID, familyID string) error
 }

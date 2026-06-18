@@ -78,7 +78,7 @@
 				</div>
 			</header>
 
-			<main class="flex-1 p-4 md:p-6 overflow-auto">
+			<main class="flex-1 overflow-auto">
 				{@render children()}
 			</main>
 
