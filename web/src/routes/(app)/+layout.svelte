@@ -4,7 +4,9 @@
 	import { page } from '$app/stores';
 	import { isLoggedIn } from '$lib/auth';
 	import Sidebar from '$lib/components/Sidebar.svelte';
-	import { Menu, Sun, LayoutList, CalendarDays, ListChecks, Settings } from 'lucide-svelte';
+	import UserAvatar from '$lib/components/UserAvatar.svelte';
+	import { currentUser, loadCurrentUser } from '$lib/stores/user';
+	import { Menu, Sun, LayoutList, CalendarDays, ListChecks } from 'lucide-svelte';
 
 	let { children } = $props();
 	let ready = $state(false);
@@ -19,11 +21,14 @@
 		mobileMenuOpen = false;
 	});
 
+	const user = $derived($currentUser);
+
 	onMount(() => {
 		if (!isLoggedIn()) {
 			goto('/login');
 		} else {
 			ready = true;
+			loadCurrentUser();
 		}
 	});
 
@@ -59,13 +64,9 @@
 			<header class="md:hidden sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-sm px-4 h-14 flex items-center justify-between shrink-0">
 				<a href="/" class="font-bold text-base">Family Board</a>
 				<div class="flex items-center gap-1">
-					{#if familyID}
-						<a
-							href="/families/{familyID}/settings"
-							class="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
-							aria-label="Settings"
-						>
-							<Settings class="w-5 h-5" />
+					{#if user}
+						<a href="/profile" class="p-1 rounded-full hover:opacity-80 transition-opacity" aria-label="My profile">
+							<UserAvatar name={user.name} avatarUrl={user.avatar_url} userId={user.id} size={32} />
 						</a>
 					{/if}
 					<button

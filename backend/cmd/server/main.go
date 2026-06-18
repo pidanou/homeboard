@@ -67,8 +67,15 @@ func main() {
 	// SSE hub
 	hub := handler.NewHub()
 
+	uploadDir := os.Getenv("UPLOAD_DIR")
+	if uploadDir == "" {
+		uploadDir = "./uploads"
+	}
+	appBaseURL := os.Getenv("APP_BASE_URL")
+
 	// Handlers
 	authHandler := handler.NewAuthHandler(authService)
+	profileHandler := handler.NewProfileHandler(authService, uploadDir, appBaseURL)
 	familyHandler := handler.NewFamilyHandler(familyService)
 	inviteHandler := handler.NewInviteHandler(inviteService, os.Getenv("JWT_SECRET"))
 	taskHandler := handler.NewTaskHandler(taskService, hub)
@@ -101,8 +108,11 @@ func main() {
 		r.Route("/families/{familyID}/stream", func(r chi.Router) {
 			r.Mount("/", sseHandler.Routes())
 		})
+		r.Handle("/uploads/avatars/*", http.StripPrefix("/api/v1/uploads/avatars/", http.FileServer(http.Dir(uploadDir+"/avatars"))))
+
 		r.Group(func(r chi.Router) {
 			r.Use(handler.AuthMiddleware(os.Getenv("JWT_SECRET")))
+			r.Mount("/profile", profileHandler.Routes())
 			r.Mount("/families", familyHandler.Routes())
 			r.Route("/families/{familyID}/invites", func(r chi.Router) {
 				r.Mount("/", inviteHandler.Routes())

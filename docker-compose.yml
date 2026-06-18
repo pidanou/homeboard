@@ -23,21 +23,16 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgres://familyboard:${POSTGRES_PASSWORD}@db:5432/familyboard
+      DATABASE_URL: postgres://familyboard:${POSTGRES_PASSWORD}@db:5432/familyboard?sslmode=disable
       JWT_SECRET: ${JWT_SECRET}
+      APP_BASE_URL: ${APP_BASE_URL}
+      UPLOAD_DIR: /app/uploads
       PORT: 8080
+    volumes:
+      - uploads_data:/app/uploads
     ports:
       - "8080:8080"
 
-  web:
-    build: ./web
-    restart: unless-stopped
-    depends_on:
-      - backend
-    environment:
-      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8080}
-    ports:
-      - "3000:3000"
-
 volumes:
   db_data:
+  uploads_data:
