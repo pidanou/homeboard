@@ -1,13 +1,13 @@
 <script lang="ts">
-	import type { CalEvent, Member, AppLabel } from '$lib/types';
-	import { chipClass, dotClass } from '$lib/labels';
+	import type { CalEvent, Member, AppCategory } from '$lib/types';
+	import { chipClass, dotClass } from '$lib/categories';
 	import { fmtDate, fmtDateTime } from '$lib/dates';
-	import { MapPin, User } from 'lucide-svelte';
+	import { MapPin, User, CalendarDays } from 'lucide-svelte';
 
-	let { event, members, labels, now, onclick }: {
+	let { event, members, categories, now, onclick }: {
 		event: CalEvent;
 		members: Member[];
-		labels: AppLabel[];
+		categories: AppCategory[];
 		now: Date;
 		onclick: () => void;
 	} = $props();
@@ -16,15 +16,14 @@
 		return members.find((m) => m.user_id === uid)?.name ?? null;
 	}
 
-	function labelByID(id: string): AppLabel | undefined {
-		return labels.find((l) => l.id === id);
-	}
+	const category = $derived(categories.find((c) => c.id === event.category_id));
 </script>
 
 <button
-	class="w-full text-left flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-sm hover:bg-accent/50 transition-colors cursor-pointer border-l-4 border-l-blue-400"
+	class="w-full text-left flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer"
 	{onclick}
 >
+	<CalendarDays class="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
 	<div class="flex-1 min-w-0">
 		<div class="flex items-start justify-between gap-2">
 			<p class="text-sm font-medium truncate">{event.title}</p>
@@ -46,8 +45,8 @@
 				· <MapPin class="w-3 h-3 inline -mt-px" />{event.location}
 			{/if}
 		</p>
-		{#if event.attendee_ids && event.attendee_ids.length > 0}
-			<div class="flex items-center gap-2 mt-1 flex-wrap">
+		<div class="flex items-center gap-2 mt-1 flex-wrap">
+			{#if event.attendee_ids && event.attendee_ids.length > 0}
 				{#each event.attendee_ids as uid}
 					{@const name = memberName(uid)}
 					{#if name}
@@ -56,20 +55,13 @@
 						</span>
 					{/if}
 				{/each}
-			</div>
-		{/if}
-		{#if event.label_ids && event.label_ids.length > 0}
-			<div class="flex items-center gap-1.5 mt-1 flex-wrap">
-				{#each event.label_ids as lid}
-					{@const lbl = labelByID(lid)}
-					{#if lbl}
-						<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium {chipClass(lbl.color)}">
-							<span class="w-1.5 h-1.5 rounded-full {dotClass(lbl.color)} shrink-0"></span>
-							{lbl.name}
-						</span>
-					{/if}
-				{/each}
-			</div>
-		{/if}
+			{/if}
+			{#if category}
+				<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium {chipClass(category.color)}">
+					<span class="w-1.5 h-1.5 rounded-full {dotClass(category.color)} shrink-0"></span>
+					{category.name}
+				</span>
+			{/if}
+		</div>
 	</div>
 </button>

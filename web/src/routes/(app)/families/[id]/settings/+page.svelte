@@ -8,62 +8,62 @@
 
 	type Invite = { token: string; expires_at: string };
 	type Member = { user_id: string; name: string; email: string; role: string; joined_at: string; virtual?: boolean };
-	type LabelColor = 'red' | 'orange' | 'yellow' | 'green' | 'teal' | 'blue' | 'purple' | 'pink' | 'gray';
-	type AppLabel = { id: string; name: string; color: LabelColor };
+	type CategoryColor = 'red' | 'orange' | 'yellow' | 'green' | 'teal' | 'blue' | 'purple' | 'pink' | 'gray';
+	type AppCategory = { id: string; name: string; color: CategoryColor };
 
-	const LABEL_COLORS: LabelColor[] = ['red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 'pink', 'gray'];
-	const LABEL_DOT: Record<LabelColor, string> = {
-		red: 'bg-red-500', orange: 'bg-orange-500', yellow: 'bg-yellow-500',
-		green: 'bg-green-500', teal: 'bg-teal-500', blue: 'bg-blue-500',
-		purple: 'bg-purple-500', pink: 'bg-pink-500', gray: 'bg-gray-400',
+	const CATEGORY_COLORS: CategoryColor[] = ['red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 'pink', 'gray'];
+	const CATEGORY_DOT: Record<CategoryColor, string> = {
+		red: 'bg-rose-500', orange: 'bg-orange-400', yellow: 'bg-amber-400',
+		green: 'bg-emerald-600', teal: 'bg-teal-600', blue: 'bg-indigo-500',
+		purple: 'bg-violet-500', pink: 'bg-pink-400', gray: 'bg-stone-400',
 	};
 
 	const familyID = $derived($page.params.id);
 
 	let invites = $state<Invite[]>([]);
 	let members = $state<Member[]>([]);
-	let labels = $state<AppLabel[]>([]);
+	let categories = $state<AppCategory[]>([]);
 	let error = $state('');
 	let copied = $state<string | null>(null);
-	let newLabelName = $state('');
-	let newLabelColor = $state<LabelColor>('blue');
+	let newCategoryName = $state('');
+	let newCategoryColor = $state<CategoryColor>('blue');
 	let addingVirtual = $state(false);
 	let newVirtualName = $state('');
 
 	onMount(async () => {
-		const [membersResult, invitesResult, labelsResult] = await Promise.allSettled([
+		const [membersResult, invitesResult, categoriesResult] = await Promise.allSettled([
 			api.get<Member[]>(`/api/v1/families/${familyID}/members`),
 			api.get<Invite[]>(`/api/v1/families/${familyID}/invites`),
-			api.get<AppLabel[]>(`/api/v1/families/${familyID}/labels`),
+			api.get<AppCategory[]>(`/api/v1/families/${familyID}/categories`),
 		]);
 		if (membersResult.status === 'fulfilled') members = membersResult.value ?? [];
 		if (invitesResult.status === 'fulfilled') invites = invitesResult.value ?? [];
-		if (labelsResult.status === 'fulfilled') labels = labelsResult.value ?? [];
+		if (categoriesResult.status === 'fulfilled') categories = categoriesResult.value ?? [];
 		if (membersResult.status === 'rejected' || invitesResult.status === 'rejected') {
 			error = 'Failed to load settings';
 		}
 	});
 
-	async function createLabel() {
-		if (!newLabelName.trim()) return;
+	async function createCategory() {
+		if (!newCategoryName.trim()) return;
 		try {
-			const label = await api.post<AppLabel>(`/api/v1/families/${familyID}/labels`, {
-				name: newLabelName.trim(),
-				color: newLabelColor,
+			const cat = await api.post<AppCategory>(`/api/v1/families/${familyID}/categories`, {
+				name: newCategoryName.trim(),
+				color: newCategoryColor,
 			});
-			labels = [...labels, label];
-			newLabelName = '';
+			categories = [...categories, cat];
+			newCategoryName = '';
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to create label';
+			error = err instanceof Error ? err.message : 'Failed to create category';
 		}
 	}
 
-	async function deleteLabel(labelID: string) {
+	async function deleteCategory(categoryID: string) {
 		try {
-			await api.delete(`/api/v1/families/${familyID}/labels/${labelID}`);
-			labels = labels.filter((l) => l.id !== labelID);
+			await api.delete(`/api/v1/families/${familyID}/categories/${categoryID}`);
+			categories = categories.filter((c) => c.id !== categoryID);
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to delete label';
+			error = err instanceof Error ? err.message : 'Failed to delete category';
 		}
 	}
 
@@ -71,7 +71,7 @@
 		if (!newVirtualName.trim()) return;
 		try {
 			const vm = await api.post<{ id: string; name: string }>(`/api/v1/families/${familyID}/members/virtual`, { name: newVirtualName.trim() });
-			members = [...members, { user_id: vm.id, name: vm.name, email: '', role: '', virtual: true }];
+			members = [...members, { user_id: vm.id, name: vm.name, email: '', role: '', joined_at: '', virtual: true }];
 			newVirtualName = '';
 			addingVirtual = false;
 		} catch (err) {
@@ -121,7 +121,7 @@
 	<p class="text-sm text-destructive mb-4">{error}</p>
 {/if}
 
-<div class="flex flex-col gap-8">
+<div class="flex flex-col gap-8 pt-4 md:pt-6 px-4 md:px-6">
 
 	<!-- Members -->
 	<div class="flex flex-col gap-3">
@@ -185,19 +185,19 @@
 		{/if}
 	</div>
 
-	<!-- Labels -->
+	<!-- Categories -->
 	<div class="flex flex-col gap-3">
-		<h3 class="text-sm font-semibold">Labels</h3>
-		{#if labels.length > 0}
+		<h3 class="text-sm font-semibold">Categories</h3>
+		{#if categories.length > 0}
 			<div class="flex flex-col gap-1.5">
-				{#each labels as lbl (lbl.id)}
+				{#each categories as cat (cat.id)}
 					<div class="flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-2.5">
 						<span class="flex items-center gap-2 text-sm">
-							<span class="w-3 h-3 rounded-full {LABEL_DOT[lbl.color]} shrink-0"></span>
-							{lbl.name}
+							<span class="w-3 h-3 rounded-full {CATEGORY_DOT[cat.color]} shrink-0"></span>
+							{cat.name}
 						</span>
 						<button
-							onclick={() => deleteLabel(lbl.id)}
+							onclick={() => deleteCategory(cat.id)}
 							class="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
 						>
 							<X class="w-3.5 h-3.5" />
@@ -206,29 +206,29 @@
 				{/each}
 			</div>
 		{:else}
-			<p class="text-sm text-muted-foreground">No labels yet.</p>
+			<p class="text-sm text-muted-foreground">No categories yet.</p>
 		{/if}
 
 		<div class="flex flex-col gap-2 rounded-lg border border-border bg-card p-4">
-			<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">New label</p>
+			<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">New category</p>
 			<Input
-				bind:value={newLabelName}
-				placeholder="Label name…"
-				onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); createLabel(); } }}
+				bind:value={newCategoryName}
+				placeholder="Category name…"
+				onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); createCategory(); } }}
 			/>
 			<div class="flex flex-wrap gap-2">
-				{#each LABEL_COLORS as c}
+				{#each CATEGORY_COLORS as c}
 					<button
 						type="button"
-						onclick={() => (newLabelColor = c)}
-						class="w-6 h-6 rounded-full {LABEL_DOT[c]} transition-all
-							{newLabelColor === c ? 'ring-2 ring-offset-2 ring-foreground' : 'opacity-70 hover:opacity-100'}"
+						onclick={() => (newCategoryColor = c)}
+						class="w-6 h-6 rounded-full {CATEGORY_DOT[c]} transition-all
+							{newCategoryColor === c ? 'ring-2 ring-offset-2 ring-foreground' : 'opacity-70 hover:opacity-100'}"
 						title={c}
 					></button>
 				{/each}
 			</div>
-			<Button onclick={createLabel} disabled={!newLabelName.trim()} size="sm" class="w-full">
-				Add label
+			<Button onclick={createCategory} disabled={!newCategoryName.trim()} size="sm" class="w-full">
+				Add category
 			</Button>
 		</div>
 	</div>

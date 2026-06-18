@@ -9,32 +9,32 @@ import (
 	"github.com/pidanou/family-board/internal/repository"
 )
 
-type LabelService struct {
-	labels repository.LabelRepository
+type CategoryService struct {
+	categories repository.CategoryRepository
 }
 
-func NewLabelService(labels repository.LabelRepository) *LabelService {
-	return &LabelService{labels: labels}
+func NewCategoryService(categories repository.CategoryRepository) *CategoryService {
+	return &CategoryService{categories: categories}
 }
 
-func (s *LabelService) Create(ctx context.Context, familyID, name, color string) (*model.Label, error) {
-	label := &model.Label{
+func (s *CategoryService) Create(ctx context.Context, familyID, name, color string) (*model.Category, error) {
+	category := &model.Category{
 		ID:        uuid.NewString(),
 		FamilyID:  familyID,
 		Name:      name,
 		Color:     color,
 		CreatedAt: time.Now().UTC(),
 	}
-	if err := s.labels.Create(ctx, label); err != nil {
+	if err := s.categories.Create(ctx, category); err != nil {
 		return nil, err
 	}
-	return label, nil
+	return category, nil
 }
 
-func (s *LabelService) ListForFamily(ctx context.Context, familyID string) ([]*model.Label, error) {
-	return s.labels.ListByFamilyID(ctx, familyID)
+func (s *CategoryService) ListForFamily(ctx context.Context, familyID string) ([]*model.Category, error) {
+	return s.categories.ListByFamilyID(ctx, familyID)
 }
 
-func (s *LabelService) Delete(ctx context.Context, labelID, familyID string) error {
-	return s.labels.Delete(ctx, labelID, familyID)
+func (s *CategoryService) Delete(ctx context.Context, categoryID, familyID string) error {
+	return s.categories.Delete(ctx, categoryID, familyID)
 }

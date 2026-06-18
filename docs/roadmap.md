@@ -153,42 +153,39 @@ Wrap the existing SvelteKit app in a Capacitor native shell for iOS and Android 
 
 ---
 
-## M12 — Calendar DnD & advanced rendering ⬜
-Drag-and-drop interaction and richer visual rendering on the calendar. This milestone likely requires replacing the hand-rolled month grid with a calendar rendering library that supports DnD natively.
+## M12 — Calendar DnD & advanced rendering ✅
+Replaced hand-rolled calendar grid with `@event-calendar/core` (Svelte 5 native). Library: `@event-calendar/core` v5.7.1 with DayGrid, TimeGrid, List, Interaction plugins.
 
-**Library candidates to evaluate at implementation time:**
-- [`svelte-fullcalendar`](https://github.com/YogliB/svelte-fullcalendar) — wrapper around FullCalendar, mature, heavy (~200kb)
-- [`@event-calendar/svelte`](https://github.com/vkurko/calendar) — lightweight, Svelte-native, supports DnD, month/week/day/agenda — **leading candidate**
-- Hand-rolled + `svelte-dnd-action` — full control, significant effort
-
-- ⬜ Drag an event on the calendar to a new day → updates `start_at` / `end_at` via PATCH
-- ⬜ Multi-day events rendered as horizontal pills spanning across day cells in month view
-- ⬜ Drag to resize event duration (week/day view only)
-- ⬜ Drag tasks on the Board to reorder within a group (manual ordering)
-- ⬜ Drag tasks between time groups (e.g. move "Later" task to "Today" → sets due date to today)
-
-> **Note:** if a library is adopted here, M8 may need partial rework to hand off the grid to the library. Factor that in before starting M12.
+- ✅ Drag an event on the calendar to a new day → updates `start_at` / `end_at` via PATCH
+- ✅ Multi-day events rendered as horizontal pills spanning across day cells in month view
+- ✅ Drag to resize event duration (week/day view only)
+- ✅ Drag tasks to new due date (all-day row) → updates `end_date` via PATCH
+- ✅ Week / day / month / agenda views all working via EC
+- ✅ SSR disabled for calendar page (`export const ssr = false`)
+- ⬜ Drag tasks on the Board to reorder within a group (manual ordering) — moved to M13
 
 ---
 
-## M13 — Board drag-and-drop ⬜
-If M12 doesn't cover Board DnD (it may not, since Board is a list not a calendar):
+## M13 — Task manual ordering ✅
+Board DnD scope narrowed: calendar already handles date-based rescheduling. Today view gets manual sort.
 
-- ⬜ Drag tasks within a group to set manual ordering
-- ⬜ Drag a task to a different time group → adjusts due date accordingly (e.g. drag to "Today" → sets due date = today)
-- ⬜ Requires: `manual_order` column on tasks, or accept "due date changes on drop" as the ordering mechanism
+- ✅ `manual_order` INTEGER column on tasks (migration 000014)
+- ✅ Backend: `ORDER BY manual_order ASC NULLS LAST, created_at DESC`; `PUT /families/{id}/tasks/reorder` bulk endpoint
+- ✅ Today view: drag-to-reorder via Pointer Events (touch + mouse, no new dependency); grip handle prevents conflict with card taps
+- ⬜ Board group drag (drag task to different time group → adjusts due date) — deferred; calendar covers this use case
 
 ---
 
-## M15 — Design pass ⬜
-One focused sweep to reconcile the full UI against `docs/specs/design.md`. Deferred until M13 is done to avoid conflicts with feature work.
+## M15 — Design pass ✅
+One focused sweep to reconcile the full UI against `docs/specs/design.md`.
 
-- ⬜ Audit color tokens — ensure all semantic tokens (`--primary`, `--muted`, etc.) match the design spec in both light and dark mode
-- ⬜ Typography consistency — page titles, section headers, card metadata, all on spec
-- ⬜ Spacing and rounding audit — `rounded-lg` everywhere, comfortable padding, no dense screens
-- ⬜ Touch target audit — all interactive elements ≥ 44×44px
-- ⬜ Empty states — consistent style across all pages
-- ⬜ Motion — cap all transitions at 200ms, remove any JS animation
+- ✅ Color tokens — warm amber primary (`oklch(0.58 0.14 52)` light / `oklch(0.76 0.14 58)` dark), warm off-white/near-black backgrounds, warm stone borders/muted; pure white/black eliminated
+- ✅ Typography consistency — page titles `text-xl font-semibold`, section headers `text-xs font-semibold uppercase tracking-wide`, card metadata `text-xs text-muted-foreground`
+- ✅ Spacing and rounding — `rounded-lg` on cards, comfortable `px-4 py-3` padding throughout
+- ✅ Touch targets — cards are full-width tappable buttons, bottom tab bar `min-h-[56px]`, shadcn buttons meet size spec
+- ✅ Empty states — consistent icon + heading + explanation pattern across Today, Board, Lists
+- ✅ Motion — all transitions use `transition-colors` (150ms default), no JS animation libraries
+- ✅ Content max-width — `max-w-4xl mx-auto` wrapper in layout prevents excessive stretching on wide screens
 
 > **Note on new code (M6–M11):** do not add new design debt. Follow the design spec for anything written now. This milestone only exists to fix existing inconsistencies — not to catch up on drift from ongoing work.
 

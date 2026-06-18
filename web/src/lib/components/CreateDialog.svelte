@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Member, AppLabel } from '$lib/types';
+	import type { Member, AppCategory } from '$lib/types';
 	import { calDateToISO, fmtCalDate, calDateTimeToISO, rangeLabelFor } from '$lib/dates';
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
@@ -16,12 +16,12 @@
 	import type { DateRange } from 'bits-ui';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
 	import { CheckSquare, CalendarDays } from 'lucide-svelte';
-	import LabelPicker from '$lib/components/LabelPicker.svelte';
+	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 
-	let { familyID, members, labels, onCreated, onError }: {
+	let { familyID, members, categories, onCreated, onError }: {
 		familyID: string;
 		members: Member[];
-		labels: AppLabel[];
+		categories: AppCategory[];
 		onCreated: () => void;
 		onError: (e: unknown) => void;
 	} = $props();
@@ -29,7 +29,7 @@
 	let isOpen = $state(false);
 	let createType = $state<'task' | 'event'>('task');
 	let cf = $state({
-		title: '', description: '', priority: 'medium',
+		title: '', description: '', important: false,
 		allDay: false, location: '', assignedTo: '', attendeeIDs: [] as string[],
 	});
 	let cfDueDate = $state<CalendarDate | undefined>(undefined);
@@ -38,16 +38,16 @@
 	let cfStartTime = $state('09:00');
 	let cfEndTime = $state('10:00');
 	let cfEventPickerOpen = $state(false);
-	let cfLabelIDs = $state<string[]>([]);
+	let cfCategoryID = $state<string | undefined>(undefined);
 
 	export function open(t: 'task' | 'event' = 'task') {
 		createType = t;
-		cf = { title: '', description: '', priority: 'medium', allDay: false, location: '', assignedTo: '', attendeeIDs: [] };
+		cf = { title: '', description: '', important: false, allDay: false, location: '', assignedTo: '', attendeeIDs: [] };
 		cfDueDate = undefined;
 		cfEventRange = { start: undefined, end: undefined };
 		cfStartTime = '09:00';
 		cfEndTime = '10:00';
-		cfLabelIDs = [];
+		cfCategoryID = undefined;
 		isOpen = true;
 	}
 
@@ -62,10 +62,10 @@
 				await api.post(`/api/v1/families/${familyID}/tasks`, {
 					title: cf.title.trim(),
 					description: cf.description,
-					priority: cf.priority,
+					important: cf.important,
 					assigned_to: cf.assignedTo || undefined,
 					end_date: cfDueDate ? calDateToISO(cfDueDate) : undefined,
-					label_ids: cfLabelIDs,
+					category_id: cfCategoryID,
 				});
 			} else {
 				if (!cfEventRange.start) return;
@@ -78,7 +78,7 @@
 					end_at: calDateTimeToISO(cfEnd, cfEndTime, cf.allDay),
 					all_day: cf.allDay,
 					attendee_ids: cf.attendeeIDs,
-					label_ids: cfLabelIDs,
+					category_id: cfCategoryID,
 				});
 			}
 			isOpen = false;
@@ -92,12 +92,12 @@
 <Dialog.Root bind:open={isOpen}>
 	<Dialog.Portal>
 		<Dialog.Overlay />
-		<Dialog.Content class="sm:max-w-md">
+		<Dialog.Content class="sm:max-w-md flex flex-col max-h-[90dvh]">
 			<Dialog.Header>
 				<Dialog.Title>New ticket</Dialog.Title>
 			</Dialog.Header>
 
-			<div class="flex flex-col gap-4 py-2">
+			<div class="flex flex-col gap-4 py-2 overflow-y-auto flex-1 min-h-0 px-1">
 				<div class="flex gap-2">
 					<button
 						class="flex-1 flex flex-col items-center gap-1.5 rounded-lg border-2 py-3 text-sm font-medium transition-colors cursor-pointer
@@ -128,15 +128,10 @@
 				{#if createType === 'task'}
 					<div class="flex gap-3">
 						<div class="flex flex-col gap-1.5 flex-1">
-							<Label>Priority</Label>
-							<Select.Root type="single" bind:value={cf.priority}>
-								<Select.Trigger class="w-full"><SelectPrimitive.Value /></Select.Trigger>
-								<Select.Content>
-									<Select.Item value="low">Low</Select.Item>
-									<Select.Item value="medium">Medium</Select.Item>
-									<Select.Item value="high">High</Select.Item>
-								</Select.Content>
-							</Select.Root>
+							<label class="flex items-center gap-2 text-sm cursor-pointer mt-5">
+								<Checkbox bind:checked={cf.important} />
+								Important
+							</label>
 						</div>
 						<div class="flex flex-col gap-1.5 flex-1">
 							<Label>Due date</Label>
@@ -224,8 +219,8 @@
 				{/if}
 
 				<div class="flex flex-col gap-1.5">
-					<Label>Labels</Label>
-					<LabelPicker {familyID} {labels} bind:selectedIDs={cfLabelIDs} onError={onError} />
+					<Label>Category</Label>
+					<CategoryPicker {familyID} {categories} bind:selectedID={cfCategoryID} onError={onError} />
 				</div>
 			</div>
 

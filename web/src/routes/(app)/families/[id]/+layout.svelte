@@ -17,7 +17,7 @@
 
 <!-- Family name shown on mobile (desktop sidebar already shows it) -->
 {#if family}
-	<h2 class="md:hidden text-lg font-semibold mb-4">{family.name}</h2>
+	<p class="md:hidden text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2 pt-4 px-4 md:px-6">{family.name}</p>
 {/if}
 
 {@render children()}

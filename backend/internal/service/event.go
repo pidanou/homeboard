@@ -17,7 +17,7 @@ func NewEventService(events repository.EventRepository) *EventService {
 	return &EventService{events: events}
 }
 
-func (s *EventService) Create(ctx context.Context, familyID, userID, title, description, location string, startAt, endAt time.Time, allDay bool, attendeeIDs, labelIDs []string) (*model.Event, error) {
+func (s *EventService) Create(ctx context.Context, familyID, userID, title, description, location string, startAt, endAt time.Time, allDay bool, attendeeIDs []string, categoryID *string) (*model.Event, error) {
 	now := time.Now().UTC()
 	event := &model.Event{
 		ID:          uuid.NewString(),
@@ -29,7 +29,7 @@ func (s *EventService) Create(ctx context.Context, familyID, userID, title, desc
 		EndAt:       endAt.UTC(),
 		AllDay:      allDay,
 		AttendeeIDs: attendeeIDs,
-		LabelIDs:    labelIDs,
+		CategoryID:  categoryID,
 		CreatedBy:   userID,
 		CreatedAt:   now,
 		UpdatedAt:   now,

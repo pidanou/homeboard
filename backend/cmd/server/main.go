@@ -52,7 +52,7 @@ func main() {
 	inviteRepo := postgres.NewInviteRepository(pool)
 	taskRepo := postgres.NewTaskRepository(pool)
 	eventRepo := postgres.NewEventRepository(pool)
-	labelRepo := postgres.NewLabelRepository(pool)
+	labelRepo := postgres.NewCategoryRepository(pool)
 	listRepo := postgres.NewListRepository(pool)
 
 	// Services
@@ -61,7 +61,7 @@ func main() {
 	inviteService := service.NewInviteService(inviteRepo, familyRepo)
 	taskService := service.NewTaskService(taskRepo)
 	eventService := service.NewEventService(eventRepo)
-	labelService := service.NewLabelService(labelRepo)
+	labelService := service.NewCategoryService(labelRepo)
 	listService := service.NewListService(listRepo)
 
 	// SSE hub
@@ -73,7 +73,7 @@ func main() {
 	inviteHandler := handler.NewInviteHandler(inviteService, os.Getenv("JWT_SECRET"))
 	taskHandler := handler.NewTaskHandler(taskService, hub)
 	eventHandler := handler.NewEventHandler(eventService, hub)
-	labelHandler := handler.NewLabelHandler(labelService, hub)
+	labelHandler := handler.NewCategoryHandler(labelService, hub)
 	listHandler := handler.NewListHandler(listService, hub)
 	sseHandler := handler.NewSSEHandler(hub, os.Getenv("JWT_SECRET"))
 
@@ -113,7 +113,7 @@ func main() {
 			r.Route("/families/{familyID}/events", func(r chi.Router) {
 				r.Mount("/", eventHandler.Routes())
 			})
-			r.Route("/families/{familyID}/labels", func(r chi.Router) {
+			r.Route("/families/{familyID}/categories", func(r chi.Router) {
 				r.Mount("/", labelHandler.Routes())
 			})
 			r.Route("/families/{familyID}/lists", func(r chi.Router) {

@@ -55,6 +55,10 @@ export function localDayMs(iso: string): number {
 	return new Date(y, m - 1, d).getTime();
 }
 
+export function fmtTime(iso: string): string {
+	return new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+
 export function fmtDateTime(iso: string): string {
 	return new Date(iso).toLocaleString(undefined, {
 		month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Task, CalEvent, Member, AppLabel } from '$lib/types';
+	import type { Task, CalEvent, Member, AppCategory } from '$lib/types';
 	import { calDateToISO, isoToCalDate, fmtCalDate, calDateTimeToISO, rangeLabelFor } from '$lib/dates';
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
@@ -16,12 +16,12 @@
 	import type { DateRange } from 'bits-ui';
 	import { CalendarDate } from '@internationalized/date';
 	import { CalendarDays } from 'lucide-svelte';
-	import LabelPicker from '$lib/components/LabelPicker.svelte';
+	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 
-	let { familyID, members, labels, onSaved, onDeleted, onError }: {
+	let { familyID, members, categories, onSaved, onDeleted, onError }: {
 		familyID: string;
 		members: Member[];
-		labels: AppLabel[];
+		categories: AppCategory[];
 		onSaved: () => void;
 		onDeleted: () => void;
 		onError: (e: unknown) => void;
@@ -31,7 +31,7 @@
 	let editKind = $state<'task' | 'event'>('task');
 	let editID = $state('');
 	let ef = $state({
-		title: '', description: '', priority: 'medium', status: 'todo',
+		title: '', description: '', important: false, status: 'todo',
 		allDay: false, location: '', assignedTo: '', attendeeIDs: [] as string[],
 	});
 	let efDueDate = $state<CalendarDate | undefined>(undefined);
@@ -40,18 +40,18 @@
 	let efStartTime = $state('09:00');
 	let efEndTime = $state('10:00');
 	let efEventPickerOpen = $state(false);
-	let efLabelIDs = $state<string[]>([]);
+	let efCategoryID = $state<string | undefined>(undefined);
 
 	export function openTask(t: Task) {
 		editKind = 'task';
 		editID = t.id;
 		ef = {
 			title: t.title, description: t.description ?? '',
-			priority: t.priority || 'medium', status: t.status,
+			important: t.important ?? false, status: t.status,
 			allDay: false, location: '', assignedTo: t.assigned_to ?? '', attendeeIDs: [],
 		};
 		efDueDate = t.end_date ? isoToCalDate(t.end_date) : undefined;
-		efLabelIDs = [...(t.label_ids ?? [])];
+		efCategoryID = t.category_id;
 		isOpen = true;
 	}
 
@@ -60,7 +60,7 @@
 		editID = e.id;
 		ef = {
 			title: e.title, description: e.description ?? '', location: e.location ?? '',
-			allDay: e.all_day, priority: 'medium', status: '',
+			allDay: e.all_day, important: false, status: '',
 			assignedTo: '', attendeeIDs: e.attendee_ids ?? [],
 		};
 		efEventRange = { start: isoToCalDate(e.start_at), end: isoToCalDate(e.end_at) };
@@ -68,7 +68,7 @@
 		const en = new Date(e.end_at);
 		efStartTime = `${String(s.getHours()).padStart(2, '0')}:${String(s.getMinutes()).padStart(2, '0')}`;
 		efEndTime = `${String(en.getHours()).padStart(2, '0')}:${String(en.getMinutes()).padStart(2, '0')}`;
-		efLabelIDs = [...(e.label_ids ?? [])];
+		efCategoryID = e.category_id;
 		isOpen = true;
 	}
 
@@ -83,10 +83,10 @@
 			if (editKind === 'task') {
 				await api.patch(`/api/v1/families/${familyID}/tasks/${editID}`, {
 					title: ef.title.trim(), description: ef.description,
-					priority: ef.priority, status: ef.status,
+					important: ef.important, status: ef.status,
 					assigned_to: ef.assignedTo || undefined,
 					end_date: efDueDate ? calDateToISO(efDueDate) : undefined,
-					label_ids: efLabelIDs,
+					category_id: efCategoryID,
 				});
 			} else {
 				if (!efEventRange.start) return;
@@ -95,7 +95,7 @@
 					title: ef.title.trim(), description: ef.description, location: ef.location,
 					start_at: calDateTimeToISO(efEventRange.start, efStartTime, ef.allDay),
 					end_at: calDateTimeToISO(efEnd, efEndTime, ef.allDay),
-					all_day: ef.allDay, attendee_ids: ef.attendeeIDs, label_ids: efLabelIDs,
+					all_day: ef.allDay, attendee_ids: ef.attendeeIDs, category_id: efCategoryID,
 				});
 			}
 			onSaved();
@@ -122,12 +122,12 @@
 <Dialog.Root bind:open={isOpen}>
 	<Dialog.Portal>
 		<Dialog.Overlay />
-		<Dialog.Content class="sm:max-w-md">
+		<Dialog.Content class="sm:max-w-md flex flex-col max-h-[90dvh]">
 			<Dialog.Header>
 				<Dialog.Title>Edit {editKind}</Dialog.Title>
 			</Dialog.Header>
 
-			<div class="flex flex-col gap-4 py-2">
+			<div class="flex flex-col gap-4 py-2 overflow-y-auto flex-1 min-h-0 px-1">
 				<div class="flex flex-col gap-1.5">
 					<Label for="ef-title">Title</Label>
 					<Input
@@ -145,15 +145,10 @@
 				{#if editKind === 'task'}
 					<div class="flex gap-3">
 						<div class="flex flex-col gap-1.5 flex-1">
-							<Label>Priority</Label>
-							<Select.Root type="single" bind:value={ef.priority}>
-								<Select.Trigger class="w-full"><SelectPrimitive.Value /></Select.Trigger>
-								<Select.Content>
-									<Select.Item value="low">Low</Select.Item>
-									<Select.Item value="medium">Medium</Select.Item>
-									<Select.Item value="high">High</Select.Item>
-								</Select.Content>
-							</Select.Root>
+							<label class="flex items-center gap-2 text-sm cursor-pointer mt-5">
+								<Checkbox bind:checked={ef.important} />
+								Important
+							</label>
 						</div>
 						<div class="flex flex-col gap-1.5 flex-1">
 							<Label>Due date</Label>
@@ -241,8 +236,8 @@
 				{/if}
 
 				<div class="flex flex-col gap-1.5">
-					<Label>Labels</Label>
-					<LabelPicker {familyID} {labels} bind:selectedIDs={efLabelIDs} onError={onError} />
+					<Label>Category</Label>
+					<CategoryPicker {familyID} {categories} bind:selectedID={efCategoryID} onError={onError} />
 				</div>
 			</div>
 
