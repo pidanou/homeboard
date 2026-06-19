@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -28,29 +29,35 @@ func (h *EventHandler) Routes() http.Handler {
 	return r
 }
 
+// parseVirtualID splits "parentID::YYYYMMDD" into (parentID, &date) or (id, nil).
+func parseVirtualID(raw string) (string, *time.Time) {
+	parts := strings.SplitN(raw, "::", 2)
+	if len(parts) == 2 {
+		t, err := time.Parse("20060102", parts[1])
+		if err == nil {
+			return parts[0], &t
+		}
+	}
+	return raw, nil
+}
+
 func (h *EventHandler) list(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
-
-	fromStr := r.URL.Query().Get("from")
-	toStr := r.URL.Query().Get("to")
-
-	from, err := time.Parse(time.RFC3339, fromStr)
+	from, err := time.Parse(time.RFC3339, r.URL.Query().Get("from"))
 	if err != nil {
 		http.Error(w, "invalid from date", http.StatusBadRequest)
 		return
 	}
-	to, err := time.Parse(time.RFC3339, toStr)
+	to, err := time.Parse(time.RFC3339, r.URL.Query().Get("to"))
 	if err != nil {
 		http.Error(w, "invalid to date", http.StatusBadRequest)
 		return
 	}
-
 	events, err := h.events.ListForRange(r.Context(), familyID, from, to)
 	if err != nil {
 		http.Error(w, "failed to list events", http.StatusInternalServerError)
 		return
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(events)
 }
@@ -60,20 +67,20 @@ func (h *EventHandler) create(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(ContextKeyUserID).(string)
 
 	var body struct {
-		Title       string   `json:"title"`
-		Description string   `json:"description"`
-		Location    string   `json:"location"`
-		StartAt     string   `json:"start_at"`
-		EndAt       string   `json:"end_at"`
-		AllDay      bool     `json:"all_day"`
-		AttendeeIDs []string `json:"attendee_ids"`
-		CategoryID  *string  `json:"category_id"`
+		Title          string   `json:"title"`
+		Description    string   `json:"description"`
+		Location       string   `json:"location"`
+		StartAt        string   `json:"start_at"`
+		EndAt          string   `json:"end_at"`
+		AllDay         bool     `json:"all_day"`
+		AttendeeIDs    []string `json:"attendee_ids"`
+		CategoryID     *string  `json:"category_id"`
+		RecurrenceRule *string  `json:"recurrence_rule"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Title == "" {
 		http.Error(w, "title is required", http.StatusBadRequest)
 		return
 	}
-
 	startAt, err := time.Parse(time.RFC3339, body.StartAt)
 	if err != nil {
 		http.Error(w, "invalid start_at", http.StatusBadRequest)
@@ -85,12 +92,11 @@ func (h *EventHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	event, err := h.events.Create(r.Context(), familyID, userID, body.Title, body.Description, body.Location, startAt, endAt, body.AllDay, body.AttendeeIDs, body.CategoryID)
+	event, err := h.events.Create(r.Context(), familyID, userID, body.Title, body.Description, body.Location, startAt, endAt, body.AllDay, body.AttendeeIDs, body.CategoryID, body.RecurrenceRule)
 	if err != nil {
 		http.Error(w, "failed to create event", http.StatusInternalServerError)
 		return
 	}
-
 	h.hub.Broadcast(familyID)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -98,23 +104,25 @@ func (h *EventHandler) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *EventHandler) update(w http.ResponseWriter, r *http.Request) {
-	eventID := chi.URLParam(r, "eventID")
+	rawID := chi.URLParam(r, "eventID")
+	familyID := chi.URLParam(r, "familyID")
+	userID := r.Context().Value(ContextKeyUserID).(string)
 
 	var body struct {
-		Title       string   `json:"title"`
-		Description string   `json:"description"`
-		Location    string   `json:"location"`
-		StartAt     string   `json:"start_at"`
-		EndAt       string   `json:"end_at"`
-		AllDay      bool     `json:"all_day"`
-		AttendeeIDs []string `json:"attendee_ids"`
-		CategoryID  *string  `json:"category_id"`
+		Title          string   `json:"title"`
+		Description    string   `json:"description"`
+		Location       string   `json:"location"`
+		StartAt        string   `json:"start_at"`
+		EndAt          string   `json:"end_at"`
+		AllDay         bool     `json:"all_day"`
+		AttendeeIDs    []string `json:"attendee_ids"`
+		CategoryID     *string  `json:"category_id"`
+		RecurrenceRule *string  `json:"recurrence_rule"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
-
 	startAt, err := time.Parse(time.RFC3339, body.StartAt)
 	if err != nil {
 		http.Error(w, "invalid start_at", http.StatusBadRequest)
@@ -126,23 +134,31 @@ func (h *EventHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	familyID := chi.URLParam(r, "familyID")
-	event := &model.Event{
-		ID:          eventID,
-		FamilyID:    familyID,
-		Title:       body.Title,
-		Description: body.Description,
-		Location:    body.Location,
-		StartAt:     startAt,
-		EndAt:       endAt,
-		AllDay:      body.AllDay,
-		AttendeeIDs: body.AttendeeIDs,
-		CategoryID:  body.CategoryID,
-	}
+	parentID, occDate := parseVirtualID(rawID)
 
-	if err := h.events.Update(r.Context(), event); err != nil {
-		http.Error(w, "failed to update event", http.StatusInternalServerError)
-		return
+	if occDate != nil {
+		// Edit this occurrence only → create exception row.
+		exc := &model.Event{
+			Title: body.Title, Description: body.Description, Location: body.Location,
+			StartAt: startAt.UTC(), EndAt: endAt.UTC(), AllDay: body.AllDay,
+			AttendeeIDs: body.AttendeeIDs, CategoryID: body.CategoryID,
+		}
+		if err := h.events.UpdateOccurrence(r.Context(), parentID, familyID, userID, *occDate, exc); err != nil {
+			http.Error(w, "failed to update occurrence", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		event := &model.Event{
+			ID: parentID, FamilyID: familyID,
+			Title: body.Title, Description: body.Description, Location: body.Location,
+			StartAt: startAt.UTC(), EndAt: endAt.UTC(), AllDay: body.AllDay,
+			AttendeeIDs: body.AttendeeIDs, CategoryID: body.CategoryID,
+			RecurrenceRule: body.RecurrenceRule,
+		}
+		if err := h.events.Update(r.Context(), event); err != nil {
+			http.Error(w, "failed to update event", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	h.hub.Broadcast(familyID)
@@ -151,11 +167,20 @@ func (h *EventHandler) update(w http.ResponseWriter, r *http.Request) {
 
 func (h *EventHandler) delete(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
-	eventID := chi.URLParam(r, "eventID")
+	rawID := chi.URLParam(r, "eventID")
 
-	if err := h.events.Delete(r.Context(), eventID, familyID); err != nil {
-		http.Error(w, "failed to delete event", http.StatusInternalServerError)
-		return
+	parentID, occDate := parseVirtualID(rawID)
+
+	if occDate != nil {
+		if err := h.events.CancelOccurrence(r.Context(), parentID, familyID, *occDate); err != nil {
+			http.Error(w, "failed to cancel occurrence", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		if err := h.events.Delete(r.Context(), parentID, familyID); err != nil {
+			http.Error(w, "failed to delete event", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	h.hub.Broadcast(familyID)

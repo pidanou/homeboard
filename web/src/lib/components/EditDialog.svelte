@@ -15,7 +15,7 @@
 	import { Select as SelectPrimitive } from 'bits-ui';
 	import type { DateRange } from 'bits-ui';
 	import { CalendarDate } from '@internationalized/date';
-	import { CalendarDays } from 'lucide-svelte';
+	import { CalendarDays, Repeat } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 
 	let { familyID, members, categories, onSaved, onDeleted, onError }: {
@@ -41,6 +41,17 @@
 	let efEndTime = $state('10:00');
 	let efEventPickerOpen = $state(false);
 	let efCategoryID = $state<string | undefined>(undefined);
+	type RepeatVal = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+	let efRepeat = $state<RepeatVal>('none');
+	let efIsRecurring = $state(false);
+	let efScopePrompt = $state<'save' | 'delete' | null>(null);
+
+	const RRULE: Record<string, string> = {
+		daily: 'FREQ=DAILY', weekly: 'FREQ=WEEKLY', monthly: 'FREQ=MONTHLY', yearly: 'FREQ=YEARLY',
+	};
+	const RRULE_REVERSE: Record<string, string> = {
+		'FREQ=DAILY': 'daily', 'FREQ=WEEKLY': 'weekly', 'FREQ=MONTHLY': 'monthly', 'FREQ=YEARLY': 'yearly',
+	};
 
 	export function openTask(t: Task) {
 		editKind = 'task';
@@ -69,6 +80,9 @@
 		efStartTime = `${String(s.getHours()).padStart(2, '0')}:${String(s.getMinutes()).padStart(2, '0')}`;
 		efEndTime = `${String(en.getHours()).padStart(2, '0')}:${String(en.getMinutes()).padStart(2, '0')}`;
 		efCategoryID = e.category_id;
+		efRepeat = (e.recurrence_rule ? (RRULE_REVERSE[e.recurrence_rule] ?? 'none') : 'none') as RepeatVal;
+		efIsRecurring = !!e.is_recurring;
+		efScopePrompt = null;
 		isOpen = true;
 	}
 
@@ -76,12 +90,17 @@
 		return ids.includes(uid) ? ids.filter((id) => id !== uid) : [...ids, uid];
 	}
 
-	async function save() {
+	function save() {
 		if (!ef.title.trim()) return;
+		if (editKind === 'event' && efIsRecurring) { efScopePrompt = 'save'; return; }
+		doSave(editID);
+	}
+
+	async function doSave(id: string) {
 		isOpen = false;
 		try {
 			if (editKind === 'task') {
-				await api.patch(`/api/v1/families/${familyID}/tasks/${editID}`, {
+				await api.patch(`/api/v1/families/${familyID}/tasks/${id}`, {
 					title: ef.title.trim(), description: ef.description,
 					important: ef.important, status: ef.status,
 					assigned_to: ef.assignedTo || undefined,
@@ -91,11 +110,12 @@
 			} else {
 				if (!efEventRange.start) return;
 				const efEnd = efEventRange.end ?? efEventRange.start;
-				await api.patch(`/api/v1/families/${familyID}/events/${editID}`, {
+				await api.patch(`/api/v1/families/${familyID}/events/${id}`, {
 					title: ef.title.trim(), description: ef.description, location: ef.location,
 					start_at: calDateTimeToISO(efEventRange.start, efStartTime, ef.allDay),
 					end_at: calDateTimeToISO(efEnd, efEndTime, ef.allDay),
 					all_day: ef.allDay, attendee_ids: ef.attendeeIDs, category_id: efCategoryID,
+					recurrence_rule: efRepeat !== 'none' ? RRULE[efRepeat] : null,
 				});
 			}
 			onSaved();
@@ -104,19 +124,27 @@
 		}
 	}
 
-	async function del() {
+	function del() {
+		if (editKind === 'event' && efIsRecurring) { efScopePrompt = 'delete'; return; }
+		doDelete(editID);
+	}
+
+	async function doDelete(id: string) {
 		isOpen = false;
 		try {
 			if (editKind === 'task') {
-				await api.delete(`/api/v1/families/${familyID}/tasks/${editID}`);
+				await api.delete(`/api/v1/families/${familyID}/tasks/${id}`);
 			} else {
-				await api.delete(`/api/v1/families/${familyID}/events/${editID}`);
+				await api.delete(`/api/v1/families/${familyID}/events/${id}`);
 			}
 			onDeleted();
 		} catch (e) {
 			onError(e);
 		}
 	}
+
+	// Strip the ::YYYYMMDD suffix to get the parent ID.
+	function parentID(id: string) { return id.split('::')[0]; }
 </script>
 
 <Dialog.Root bind:open={isOpen}>
@@ -214,6 +242,24 @@
 						All day
 					</label>
 					<div class="flex flex-col gap-1.5">
+						<Label>Repeat</Label>
+						<Select.Root type="single" bind:value={efRepeat}>
+							<Select.Trigger class="w-full">
+								<div class="flex items-center gap-2">
+									<Repeat class="w-4 h-4 text-muted-foreground shrink-0" />
+									<SelectPrimitive.Value placeholder="Does not repeat" />
+								</div>
+							</Select.Trigger>
+							<Select.Content>
+								<Select.Item value="none">Does not repeat</Select.Item>
+								<Select.Item value="daily">Daily</Select.Item>
+								<Select.Item value="weekly">Weekly</Select.Item>
+								<Select.Item value="monthly">Monthly</Select.Item>
+								<Select.Item value="yearly">Yearly</Select.Item>
+							</Select.Content>
+						</Select.Root>
+					</div>
+					<div class="flex flex-col gap-1.5">
 						<Label for="ef-location">Location</Label>
 						<Input id="ef-location" bind:value={ef.location} placeholder="Optional location…" />
 					</div>
@@ -241,15 +287,35 @@
 				</div>
 			</div>
 
-			<Dialog.Footer class="flex-col-reverse sm:flex-row gap-2">
-				<Button variant="destructive" onclick={del}>Delete</Button>
-				<div class="flex gap-2 sm:ml-auto">
-					<Button variant="outline" onclick={() => (isOpen = false)}>Cancel</Button>
-					<Button
-						onclick={save}
-						disabled={!ef.title.trim() || (editKind === 'event' && !efEventRange.start)}
-					>Save</Button>
-				</div>
+			<Dialog.Footer class="flex-col gap-2">
+				{#if efScopePrompt}
+					<p class="text-sm text-muted-foreground text-center">
+						{efScopePrompt === 'save' ? 'Update which events?' : 'Delete which events?'}
+					</p>
+					<div class="flex gap-2 justify-center">
+						<Button variant="outline" size="sm" onclick={() => {
+							if (efScopePrompt === 'save') doSave(editID);
+							else doDelete(editID);
+						}}>This event</Button>
+						<Button variant="outline" size="sm" onclick={() => {
+							const pid = parentID(editID);
+							if (efScopePrompt === 'save') doSave(pid);
+							else doDelete(pid);
+						}}>All events</Button>
+						<Button variant="ghost" size="sm" onclick={() => (efScopePrompt = null)}>Cancel</Button>
+					</div>
+				{:else}
+					<div class="flex flex-col-reverse sm:flex-row gap-2">
+						<Button variant="destructive" onclick={del}>Delete</Button>
+						<div class="flex gap-2 sm:ml-auto">
+							<Button variant="outline" onclick={() => (isOpen = false)}>Cancel</Button>
+							<Button
+								onclick={save}
+								disabled={!ef.title.trim() || (editKind === 'event' && !efEventRange.start)}
+							>Save</Button>
+						</div>
+					</div>
+				{/if}
 			</Dialog.Footer>
 		</Dialog.Content>
 	</Dialog.Portal>

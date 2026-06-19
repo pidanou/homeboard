@@ -191,13 +191,25 @@ One focused sweep to reconcile the full UI against `docs/specs/design.md`.
 
 ---
 
+## M16 — Recurring events ✅
+
+- ✅ Migration 000016: `recurrence_rule`, `recurrence_parent_id`, `recurrence_date`, `cancelled` on events table
+- ✅ Backend: rrule-go expansion of occurrences in query window; exceptions merge (edit/cancel single occurrence)
+- ✅ Virtual IDs (`parentID::YYYYMMDD`) for occurrences — PATCH/DELETE auto-detect and route to exception or parent
+- ✅ Create dialog: Repeat picker (None / Daily / Weekly / Monthly / Yearly)
+- ✅ Edit dialog: Repeat picker + "This event / All events" scope prompt for recurring occurrences
+- ⬜ Weekly day selection (e.g. MO,WE,FR) — deferred; defaults to event's start day
+- ⬜ End condition (after N / on date) — deferred; defaults to never
+
+---
+
 ## Deferred / no milestone yet
 
 These are captured in spec out-of-scope tables. Promote to a milestone when prioritised.
 
 | Feature | Spec reference |
 |---|---|
-| Recurring events | `calendar.md` |
+| ~~Recurring events~~ | ✅ M16 |
 | External calendar sync (iCal, Google, CalDAV) | `calendar.md` |
 | Push notifications | `calendar.md`, `app.md` |
 | Search / full-text filter | `board.md` |

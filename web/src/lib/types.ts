@@ -41,6 +41,9 @@ export type CalEvent = {
 	all_day: boolean;
 	attendee_ids?: string[];
 	category_id?: string;
+	recurrence_rule?: string;
+	is_recurring?: boolean;
+	occurrence_date?: string;
 };
 
 export type Filter = 'all' | 'tasks' | 'events' | 'done';
