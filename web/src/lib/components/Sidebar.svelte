@@ -5,7 +5,8 @@
 	import { logout } from '$lib/auth';
 	import { currentUser } from '$lib/stores/user';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
-	import { Sun, LayoutList, CalendarDays, Settings, Plus, LogOut, ListChecks, Users } from 'lucide-svelte';
+	import * as Popover from '$lib/components/ui/popover';
+	import { Sun, LayoutList, CalendarDays, Settings, Plus, LogOut, ListChecks, Users, ChevronsUpDown, Check, UserRound } from 'lucide-svelte';
 
 	let { onclose }: { onclose?: () => void } = $props();
 
@@ -13,6 +14,8 @@
 
 	type Family = { id: string; name: string };
 	let families = $state<Family[]>([]);
+	let switcherOpen = $state(false);
+	let userMenuOpen = $state(false);
 
 	const familyID = $derived($page.params.id);
 	const currentPath = $derived($page.url.pathname);
@@ -38,7 +41,7 @@
 
 <div class="flex flex-col h-full select-none">
 	<!-- Logo -->
-	<div class="px-4 py-4 border-b border-sidebar-border shrink-0">
+	<div class="px-4 py-4 shrink-0">
 		<a
 			href="/"
 			class="flex items-center gap-2 font-bold text-base text-sidebar-foreground hover:opacity-80 transition-opacity"
@@ -49,84 +52,101 @@
 		</a>
 	</div>
 
-	<div class="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-1">
-		<!-- Families section -->
-		<div class="flex items-center justify-between px-2 mb-1 mt-1">
-			<span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Families</span>
-			<a
-				href="/families/new"
-				class="p-1 rounded-md hover:bg-sidebar-accent text-muted-foreground hover:text-sidebar-accent-foreground transition-colors"
-				title="New family"
-				onclick={onclose}
+	<!-- Family switcher -->
+	<div class="px-3 pt-2 pb-2 shrink-0">
+		<Popover.Root bind:open={switcherOpen}>
+			<Popover.Trigger
+				class="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-left
+					hover:bg-sidebar-accent/60 transition-colors cursor-pointer"
+				aria-label="Switch family"
 			>
-				<Plus class="w-3.5 h-3.5" />
-			</a>
-		</div>
-
-		{#if families.length === 0}
-			<p class="px-2 text-xs text-muted-foreground">No families yet.</p>
-		{/if}
-
-		{#each families as family (family.id)}
-			<a
-				href="/families/{family.id}"
-				onclick={onclose}
-				class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-colors
-					{family.id === familyID
-						? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-						: 'text-sidebar-foreground hover:bg-sidebar-accent/60'}"
-			>
-				<Users class="w-4 h-4 shrink-0 opacity-70" />
-				<span class="truncate">{family.name}</span>
-			</a>
-		{/each}
-
-		<!-- Family sub-nav -->
-		{#if familyID && subNav.length > 0}
-			<div class="mt-2 pt-3 border-t border-sidebar-border flex flex-col gap-0.5">
-				<div class="px-2 mb-1">
-					<span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate block">
-						{currentFamily?.name ?? '…'}
-					</span>
-				</div>
-				{#each subNav as item (item.href)}
-					{@const Icon = item.icon}
+				<Users class="w-4 h-4 shrink-0 text-muted-foreground" />
+				<span class="flex-1 truncate font-medium text-sidebar-foreground">
+					{currentFamily?.name ?? 'Select a family'}
+				</span>
+				<ChevronsUpDown class="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+			</Popover.Trigger>
+			<Popover.Content class="w-56 p-1 gap-0" align="start">
+				{#each families as family (family.id)}
 					<a
-						href={item.href}
-						onclick={onclose}
-						class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-colors
-							{isActive(item.href)
-								? 'bg-sidebar-primary text-sidebar-primary-foreground font-medium'
-								: 'text-sidebar-foreground hover:bg-sidebar-accent/60'}"
+						href="/families/{family.id}"
+						onclick={() => { switcherOpen = false; onclose?.(); }}
+						class="flex items-center gap-2 px-2 py-2 rounded-xl text-sm hover:bg-accent transition-colors w-full"
 					>
-						<Icon class="w-4 h-4 shrink-0" />
-						{item.label}
+						<Check class="w-4 h-4 shrink-0 {family.id === familyID ? 'opacity-100' : 'opacity-0'}" />
+						<span class="truncate">{family.name}</span>
 					</a>
 				{/each}
-			</div>
+				{#if families.length > 0}
+					<div class="my-1 h-px bg-border"></div>
+				{/if}
+				<a
+					href="/families/new"
+					onclick={() => { switcherOpen = false; onclose?.(); }}
+					class="flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-accent transition-colors w-full text-muted-foreground"
+				>
+					<Plus class="w-4 h-4 shrink-0" />
+					New family
+				</a>
+			</Popover.Content>
+		</Popover.Root>
+	</div>
+
+	<!-- Sub-nav for current family -->
+	<div class="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-0.5">
+		{#if subNav.length > 0}
+			{#each subNav as item (item.href)}
+				{@const Icon = item.icon}
+				<a
+					href={item.href}
+					onclick={onclose}
+					aria-current={isActive(item.href) ? 'page' : undefined}
+					class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-colors
+						{isActive(item.href)
+							? 'bg-sidebar-primary text-sidebar-primary-foreground font-medium'
+							: 'text-sidebar-foreground hover:bg-sidebar-accent/60'}"
+				>
+					<Icon class="w-4 h-4 shrink-0" />
+					{item.label}
+				</a>
+			{/each}
+		{:else}
+			<p class="px-2 text-xs text-muted-foreground mt-1">Select a family to get started.</p>
 		{/if}
 	</div>
 
-	<!-- User profile + sign out -->
-	<div class="px-3 pb-4 pt-2 border-t border-sidebar-border shrink-0 space-y-0.5">
+	<!-- User menu -->
+	<div class="px-3 pb-4 pt-2 shrink-0">
 		{#if user}
-			<a
-				href="/profile"
-				onclick={onclose}
-				class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm w-full text-left
-					text-sidebar-foreground hover:bg-sidebar-accent/60 transition-colors"
-			>
-				<UserAvatar name={user.name} avatarUrl={user.avatar_url} userId={user.id} size={24} />
-				<span class="truncate flex-1">{user.name}</span>
-			</a>
+			<Popover.Root bind:open={userMenuOpen}>
+				<Popover.Trigger
+					class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm w-full text-left
+						hover:bg-sidebar-accent/60 transition-colors cursor-pointer"
+					aria-label="User menu"
+				>
+					<UserAvatar name={user.name} avatarUrl={user.avatar_url} userId={user.id} size={24} />
+					<span class="truncate flex-1 text-sidebar-foreground">{user.name}</span>
+					<ChevronsUpDown class="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+				</Popover.Trigger>
+				<Popover.Content class="w-48 p-1 gap-0" align="start" side="top">
+					<a
+						href="/profile"
+						onclick={() => { userMenuOpen = false; onclose?.(); }}
+						class="flex items-center gap-2 px-2 py-2 rounded-xl text-sm hover:bg-accent transition-colors w-full"
+					>
+						<UserRound class="w-4 h-4 shrink-0 opacity-70" />
+						Profile
+					</a>
+					<div class="my-1 h-px bg-border"></div>
+					<button
+						onclick={logout}
+						class="flex items-center gap-2 px-2 py-2 rounded-xl text-sm hover:bg-accent transition-colors w-full text-left text-destructive"
+					>
+						<LogOut class="w-4 h-4 shrink-0" />
+						Sign out
+					</button>
+				</Popover.Content>
+			</Popover.Root>
 		{/if}
-		<button
-			onclick={logout}
-			class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm w-full text-left
-				text-sidebar-foreground hover:bg-sidebar-accent/60 transition-colors"
-		>
-			<LogOut class="w-4 h-4 shrink-0 opacity-70" />
-			Sign out
-		</button>
 	</div>
 </div>
