@@ -15,7 +15,7 @@
 	import { Select as SelectPrimitive } from 'bits-ui';
 	import type { DateRange } from 'bits-ui';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
-	import { CheckSquare, CalendarDays } from 'lucide-svelte';
+	import { CheckSquare, CalendarDays, Repeat } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 
 	let { familyID, members, categories, onCreated, onError }: {
@@ -39,6 +39,14 @@
 	let cfEndTime = $state('10:00');
 	let cfEventPickerOpen = $state(false);
 	let cfCategoryID = $state<string | undefined>(undefined);
+	let cfRepeat = $state<'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'>('none');
+
+	const RRULE: Record<string, string> = {
+		daily: 'FREQ=DAILY',
+		weekly: 'FREQ=WEEKLY',
+		monthly: 'FREQ=MONTHLY',
+		yearly: 'FREQ=YEARLY',
+	};
 
 	export function open(t: 'task' | 'event' = 'task') {
 		createType = t;
@@ -48,6 +56,7 @@
 		cfStartTime = '09:00';
 		cfEndTime = '10:00';
 		cfCategoryID = undefined;
+		cfRepeat = 'none';
 		isOpen = true;
 	}
 
@@ -79,6 +88,7 @@
 					all_day: cf.allDay,
 					attendee_ids: cf.attendeeIDs,
 					category_id: cfCategoryID,
+					recurrence_rule: cfRepeat !== 'none' ? RRULE[cfRepeat] : undefined,
 				});
 			}
 			isOpen = false;
@@ -196,6 +206,24 @@
 						<Checkbox bind:checked={cf.allDay} />
 						All day
 					</label>
+					<div class="flex flex-col gap-1.5">
+						<Label>Repeat</Label>
+						<Select.Root type="single" bind:value={cfRepeat}>
+							<Select.Trigger class="w-full">
+								<div class="flex items-center gap-2">
+									<Repeat class="w-4 h-4 text-muted-foreground shrink-0" />
+									<SelectPrimitive.Value placeholder="Does not repeat" />
+								</div>
+							</Select.Trigger>
+							<Select.Content>
+								<Select.Item value="none">Does not repeat</Select.Item>
+								<Select.Item value="daily">Daily</Select.Item>
+								<Select.Item value="weekly">Weekly</Select.Item>
+								<Select.Item value="monthly">Monthly</Select.Item>
+								<Select.Item value="yearly">Yearly</Select.Item>
+							</Select.Content>
+						</Select.Root>
+					</div>
 					<div class="flex flex-col gap-1.5">
 						<Label for="cf-location">Location</Label>
 						<Input id="cf-location" bind:value={cf.location} placeholder="Optional location…" />
