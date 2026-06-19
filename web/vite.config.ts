@@ -6,6 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
 	server: { allowedHosts: true },
+	optimizeDeps: { exclude: ['svelte-sonner'] },
 	plugins: [
 		tailwindcss(),
 		sveltekit({

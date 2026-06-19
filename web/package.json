@@ -36,6 +36,7 @@
 		"vite-plugin-pwa": "^1.3.0"
 	},
 	"dependencies": {
-		"@event-calendar/core": "^5.7.1"
+		"@event-calendar/core": "^5.7.1",
+		"svelte-sonner": "^1.1.1"
 	}
 }
