@@ -6,7 +6,8 @@
 	import { currentUser } from '$lib/stores/user';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
 	import * as Popover from '$lib/components/ui/popover';
-	import { Sun, LayoutList, CalendarDays, Settings, Plus, LogOut, ListChecks, Users, ChevronsUpDown, Check, UserRound } from 'lucide-svelte';
+	import { Sun, Moon, LayoutList, CalendarDays, Settings, Plus, LogOut, ListChecks, Users, ChevronsUpDown, Check, UserRound } from 'lucide-svelte';
+	import { isDark, initTheme, toggleTheme } from '$lib/theme';
 
 	let { onclose }: { onclose?: () => void } = $props();
 
@@ -21,6 +22,7 @@
 	const currentPath = $derived($page.url.pathname);
 
 	onMount(async () => {
+		initTheme();
 		families = (await api.get<Family[]>('/api/v1/families')) ?? [];
 	});
 
@@ -137,6 +139,18 @@
 						<UserRound class="w-4 h-4 shrink-0 opacity-70" />
 						Profile
 					</a>
+					<button
+						onclick={toggleTheme}
+						class="flex items-center gap-2 px-2 py-2 rounded-xl text-sm hover:bg-accent transition-colors w-full text-left"
+					>
+						{#if $isDark}
+							<Sun class="w-4 h-4 shrink-0 opacity-70" />
+							Light mode
+						{:else}
+							<Moon class="w-4 h-4 shrink-0 opacity-70" />
+							Dark mode
+						{/if}
+					</button>
 					<div class="my-1 h-px bg-border"></div>
 					<button
 						onclick={logout}
