@@ -38,8 +38,9 @@
 	let error = $state('');
 
 	// Current visible date range (set by EC's datesSet callback)
-	let viewStart = $state(new Date(today.getFullYear(), today.getMonth(), 1));
-	let viewEnd   = $state(new Date(today.getFullYear(), today.getMonth() + 1, 1));
+	let viewStart    = $state(new Date(today.getFullYear(), today.getMonth(), 1));
+	let viewEnd      = $state(new Date(today.getFullYear(), today.getMonth() + 1, 1));
+	let currentStart = $state(new Date(today.getFullYear(), today.getMonth(), 1));
 
 	// ── Filters ───────────────────────────────────────────────────────────────
 	let filterTypes = $state(new Set<'task' | 'event'>());
@@ -264,8 +265,9 @@
 		events: [],
 		datesSet: ({ view }: any) => {
 			periodLabel = view.title;
-			viewStart = view.activeStart;
-			viewEnd   = view.activeEnd;
+			viewStart    = view.activeStart;
+			viewEnd      = view.activeEnd;
+			currentStart = view.currentStart;
 			loadData(view.activeStart, view.activeEnd);
 		},
 		eventClick: ({ event }: any) => {
@@ -344,14 +346,14 @@
 	}
 
 	function prevPeriod() {
-		const d = new Date(viewStart);
+		const d = new Date(currentStart);
 		if (appView === 'month') d.setMonth(d.getMonth() - 1);
 		else if (appView === 'week') d.setDate(d.getDate() - 7);
 		else d.setDate(d.getDate() - 1);
 		ecOptions.date = d;
 	}
 	function nextPeriod() {
-		const d = new Date(viewStart);
+		const d = new Date(currentStart);
 		if (appView === 'month') d.setMonth(d.getMonth() + 1);
 		else if (appView === 'week') d.setDate(d.getDate() + 7);
 		else d.setDate(d.getDate() + 1);
