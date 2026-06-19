@@ -1,4 +1,5 @@
 import { env } from '$env/dynamic/public';
+import { toast } from 'svelte-sonner';
 
 const BASE_URL = env.PUBLIC_API_URL ?? 'http://localhost:8080';
 
@@ -16,6 +17,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 	if (!res.ok) {
 		const text = await res.text();
+		// ponytail: skip 401 — auth redirect handles those
+		if (res.status !== 401) toast.error(text || res.statusText);
 		throw new Error(text || res.statusText);
 	}
 
@@ -39,7 +42,11 @@ export const api = {
 			body: formData,
 			headers: token ? { Authorization: `Bearer ${token}` } : {}
 		});
-		if (!res.ok) throw new Error((await res.text()) || res.statusText);
+		if (!res.ok) {
+			const text = (await res.text()) || res.statusText;
+			if (res.status !== 401) toast.error(text);
+			throw new Error(text);
+		}
 		if (res.status === 204) return null as T;
 		return res.json() as Promise<T>;
 	}
