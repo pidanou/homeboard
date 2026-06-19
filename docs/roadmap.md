@@ -119,10 +119,10 @@ OAuth and invite polish.
 
 ---
 
-## M11 — Offline & PWA hardening ⬜
-- ⬜ "Offline" banner when network is unavailable
-- ⬜ Auto-reload data on reconnect
-- ⬜ App shell cached via service worker (install prompt)
+## M11 — Offline & PWA hardening 🚧
+- ✅ "Offline" banner when network is unavailable
+- ✅ Auto-reload data on reconnect (page reload when `online` event fires)
+- ⬜ App shell cached via service worker (install prompt) — deferred; Capacitor covers native distribution
 - ⬜ iOS home screen icon + splash screen
 
 ---

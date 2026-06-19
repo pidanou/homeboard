@@ -11,6 +11,7 @@
 	let { children } = $props();
 	let ready = $state(false);
 	let mobileMenuOpen = $state(false);
+	let offline = $state(false);
 
 	const familyID = $derived($page.params.id);
 	const currentPath = $derived($page.url.pathname);
@@ -30,6 +31,16 @@
 			ready = true;
 			loadCurrentUser();
 		}
+
+		offline = !navigator.onLine;
+		const goOffline = () => (offline = true);
+		const goOnline = () => window.location.reload();
+		window.addEventListener('offline', goOffline);
+		window.addEventListener('online', goOnline);
+		return () => {
+			window.removeEventListener('offline', goOffline);
+			window.removeEventListener('online', goOnline);
+		};
 	});
 
 	const mobileTabNav = $derived(familyID ? [
@@ -89,6 +100,12 @@
 					</button>
 				</div>
 			</header>
+
+			{#if offline}
+				<div class="bg-yellow-500/90 text-yellow-950 text-xs font-medium text-center py-1.5 px-4 shrink-0">
+					No internet connection
+				</div>
+			{/if}
 
 			<main class="flex-1 overflow-auto">
 				{@render children()}
