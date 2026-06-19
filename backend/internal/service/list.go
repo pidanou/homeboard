@@ -33,6 +33,10 @@ func (s *ListService) Delete(ctx context.Context, listID, familyID string) error
 	return s.lists.DeleteList(ctx, listID, familyID)
 }
 
+func (s *ListService) Rename(ctx context.Context, listID, familyID, name string) error {
+	return s.lists.RenameList(ctx, listID, familyID, name)
+}
+
 func (s *ListService) AddItem(ctx context.Context, listID, familyID, name string) (*model.ListItem, error) {
 	item := &model.ListItem{ID: uuid.NewString(), ListID: listID, Name: name, Checked: false, CreatedAt: time.Now().UTC()}
 	if err := s.lists.CreateItem(ctx, item); err != nil {

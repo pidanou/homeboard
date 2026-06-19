@@ -49,6 +49,11 @@ func (r *ListRepository) DeleteList(ctx context.Context, listID, familyID string
 	return err
 }
 
+func (r *ListRepository) RenameList(ctx context.Context, listID, familyID, name string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE lists SET name = $1 WHERE id = $2 AND family_id = $3`, name, listID, familyID)
+	return err
+}
+
 func (r *ListRepository) CreateItem(ctx context.Context, item *model.ListItem) error {
 	_, err := r.pool.Exec(ctx,
 		`INSERT INTO list_items (id, list_id, name, checked, created_at) VALUES ($1, $2, $3, $4, $5)`,

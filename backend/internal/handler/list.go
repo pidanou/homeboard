@@ -21,6 +21,7 @@ func (h *ListHandler) Routes() http.Handler {
 	r := chi.NewRouter()
 	r.Get("/", h.listLists)
 	r.Post("/", h.createList)
+	r.Patch("/{listID}", h.renameList)
 	r.Delete("/{listID}", h.deleteList)
 	r.Get("/{listID}/items", h.listItems)
 	r.Post("/{listID}/items", h.addItem)
@@ -57,6 +58,22 @@ func (h *ListHandler) createList(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(list)
+}
+
+func (h *ListHandler) renameList(w http.ResponseWriter, r *http.Request) {
+	familyID := chi.URLParam(r, "familyID")
+	listID := chi.URLParam(r, "listID")
+	var body struct{ Name string `json:"name"` }
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
+		http.Error(w, "name is required", http.StatusBadRequest)
+		return
+	}
+	if err := h.lists.Rename(r.Context(), listID, familyID, body.Name); err != nil {
+		http.Error(w, "failed to rename list", http.StatusInternalServerError)
+		return
+	}
+	h.hub.Broadcast(familyID)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *ListHandler) deleteList(w http.ResponseWriter, r *http.Request) {

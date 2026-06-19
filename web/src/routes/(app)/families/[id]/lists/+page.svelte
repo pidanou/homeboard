@@ -20,6 +20,11 @@
 	let addingList = $state(false);
 	let newListName = $state('');
 	let confirmDeleteList = $state<AppList | null>(null);
+	function focusSelect(el: HTMLElement) { (el as HTMLInputElement).focus(); (el as HTMLInputElement).select(); }
+	let renamingListID = $state<string | null>(null);
+	let renameListValue = $state('');
+	let renamingItemID = $state<string | null>(null);
+	let renameItemValue = $state('');
 
 	let es: EventSource | null = null;
 	let errorTimer: ReturnType<typeof setTimeout> | null = null;
@@ -140,6 +145,26 @@
 		}
 	}
 
+	async function submitRenameList() {
+		if (!renamingListID || !renameListValue.trim()) { renamingListID = null; return; }
+		try {
+			await api.patch(`/api/v1/families/${familyID}/lists/${renamingListID}`, { name: renameListValue.trim() });
+			lists = lists.map(l => l.id === renamingListID ? { ...l, name: renameListValue.trim() } : l);
+		} catch (err) { setError(err); }
+		renamingListID = null;
+	}
+
+	async function submitRenameItem() {
+		if (!renamingItemID || !renameItemValue.trim()) { renamingItemID = null; return; }
+		const item = items.find(i => i.id === renamingItemID);
+		if (!item) { renamingItemID = null; return; }
+		try {
+			await api.patch(`/api/v1/families/${familyID}/lists/${activeListID}/items/${renamingItemID}`, { name: renameItemValue.trim(), checked: item.checked });
+			items = items.map(i => i.id === renamingItemID ? { ...i, name: renameItemValue.trim() } : i);
+		} catch (err) { setError(err); }
+		renamingItemID = null;
+	}
+
 	const uncheckedItems = $derived(
 		items
 			.filter((i) => !i.checked)
@@ -168,7 +193,21 @@
 			<div class="shrink-0">
 				{#if activeListID === list.id && lists.length > 1}
 					<div class="flex items-center gap-1 pl-3 pr-1.5 py-1.5 rounded-full bg-primary text-primary-foreground">
-						<button onclick={() => (activeListID = list.id)} class="text-sm font-medium whitespace-nowrap cursor-pointer">{list.name}</button>
+						{#if renamingListID === list.id}
+							<input
+								class="text-sm font-medium bg-transparent border-none outline-none w-28 text-primary-foreground placeholder:text-primary-foreground/60"
+								bind:value={renameListValue}
+								onblur={submitRenameList}
+								onkeydown={(e) => { if (e.key === 'Enter') submitRenameList(); if (e.key === 'Escape') renamingListID = null; }}
+								use:focusSelect
+							/>
+						{:else}
+							<button
+								onclick={() => (activeListID = list.id)}
+								ondblclick={() => { renamingListID = list.id; renameListValue = list.name; }}
+								class="text-sm font-medium whitespace-nowrap cursor-pointer"
+							>{list.name}</button>
+						{/if}
 						<button
 							onclick={() => (confirmDeleteList = list)}
 							class="flex items-center justify-center w-5 h-5 rounded-full hover:bg-primary-foreground/20 cursor-pointer"
@@ -246,7 +285,20 @@
 				{#each uncheckedItems as item (item.id)}
 					<div class="flex items-center gap-3 py-3">
 						<Checkbox checked={false} onCheckedChange={() => toggleItem(item)} />
-						<span class="flex-1 text-sm">{item.name}</span>
+						{#if renamingItemID === item.id}
+							<input
+								class="flex-1 text-sm bg-transparent border-none outline-none border-b border-primary"
+								bind:value={renameItemValue}
+								onblur={submitRenameItem}
+								onkeydown={(e) => { if (e.key === 'Enter') submitRenameItem(); if (e.key === 'Escape') renamingItemID = null; }}
+								use:focusSelect
+							/>
+						{:else}
+							<span
+								class="flex-1 text-sm cursor-text"
+								ondblclick={() => { renamingItemID = item.id; renameItemValue = item.name; }}
+							>{item.name}</span>
+						{/if}
 						<button onclick={() => deleteItem(item.id)} class="text-muted-foreground hover:text-destructive transition-colors cursor-pointer p-1" aria-label="Delete item">
 							<X class="w-3.5 h-3.5" />
 						</button>
