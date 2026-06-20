@@ -10,15 +10,12 @@
 
 	let families = $state<Family[]>([]);
 	let loading = $state(true);
-	let error = $state('');
 	let inviteInput = $state('');
 
 	onMount(async () => {
 		try {
 			families = (await api.get<Family[]>('/api/v1/families')) ?? [];
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to load families';
-		} finally {
+		} catch { } finally {
 			loading = false;
 		}
 	});
@@ -43,8 +40,6 @@
 
 		{#if loading}
 			<p class="text-sm text-muted-foreground">Loading…</p>
-		{:else if error}
-			<p class="text-sm text-destructive">{error}</p>
 		{:else if families.length === 0}
 			<p class="text-sm text-muted-foreground">No families yet. Create one or join with an invite link.</p>
 		{:else}

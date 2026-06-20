@@ -18,13 +18,12 @@
 	import { CalendarDays, Repeat } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 
-	let { familyID, members, categories, onSaved, onDeleted, onError }: {
+	let { familyID, members, categories, onSaved, onDeleted }: {
 		familyID: string;
 		members: Member[];
 		categories: AppCategory[];
 		onSaved: () => void;
 		onDeleted: () => void;
-		onError: (e: unknown) => void;
 	} = $props();
 
 	let isOpen = $state(false);
@@ -119,9 +118,7 @@
 				});
 			}
 			onSaved();
-		} catch (e) {
-			onError(e);
-		}
+		} catch { }
 	}
 
 	function del() {
@@ -138,9 +135,7 @@
 				await api.delete(`/api/v1/families/${familyID}/events/${id}`);
 			}
 			onDeleted();
-		} catch (e) {
-			onError(e);
-		}
+		} catch { }
 	}
 
 	// Strip the ::YYYYMMDD suffix to get the parent ID.
@@ -283,7 +278,7 @@
 
 				<div class="flex flex-col gap-1.5">
 					<Label>Category</Label>
-					<CategoryPicker {familyID} {categories} bind:selectedID={efCategoryID} onError={onError} />
+					<CategoryPicker {familyID} {categories} bind:selectedID={efCategoryID} />
 				</div>
 			</div>
 

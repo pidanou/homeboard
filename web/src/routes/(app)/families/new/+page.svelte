@@ -3,19 +3,15 @@
 	import { api } from '$lib/api/client';
 
 	let name = $state('');
-	let error = $state('');
 	let loading = $state(false);
 
 	async function submit(e: SubmitEvent) {
 		e.preventDefault();
 		loading = true;
-		error = '';
 		try {
 			const family = await api.post<{ id: string }>('/api/v1/families', { name });
 			goto(`/families/${family.id}`);
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to create family';
-		} finally {
+		} catch { } finally {
 			loading = false;
 		}
 	}
@@ -35,10 +31,7 @@
 				class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
 			/>
 		</div>
-		{#if error}
-			<p class="text-red-500 text-sm">{error}</p>
-		{/if}
-		<button
+<button
 			type="submit"
 			disabled={loading}
 			class="bg-primary-500 text-white rounded-lg px-4 py-2 font-medium hover:bg-primary-600 disabled:opacity-50 transition-colors"

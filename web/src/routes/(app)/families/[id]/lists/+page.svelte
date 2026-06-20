@@ -15,7 +15,6 @@
 	let lists = $state<AppList[]>([]);
 	let items = $state<AppListItem[]>([]);
 	let activeListID = $state('');
-	let error = $state('');
 	let newItemName = $state('');
 	let addingList = $state(false);
 	let newListName = $state('');
@@ -27,7 +26,6 @@
 	let renameItemValue = $state('');
 
 	let es: EventSource | null = null;
-	let errorTimer: ReturnType<typeof setTimeout> | null = null;
 
 	async function loadLists() {
 		const res = await api.get<AppList[]>(`/api/v1/families/${familyID}/lists`);
@@ -65,16 +63,7 @@
 		es.onerror = () => { es?.close(); es = null; };
 	});
 
-	onDestroy(() => {
-		es?.close();
-		if (errorTimer) clearTimeout(errorTimer);
-	});
-
-	function setError(err: unknown) {
-		error = err instanceof Error ? err.message : 'Something went wrong';
-		if (errorTimer) clearTimeout(errorTimer);
-		errorTimer = setTimeout(() => (error = ''), 4000);
-	}
+	onDestroy(() => es?.close());
 
 	async function createList(e: SubmitEvent) {
 		e.preventDefault();
@@ -85,9 +74,7 @@
 			activeListID = list.id;
 			newListName = '';
 			addingList = false;
-		} catch (err) {
-			setError(err);
-		}
+		} catch { }
 	}
 
 	async function deleteList(id: string) {
@@ -99,9 +86,7 @@
 				activeListID = lists[0]?.id ?? '';
 				items = [];
 			}
-		} catch (err) {
-			setError(err);
-		}
+		} catch { }
 	}
 
 	async function addItem(e: SubmitEvent) {
@@ -111,9 +96,7 @@
 			const item = await api.post<AppListItem>(`/api/v1/families/${familyID}/lists/${activeListID}/items`, { name: newItemName.trim() });
 			items = [item, ...items];
 			newItemName = '';
-		} catch (err) {
-			setError(err);
-		}
+		} catch { }
 	}
 
 	async function toggleItem(item: AppListItem) {
@@ -122,27 +105,21 @@
 				name: item.name, checked: !item.checked,
 			});
 			items = items.map((i) => (i.id === item.id ? { ...i, checked: !item.checked } : i));
-		} catch (err) {
-			setError(err);
-		}
+		} catch { }
 	}
 
 	async function deleteItem(itemID: string) {
 		try {
 			await api.delete(`/api/v1/families/${familyID}/lists/${activeListID}/items/${itemID}`);
 			items = items.filter((i) => i.id !== itemID);
-		} catch (err) {
-			setError(err);
-		}
+		} catch { }
 	}
 
 	async function clearChecked() {
 		try {
 			await api.delete(`/api/v1/families/${familyID}/lists/${activeListID}/items/checked`);
 			items = items.filter((i) => !i.checked);
-		} catch (err) {
-			setError(err);
-		}
+		} catch { }
 	}
 
 	async function submitRenameList() {
@@ -150,7 +127,7 @@
 		try {
 			await api.patch(`/api/v1/families/${familyID}/lists/${renamingListID}`, { name: renameListValue.trim() });
 			lists = lists.map(l => l.id === renamingListID ? { ...l, name: renameListValue.trim() } : l);
-		} catch (err) { setError(err); }
+		} catch { }
 		renamingListID = null;
 	}
 
@@ -161,7 +138,7 @@
 		try {
 			await api.patch(`/api/v1/families/${familyID}/lists/${activeListID}/items/${renamingItemID}`, { name: renameItemValue.trim(), checked: item.checked });
 			items = items.map(i => i.id === renamingItemID ? { ...i, name: renameItemValue.trim() } : i);
-		} catch (err) { setError(err); }
+		} catch { }
 		renamingItemID = null;
 	}
 
@@ -177,13 +154,6 @@
 			.sort((a, b) => new Date(b.checked_at ?? b.created_at).getTime() - new Date(a.checked_at ?? a.created_at).getTime()),
 	);
 </script>
-
-{#if error}
-	<div class="flex items-center justify-between gap-2 px-3 py-2 mb-3 rounded-md bg-destructive/10 text-destructive text-sm">
-		<span>{error}</span>
-		<button onclick={() => (error = '')} class="shrink-0 opacity-70 hover:opacity-100">✕</button>
-	</div>
-{/if}
 
 <!-- List tabs -->
 <div class="sticky top-0 z-10 bg-background px-4 md:px-6 pt-4 md:pt-6 pb-2">

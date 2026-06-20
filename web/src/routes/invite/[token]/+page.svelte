@@ -13,7 +13,7 @@
 	const token = $derived($page.params.token);
 
 	let invite = $state<Invite | null>(null);
-	let error = $state('');
+	let failed = $state(false);
 	let loading = $state(false);
 	let unlinked = $state<VirtualMember[]>([]);
 	let familyID = $state('');
@@ -22,7 +22,7 @@
 		try {
 			invite = await api.get<Invite>(`/api/v1/invites/${token}`);
 		} catch {
-			error = 'Invite not found or expired.';
+			failed = true;
 		}
 	});
 
@@ -41,9 +41,7 @@
 			} else {
 				goto('/');
 			}
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to accept invite';
-		} finally {
+		} catch { } finally {
 			loading = false;
 		}
 	}
@@ -62,8 +60,8 @@
 	<div class="max-w-sm w-full text-center flex flex-col gap-4">
 		<h1 class="text-2xl font-bold">Family Board</h1>
 
-		{#if error}
-			<p class="text-destructive text-sm">{error}</p>
+		{#if failed}
+			<p class="text-destructive text-sm">Invite not found or expired.</p>
 
 		{:else if unlinked.length > 0}
 			<!-- Linking prompt -->

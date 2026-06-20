@@ -5,11 +5,10 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
 
-	let { familyID, categories, selectedID = $bindable<string | undefined>(undefined), onError }: {
+	let { familyID, categories, selectedID = $bindable<string | undefined>(undefined) }: {
 		familyID: string;
 		categories: AppCategory[];
 		selectedID: string | undefined;
-		onError: (e: unknown) => void;
 	} = $props();
 
 	let created = $state<AppCategory[]>([]);
@@ -35,9 +34,7 @@
 			newName = '';
 			newColor = 'blue';
 			adding = false;
-		} catch (e) {
-			onError(e);
-		}
+		} catch { }
 	}
 </script>
 

@@ -9,21 +9,17 @@
 	let name = $state('');
 	let email = $state('');
 	let password = $state('');
-	let error = $state('');
 	let loading = $state(false);
 
 	async function submit(e: SubmitEvent) {
 		e.preventDefault();
 		loading = true;
-		error = '';
 		try {
 			await api.post('/api/v1/auth/register', { name, email, password });
 			const res = await api.post<{ token: string }>('/api/v1/auth/login', { email, password });
 			setToken(res.token);
 			goto('/');
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Registration failed';
-		} finally {
+		} catch { } finally {
 			loading = false;
 		}
 	}
@@ -42,10 +38,7 @@
 		<Label for="password">Password</Label>
 		<Input id="password" type="password" bind:value={password} required minlength={8} />
 	</div>
-	{#if error}
-		<p class="text-destructive text-sm">{error}</p>
-	{/if}
-	<Button type="submit" disabled={loading} class="w-full">
+<Button type="submit" disabled={loading} class="w-full">
 		{loading ? 'Creating account…' : 'Create account'}
 	</Button>
 	<p class="text-sm text-center text-muted-foreground">

@@ -18,12 +18,11 @@
 	import { CheckSquare, CalendarDays, Repeat } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 
-	let { familyID, members, categories, onCreated, onError }: {
+	let { familyID, members, categories, onCreated }: {
 		familyID: string;
 		members: Member[];
 		categories: AppCategory[];
 		onCreated: () => void;
-		onError: (e: unknown) => void;
 	} = $props();
 
 	let isOpen = $state(false);
@@ -93,9 +92,7 @@
 			}
 			isOpen = false;
 			onCreated();
-		} catch (e) {
-			onError(e);
-		}
+		} catch { }
 	}
 </script>
 
@@ -248,7 +245,7 @@
 
 				<div class="flex flex-col gap-1.5">
 					<Label>Category</Label>
-					<CategoryPicker {familyID} {categories} bind:selectedID={cfCategoryID} onError={onError} />
+					<CategoryPicker {familyID} {categories} bind:selectedID={cfCategoryID} />
 				</div>
 			</div>
 
