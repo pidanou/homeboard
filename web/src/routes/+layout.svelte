@@ -19,4 +19,4 @@
 </svelte:head>
 
 {@render children()}
-<Toaster richColors />
+<Toaster richColors theme="system" />
