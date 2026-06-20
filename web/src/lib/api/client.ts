@@ -17,8 +17,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 	if (!res.ok) {
 		const text = await res.text();
-		// ponytail: skip 401 — auth redirect handles those
-		if (res.status !== 401) toast.error(text || res.statusText);
+		toast.error(text || res.statusText);
 		throw new Error(text || res.statusText);
 	}
 
@@ -44,7 +43,7 @@ export const api = {
 		});
 		if (!res.ok) {
 			const text = (await res.text()) || res.statusText;
-			if (res.status !== 401) toast.error(text);
+			toast.error(text);
 			throw new Error(text);
 		}
 		if (res.status === 204) return null as T;

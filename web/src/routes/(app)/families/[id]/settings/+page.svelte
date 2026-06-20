@@ -23,7 +23,6 @@
 	let invites = $state<Invite[]>([]);
 	let members = $state<Member[]>([]);
 	let categories = $state<AppCategory[]>([]);
-	let error = $state('');
 	let copied = $state<string | null>(null);
 	let newCategoryName = $state('');
 	let newCategoryColor = $state<CategoryColor>('blue');
@@ -39,9 +38,6 @@
 		if (membersResult.status === 'fulfilled') members = membersResult.value ?? [];
 		if (invitesResult.status === 'fulfilled') invites = invitesResult.value ?? [];
 		if (categoriesResult.status === 'fulfilled') categories = categoriesResult.value ?? [];
-		if (membersResult.status === 'rejected' || invitesResult.status === 'rejected') {
-			error = 'Failed to load settings';
-		}
 	});
 
 	async function createCategory() {
@@ -53,18 +49,14 @@
 			});
 			categories = [...categories, cat];
 			newCategoryName = '';
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to create category';
-		}
+		} catch { }
 	}
 
 	async function deleteCategory(categoryID: string) {
 		try {
 			await api.delete(`/api/v1/families/${familyID}/categories/${categoryID}`);
 			categories = categories.filter((c) => c.id !== categoryID);
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to delete category';
-		}
+		} catch { }
 	}
 
 	async function createVirtualMember() {
@@ -74,36 +66,28 @@
 			members = [...members, { user_id: vm.id, name: vm.name, email: '', role: '', joined_at: '', virtual: true }];
 			newVirtualName = '';
 			addingVirtual = false;
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to add member';
-		}
+		} catch { }
 	}
 
 	async function deleteVirtualMember(id: string) {
 		try {
 			await api.delete(`/api/v1/families/${familyID}/members/virtual/${id}`);
 			members = members.filter((m) => m.user_id !== id);
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to remove member';
-		}
+		} catch { }
 	}
 
 	async function createInvite() {
 		try {
 			const inv = await api.post<Invite>(`/api/v1/families/${familyID}/invites`, {});
 			invites = [inv, ...invites];
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to create invite';
-		}
+		} catch { }
 	}
 
 	async function revokeInvite(token: string) {
 		try {
 			await api.delete(`/api/v1/families/${familyID}/invites/${token}`);
 			invites = invites.filter(i => i.token !== token);
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to revoke invite';
-		}
+		} catch { }
 	}
 
 	function copyLink(token: string) {
@@ -116,10 +100,6 @@
 		return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 	}
 </script>
-
-{#if error}
-	<p class="text-sm text-destructive mb-4">{error}</p>
-{/if}
 
 <div class="flex flex-col gap-8 pt-4 md:pt-6 px-4 md:px-6">
 

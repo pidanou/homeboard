@@ -20,7 +20,6 @@
     let tasks = $state<Task[]>([]);
     let events = $state<CalEvent[]>([]);
     let categories = $state<AppCategory[]>([]);
-    let error = $state("");
     let filter = $state<Filter>("all");
     let filterMembers = $state(new Set<string>());
     let filterCategory = $state<string | null>(null);
@@ -33,7 +32,6 @@
         | undefined = $state();
 
     let es: EventSource | null = null;
-    let errorTimer: ReturnType<typeof setTimeout> | null = null;
 
     async function loadData() {
         const today = new Date();
@@ -50,13 +48,9 @@
                 api.get<AppCategory[]>(`/api/v1/families/${familyID}/categories`),
             ]);
         if (membersRes.status === "fulfilled") members = membersRes.value ?? [];
-        else setError(membersRes.reason);
         if (tasksRes.status === "fulfilled") tasks = tasksRes.value ?? [];
-        else setError(tasksRes.reason);
         if (eventsRes.status === "fulfilled") events = eventsRes.value ?? [];
-        else setError(eventsRes.reason);
         if (labelsRes.status === "fulfilled") categories = labelsRes.value ?? [];
-        else setError(labelsRes.reason);
     }
 
     onMount(() => {
@@ -71,16 +65,7 @@
         };
     });
 
-    onDestroy(() => {
-        es?.close();
-        if (errorTimer) clearTimeout(errorTimer);
-    });
-
-    function setError(err: unknown) {
-        error = err instanceof Error ? err.message : "Something went wrong";
-        if (errorTimer) clearTimeout(errorTimer);
-        errorTimer = setTimeout(() => (error = ""), 4000);
-    }
+    onDestroy(() => es?.close());
 
     async function toggleTask(task: Task, e: MouseEvent) {
         e.stopPropagation();
@@ -98,9 +83,7 @@
             tasks = tasks.map((t) =>
                 t.id === task.id ? { ...t, status: newStatus } : t,
             );
-        } catch (err) {
-            setError(err);
-        }
+        } catch { }
     }
 
     async function quickAdd(e: SubmitEvent) {
@@ -112,9 +95,7 @@
             });
             quickTitle = "";
             loadData();
-        } catch (err) {
-            setError(err);
-        }
+        } catch { }
     }
 
     type ListItem =
@@ -221,13 +202,6 @@
     );
 </script>
 
-{#if error}
-    <div class="flex items-center justify-between gap-2 px-3 py-2 mb-3 rounded-md bg-destructive/10 text-destructive text-sm">
-        <span>{error}</span>
-        <button onclick={() => (error = "")} class="shrink-0 opacity-70 hover:opacity-100">✕</button>
-    </div>
-{/if}
-
 <div class="sticky top-0 z-10 bg-background pt-4 md:pt-6 pb-3 px-4 md:px-6">
     <div class="flex items-center gap-2 mb-3">
         <form onsubmit={quickAdd} class="flex-1">
@@ -330,7 +304,6 @@
     {members}
     {categories}
     onCreated={loadData}
-    onError={setError}
 />
 <EditDialog
     bind:this={editDialog}
@@ -339,5 +312,4 @@
     {categories}
     onSaved={loadData}
     onDeleted={loadData}
-    onError={setError}
 />

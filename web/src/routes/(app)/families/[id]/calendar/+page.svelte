@@ -35,7 +35,6 @@
 	let tasks = $state<Task[]>([]);
 	let members = $state<Member[]>([]);
 	let categories = $state<AppCategory[]>([]);
-	let error = $state('');
 
 	// Current visible date range (set by EC's datesSet callback)
 	let viewStart    = $state(new Date(today.getFullYear(), today.getMonth(), 1));
@@ -311,9 +310,7 @@
 				categories.length ? Promise.resolve(categories) : api.get<AppCategory[]>(`/api/v1/families/${familyID}/categories`).then(r => r ?? []),
 			]);
 			events = evs; tasks = tsks; members = mems; categories = cats;
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to load calendar';
-		}
+		} catch { }
 	}
 
 	// ── SSE ───────────────────────────────────────────────────────────────────
@@ -379,13 +376,9 @@
 				status: newStatus, assigned_to: task.assigned_to, end_date: task.end_date, category_id: task.category_id,
 			});
 			tasks = tasks.map(t => t.id === task.id ? { ...t, status: newStatus } : t);
-		} catch (err) { error = err instanceof Error ? err.message : 'Something went wrong'; }
+		} catch { }
 	}
 </script>
-
-{#if error}
-	<p class="text-sm text-destructive mb-2 px-4 md:px-6">{error}</p>
-{/if}
 
 <!-- Header -->
 <div bind:this={headerEl} class="sticky top-0 z-10 bg-background px-4 md:px-6 pt-4 md:pt-6 pb-2">
@@ -565,13 +558,11 @@
 	{familyID} {members} {categories}
 	onSaved={() => appView === 'agenda' ? loadAgenda() : loadData(viewStart, viewEnd)}
 	onDeleted={() => appView === 'agenda' ? loadAgenda() : loadData(viewStart, viewEnd)}
-	onError={(e) => { error = e instanceof Error ? e.message : 'Something went wrong'; }}
 />
 <CreateDialog
 	bind:this={createDialog}
 	{familyID} {members} {categories}
 	onCreated={() => appView === 'agenda' ? loadAgenda() : loadData(viewStart, viewEnd)}
-	onError={(e) => { error = e instanceof Error ? e.message : 'Something went wrong'; }}
 />
 
 

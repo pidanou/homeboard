@@ -9,20 +9,16 @@
 
 	let email = $state('');
 	let password = $state('');
-	let error = $state('');
 	let loading = $state(false);
 
 	async function submit(e: SubmitEvent) {
 		e.preventDefault();
 		loading = true;
-		error = '';
 		try {
 			const res = await api.post<{ token: string }>('/api/v1/auth/login', { email, password });
 			setToken(res.token);
 			goto($page.url.searchParams.get('redirect') ?? '/');
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Login failed';
-		} finally {
+		} catch { } finally {
 			loading = false;
 		}
 	}
@@ -37,10 +33,7 @@
 		<Label for="password">Password</Label>
 		<Input id="password" type="password" bind:value={password} required />
 	</div>
-	{#if error}
-		<p class="text-destructive text-sm">{error}</p>
-	{/if}
-	<Button type="submit" disabled={loading} class="w-full">
+<Button type="submit" disabled={loading} class="w-full">
 		{loading ? 'Signing in…' : 'Sign in'}
 	</Button>
 	<p class="text-sm text-center text-muted-foreground">

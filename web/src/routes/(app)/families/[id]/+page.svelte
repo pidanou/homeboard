@@ -21,13 +21,11 @@
 	let tasks = $state<Task[]>([]);
 	let events = $state<CalEvent[]>([]);
 	let categories = $state<AppCategory[]>([]);
-	let error = $state('');
 
 	let createDialog: { open: (t?: 'task' | 'event') => void } | undefined = $state();
 	let editDialog: { openTask: (t: Task) => void; openEvent: (e: CalEvent) => void } | undefined = $state();
 
 	let es: EventSource | null = null;
-	let errorTimer: ReturnType<typeof setTimeout> | null = null;
 
 	async function loadData() {
 		const [membersRes, tasksRes, eventsRes, catsRes] = await Promise.allSettled([
@@ -37,13 +35,9 @@
 			api.get<AppCategory[]>(`/api/v1/families/${familyID}/categories`),
 		]);
 		if (membersRes.status === 'fulfilled') members = membersRes.value ?? [];
-		else setError(membersRes.reason);
 		if (tasksRes.status === 'fulfilled') tasks = tasksRes.value ?? [];
-		else setError(tasksRes.reason);
 		if (eventsRes.status === 'fulfilled') events = eventsRes.value ?? [];
-		else setError(eventsRes.reason);
 		if (catsRes.status === 'fulfilled') categories = catsRes.value ?? [];
-		else setError(catsRes.reason);
 	}
 
 	onMount(() => {
@@ -52,16 +46,7 @@
 		es.onmessage = (e) => { if (e.data === 'refresh') loadData(); };
 		es.onerror = () => { es?.close(); es = null; };
 	});
-	onDestroy(() => {
-		es?.close();
-		if (errorTimer) clearTimeout(errorTimer);
-	});
-
-	function setError(err: unknown) {
-		error = err instanceof Error ? err.message : 'Something went wrong';
-		if (errorTimer) clearTimeout(errorTimer);
-		errorTimer = setTimeout(() => (error = ''), 4000);
-	}
+	onDestroy(() => es?.close());
 
 	async function toggleTask(task: Task, e: MouseEvent) {
 		e.stopPropagation();
@@ -72,7 +57,7 @@
 				status: newStatus, assigned_to: task.assigned_to, end_date: task.end_date, category_id: task.category_id,
 			});
 			tasks = tasks.map((t) => t.id === task.id ? { ...t, status: newStatus } : t);
-		} catch (err) { setError(err); }
+		} catch { }
 	}
 
 	const sortedEvents = $derived(
@@ -98,7 +83,7 @@
 		dueTodayTasks = ids.map((id) => dueTodayTasks.find((t) => t.id === id)!).filter(Boolean);
 		try {
 			await api.put(`/api/v1/families/${familyID}/tasks/reorder`, { ids });
-		} catch (err) { dueTodayTasks = prev; setError(err); }
+		} catch { dueTodayTasks = prev; }
 	}
 </script>
 
@@ -111,13 +96,6 @@
 </div>
 
 <div class="px-4 md:px-6 flex flex-col gap-6 pb-8">
-	{#if error}
-		<div class="flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-destructive/10 text-destructive text-sm">
-			<span>{error}</span>
-			<button onclick={() => (error = '')} class="shrink-0 opacity-70 hover:opacity-100">✕</button>
-		</div>
-	{/if}
-
 	<!-- Schedule -->
 	<div>
 		<div class="flex items-center gap-3 mb-3">
@@ -196,5 +174,5 @@
 	</div>
 </div>
 
-<CreateDialog bind:this={createDialog} {familyID} {members} {categories} onCreated={loadData} onError={setError} />
-<EditDialog bind:this={editDialog} {familyID} {members} {categories} onSaved={loadData} onDeleted={loadData} onError={setError} />
+<CreateDialog bind:this={createDialog} {familyID} {members} {categories} onCreated={loadData} />
+<EditDialog bind:this={editDialog} {familyID} {members} {categories} onSaved={loadData} onDeleted={loadData} />
