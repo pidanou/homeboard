@@ -5,10 +5,11 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { X, Pencil, Clock } from 'lucide-svelte';
+	import UserAvatar from '$lib/components/UserAvatar.svelte';
 	import { currentUser } from '$lib/stores/user';
 
 	type Invite = { token: string; expires_at: string };
-	type Member = { user_id: string; name: string; email: string; role: string; joined_at: string; virtual?: boolean };
+	type Member = { user_id: string; name: string; email: string; avatar_url?: string | null; role: string; joined_at: string; virtual?: boolean };
 	type CategoryColor = 'red' | 'orange' | 'yellow' | 'green' | 'teal' | 'blue' | 'purple' | 'pink' | 'gray';
 	type AppCategory = { id: string; name: string; color: CategoryColor };
 
@@ -181,9 +182,7 @@
 			<div class="flex flex-col gap-2">
 				{#each members as member (member.user_id)}
 					<div class="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
-						<div class="w-8 h-8 rounded-full {member.virtual ? 'bg-muted text-muted-foreground' : 'bg-primary/15 text-primary'} flex items-center justify-center text-xs font-semibold shrink-0">
-							{initials(member.name)}
-						</div>
+						<UserAvatar name={member.name} avatarUrl={member.virtual ? null : member.avatar_url} userId={member.user_id} size={32} />
 						<div class="flex-1 min-w-0">
 							<p class="text-sm font-medium truncate">{member.name}</p>
 							<p class="text-xs text-muted-foreground truncate">
@@ -335,6 +334,7 @@
 		</div>
 
 		{#if invite}
+			{@const daysLeft = Math.ceil((new Date(invite.expires_at).getTime() - Date.now()) / 86400000)}
 			<div class="flex flex-col gap-1">
 				<div class="flex gap-2">
 					<Input readonly value="{location.origin}/invite/{invite.token}" class="flex-1 text-xs" />
@@ -343,7 +343,6 @@
 					</Button>
 					<Button variant="destructive" size="sm" onclick={revokeInvite}>Revoke</Button>
 				</div>
-				{@const daysLeft = Math.ceil((new Date(invite.expires_at).getTime() - Date.now()) / 86400000)}
 				<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
 					{daysLeft <= 1 ? 'bg-destructive/10 text-destructive' : daysLeft <= 3 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'bg-muted text-muted-foreground'}">
 					<Clock class="w-3 h-3" />

@@ -22,15 +22,16 @@
 	let dragging = false;
 	let lastX = 0;
 	let lastY = 0;
+	let lastPinchDist = 0;
 
 	export function loadFile(file: File) {
 		const reader = new FileReader();
 		reader.onload = (e) => {
 			img.onload = () => {
 				imgLoaded = true;
-				// Fit the image so the shorter dimension fills the canvas
 				const canvasSize = 320;
-				scale = Math.max(img.naturalWidth, img.naturalHeight) / canvasSize;
+				// Use min so both axes stay >= 0 when clamping
+				scale = Math.min(img.naturalWidth, img.naturalHeight) / canvasSize;
 				offsetX = (img.naturalWidth - canvasSize * scale) / 2;
 				offsetY = (img.naturalHeight - canvasSize * scale) / 2;
 				draw();
@@ -97,16 +98,43 @@
 
 	function onMouseUp() { dragging = false; }
 
+	function zoomBy(ratio: number) {
+		const s = canvas.width;
+		const maxScale = Math.min(img.naturalWidth, img.naturalHeight) / s;
+		const minScale = maxScale / 5;
+		const newScale = Math.max(minScale, Math.min(scale * ratio, maxScale));
+		offsetX += (s / 2) * (scale - newScale);
+		offsetY += (s / 2) * (scale - newScale);
+		scale = newScale;
+		clampOffset();
+		draw();
+	}
+
 	function onTouchStart(e: TouchEvent) {
 		if (e.touches.length === 1) {
 			dragging = true;
 			lastX = e.touches[0].clientX;
 			lastY = e.touches[0].clientY;
+		} else if (e.touches.length === 2) {
+			dragging = false;
+			lastPinchDist = Math.hypot(
+				e.touches[0].clientX - e.touches[1].clientX,
+				e.touches[0].clientY - e.touches[1].clientY
+			);
 		}
 	}
 
 	function onTouchMove(e: TouchEvent) {
 		e.preventDefault();
+		if (e.touches.length === 2) {
+			const dist = Math.hypot(
+				e.touches[0].clientX - e.touches[1].clientX,
+				e.touches[0].clientY - e.touches[1].clientY
+			);
+			if (lastPinchDist > 0) zoomBy(lastPinchDist / dist);
+			lastPinchDist = dist;
+			return;
+		}
 		if (!dragging || e.touches.length !== 1) return;
 		offsetX -= (e.touches[0].clientX - lastX) * scale;
 		offsetY -= (e.touches[0].clientY - lastY) * scale;
@@ -118,17 +146,7 @@
 
 	function onWheel(e: WheelEvent) {
 		e.preventDefault();
-		const s = canvas.width;
-		const delta = e.deltaY > 0 ? 1.1 : 0.9;
-		const newScale = Math.max(0.5, Math.min(scale * delta, Math.max(img.naturalWidth, img.naturalHeight) / s));
-		// Zoom around canvas center
-		const cx = s / 2;
-		const cy = s / 2;
-		offsetX = offsetX + cx * (scale - newScale);
-		offsetY = offsetY + cy * (scale - newScale);
-		scale = newScale;
-		clampOffset();
-		draw();
+		zoomBy(e.deltaY > 0 ? 1.1 : 0.9);
 	}
 
 	function confirm() {

@@ -202,7 +202,7 @@
 						<div class="flex flex-col gap-1.5">
 							<Label>Assign to</Label>
 							<Select.Root type="single" bind:value={ef.assignedTo}>
-								<Select.Trigger class="w-full"><SelectPrimitive.Value placeholder="Unassigned" /></Select.Trigger>
+								<Select.Trigger class="w-full">{members.find(m => m.user_id === ef.assignedTo)?.name ?? 'Unassigned'}</Select.Trigger>
 								<Select.Content>
 									<Select.Item value="">Unassigned</Select.Item>
 									{#each members as m}

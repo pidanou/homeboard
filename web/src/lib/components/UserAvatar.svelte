@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { env } from '$env/dynamic/public';
+	import { getBaseUrl } from '$lib/api/client';
 
 	let {
 		name,
@@ -15,14 +15,14 @@
 		class?: string;
 	} = $props();
 
-	const BASE_URL = env.PUBLIC_API_URL ?? 'http://localhost:8080';
-
-	// Relative paths from the backend (no APP_BASE_URL set) need the API base prepended
-	const resolvedUrl = $derived(
-		avatarUrl?.startsWith('/')
-			? `${BASE_URL}${avatarUrl}`
-			: avatarUrl ?? null
-	);
+	const resolvedUrl = $derived((() => {
+		if (!avatarUrl) return null;
+		try {
+			return `${getBaseUrl()}${new URL(avatarUrl).pathname}`;
+		} catch {
+			return avatarUrl.startsWith('/') ? `${getBaseUrl()}${avatarUrl}` : avatarUrl;
+		}
+	})());
 
 	const initials = $derived(() => {
 		const parts = name.trim().split(/\s+/);

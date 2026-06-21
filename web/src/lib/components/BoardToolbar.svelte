@@ -2,6 +2,7 @@
     import type { Member, AppCategory, Filter } from "$lib/types";
     import { dotClass } from "$lib/categories";
     import { X, Tag } from "lucide-svelte";
+    import UserAvatar from "$lib/components/UserAvatar.svelte";
 
     let {
         filter = $bindable<Filter>("all"),
@@ -95,7 +96,7 @@
                     : someFilterActive
                       ? 'bg-muted text-muted-foreground opacity-30'
                       : 'bg-muted text-muted-foreground opacity-70 hover:opacity-100'}"
-                >{initials(m.name)}</button
+                ><UserAvatar name={m.name} avatarUrl={m.avatar_url} userId={m.user_id} size={24} /></button
             >
         {/each}
     {/if}

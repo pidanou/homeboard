@@ -2,6 +2,7 @@ export type Member = {
 	user_id: string;
 	name: string;
 	email: string;
+	avatar_url?: string | null;
 	role: string;
 	virtual?: boolean;
 };
