@@ -31,6 +31,7 @@
 	}
 </script>
 
+<div class="px-4 md:px-6 pt-6 pb-8">
 <div class="max-w-lg mx-auto flex flex-col gap-8">
 	<div>
 		<div class="flex items-center justify-between mb-4">
@@ -70,4 +71,5 @@
 			<Button type="submit" variant="outline">Join</Button>
 		</form>
 	</div>
+</div>
 </div>
