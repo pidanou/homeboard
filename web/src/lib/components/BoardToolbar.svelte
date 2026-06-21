@@ -50,6 +50,7 @@
         { id: "all", label: "Active" },
         { id: "tasks", label: "Tasks" },
         { id: "events", label: "Events" },
+        { id: "birthdays", label: "🎂 Birthdays" },
         { id: "done", label: `Done${doneCnt ? ` (${doneCnt})` : ""}` },
     ]);
 </script>

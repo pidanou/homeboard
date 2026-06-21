@@ -23,12 +23,12 @@ func NewEventRepository(pool *pgxpool.Pool) *EventRepository {
 func (r *EventRepository) Create(ctx context.Context, event *model.Event) error {
 	_, err := r.pool.Exec(ctx,
 		`INSERT INTO events (id, family_id, title, description, location, start_at, end_at, all_day,
-		  category_id, recurrence_rule, recurrence_parent_id, recurrence_date, cancelled, created_by, created_at, updated_at, type, icon)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
+		  category_id, recurrence_rule, recurrence_parent_id, recurrence_date, cancelled, created_by, created_at, updated_at, type, icon, birthday_of)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
 		event.ID, event.FamilyID, event.Title, event.Description, event.Location,
 		event.StartAt, event.EndAt, event.AllDay, event.CategoryID,
 		event.RecurrenceRule, event.RecurrenceParentID, event.RecurrenceDate, event.Cancelled,
-		event.CreatedBy, event.CreatedAt, event.UpdatedAt, event.Type, event.Icon,
+		event.CreatedBy, event.CreatedAt, event.UpdatedAt, event.Type, event.Icon, event.BirthdayOf,
 	)
 	if err != nil {
 		return err
@@ -44,7 +44,7 @@ func (r *EventRepository) ListByFamilyAndRange(ctx context.Context, familyID str
 		`SELECT e.id, e.family_id, e.title, COALESCE(e.description,''), COALESCE(e.location,''),
 		        e.start_at, e.end_at, e.all_day, e.category_id,
 		        e.recurrence_rule, e.recurrence_parent_id, e.recurrence_date, e.cancelled,
-		        e.created_by, e.created_at, e.updated_at, e.type, e.icon,
+		        e.created_by, e.created_at, e.updated_at, e.type, e.icon, e.birthday_of,
 		        COALESCE(array_agg(DISTINCT ea.user_id) FILTER (WHERE ea.user_id IS NOT NULL), ARRAY[]::text[])
 		 FROM events e
 		 LEFT JOIN event_attendees ea ON ea.event_id = e.id
@@ -80,7 +80,7 @@ func (r *EventRepository) ListByFamilyAndRange(ctx context.Context, familyID str
 		`SELECT e.id, e.family_id, e.title, COALESCE(e.description,''), COALESCE(e.location,''),
 		        e.start_at, e.end_at, e.all_day, e.category_id,
 		        e.recurrence_rule, e.recurrence_parent_id, e.recurrence_date, e.cancelled,
-		        e.created_by, e.created_at, e.updated_at, e.type, e.icon,
+		        e.created_by, e.created_at, e.updated_at, e.type, e.icon, e.birthday_of,
 		        COALESCE(array_agg(DISTINCT ea.user_id) FILTER (WHERE ea.user_id IS NOT NULL), ARRAY[]::text[])
 		 FROM events e
 		 LEFT JOIN event_attendees ea ON ea.event_id = e.id
@@ -208,10 +208,10 @@ func (r *EventRepository) CancelOccurrence(ctx context.Context, parentID, family
 func (r *EventRepository) Update(ctx context.Context, event *model.Event) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE events SET title=$1, description=$2, location=$3, start_at=$4, end_at=$5,
-		  all_day=$6, category_id=$7, recurrence_rule=$8, icon=$9, updated_at=$10
-		 WHERE id=$11 AND family_id=$12`,
+		  all_day=$6, category_id=$7, recurrence_rule=$8, icon=$9, updated_at=$10, birthday_of=$11
+		 WHERE id=$12 AND family_id=$13`,
 		event.Title, event.Description, event.Location, event.StartAt, event.EndAt,
-		event.AllDay, event.CategoryID, event.RecurrenceRule, event.Icon, event.UpdatedAt,
+		event.AllDay, event.CategoryID, event.RecurrenceRule, event.Icon, event.UpdatedAt, event.BirthdayOf,
 		event.ID, event.FamilyID,
 	)
 	if err != nil {
@@ -246,7 +246,7 @@ func scanEvent(row scannable, e *model.Event) error {
 		&e.ID, &e.FamilyID, &e.Title, &e.Description, &e.Location,
 		&e.StartAt, &e.EndAt, &e.AllDay, &e.CategoryID,
 		&e.RecurrenceRule, &e.RecurrenceParentID, &e.RecurrenceDate, &e.Cancelled,
-		&e.CreatedBy, &e.CreatedAt, &e.UpdatedAt, &e.Type, &e.Icon,
+		&e.CreatedBy, &e.CreatedAt, &e.UpdatedAt, &e.Type, &e.Icon, &e.BirthdayOf,
 		&e.AttendeeIDs,
 	)
 }

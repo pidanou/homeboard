@@ -88,9 +88,9 @@
 					icon: cfIcon,
 				});
 			} else if (createType === 'birthday') {
-				if (!cfDueDate) return;
+				if (!cfDueDate || !cf.title.trim()) return;
 				await api.post(`/api/v1/households/${familyID}/events`, {
-					title: cf.title.trim(),
+					title: `${cf.title.trim()}'s Birthday`,
 					description: cf.description,
 					start_at: calDateTimeToISO(cfDueDate, '00:00', true),
 					end_at: calDateTimeToISO(cfDueDate, '00:00', true),
@@ -99,6 +99,7 @@
 					category_id: cfCategoryID,
 					recurrence_rule: RRULE['yearly'],
 					type: 'birthday',
+					birthday_of: cf.title.trim(),
 				});
 			} else {
 				if (!cfEventRange.start) return;

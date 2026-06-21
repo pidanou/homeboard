@@ -48,9 +48,10 @@ export type CalEvent = {
 	occurrence_date?: string;
 	type?: string;
 	icon?: string;
+	birthday_of?: string | null;
 };
 
-export type Filter = 'all' | 'tasks' | 'events' | 'done';
+export type Filter = 'all' | 'tasks' | 'events' | 'done' | 'birthdays';
 
 export type AppList = {
 	id: string;

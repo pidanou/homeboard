@@ -128,6 +128,11 @@
                     items.push({ kind: "task", data: t, sortKey });
                 }
             }
+            if (filter === "birthdays") {
+                for (const ev of events.filter(ev => ev.birthday_of)) {
+                    items.push({ kind: "event", data: ev, sortKey: new Date(ev.start_at).getTime() });
+                }
+            }
             if (filter === "all" || filter === "events") {
                 for (const ev of events.filter(
                     (ev) =>

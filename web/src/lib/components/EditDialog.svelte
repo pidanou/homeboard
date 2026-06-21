@@ -46,6 +46,7 @@
 	let efIsRecurring = $state(false);
 	let efScopePrompt = $state<'save' | 'delete' | null>(null);
 	let efIcon = $state<string | undefined>(undefined);
+	let efBirthdayOf = $state<string | undefined>(undefined);
 
 	const RRULE: Record<string, string> = {
 		daily: 'FREQ=DAILY', weekly: 'FREQ=WEEKLY', monthly: 'FREQ=MONTHLY', yearly: 'FREQ=YEARLY',
@@ -86,6 +87,7 @@
 		efIsRecurring = !!e.is_recurring;
 		efScopePrompt = null;
 		efIcon = e.icon;
+		efBirthdayOf = e.birthday_of ?? undefined;
 		isOpen = true;
 	}
 
@@ -110,6 +112,7 @@
 					end_date: efDueDate ? calDateToISO(efDueDate) : undefined,
 					category_id: efCategoryID,
 					icon: efIcon ?? null,
+					birthday_of: efBirthdayOf ?? null,
 				});
 			} else {
 				if (!efEventRange.start) return;
@@ -121,6 +124,7 @@
 					all_day: ef.allDay, attendee_ids: ef.attendeeIDs, category_id: efCategoryID,
 					recurrence_rule: efRepeat !== 'none' ? RRULE[efRepeat] : null,
 					icon: efIcon ?? null,
+					birthday_of: efBirthdayOf ?? null,
 				});
 			}
 			onSaved();
