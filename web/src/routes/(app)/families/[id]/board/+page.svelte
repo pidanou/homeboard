@@ -40,12 +40,12 @@
         to.setDate(to.getDate() + 90);
         const [membersRes, tasksRes, eventsRes, labelsRes] =
             await Promise.allSettled([
-                api.get<Member[]>(`/api/v1/families/${familyID}/members`),
-                api.get<Task[]>(`/api/v1/families/${familyID}/tasks`),
+                api.get<Member[]>(`/api/v1/households/${familyID}/members`),
+                api.get<Task[]>(`/api/v1/households/${familyID}/tasks`),
                 api.get<CalEvent[]>(
-                    `/api/v1/families/${familyID}/events?from=${from.toISOString()}&to=${to.toISOString()}`,
+                    `/api/v1/households/${familyID}/events?from=${from.toISOString()}&to=${to.toISOString()}`,
                 ),
-                api.get<AppCategory[]>(`/api/v1/families/${familyID}/categories`),
+                api.get<AppCategory[]>(`/api/v1/households/${familyID}/categories`),
             ]);
         if (membersRes.status === "fulfilled") members = membersRes.value ?? [];
         if (tasksRes.status === "fulfilled") tasks = tasksRes.value ?? [];
@@ -55,7 +55,7 @@
 
     onMount(() => {
         loadData();
-        es = new EventSource(sseUrl(`/api/v1/families/${familyID}/stream`));
+        es = new EventSource(sseUrl(`/api/v1/households/${familyID}/stream`));
         es.onmessage = (e) => {
             if (e.data === "refresh") loadData();
         };
@@ -71,7 +71,7 @@
         e.stopPropagation();
         const newStatus = task.status === "done" ? "todo" : "done";
         try {
-            await api.patch(`/api/v1/families/${familyID}/tasks/${task.id}`, {
+            await api.patch(`/api/v1/households/${familyID}/tasks/${task.id}`, {
                 title: task.title,
                 description: task.description,
                 important: task.important,
@@ -90,7 +90,7 @@
         e.preventDefault();
         if (!quickTitle.trim()) return;
         try {
-            await api.post(`/api/v1/families/${familyID}/tasks`, {
+            await api.post(`/api/v1/households/${familyID}/tasks`, {
                 title: quickTitle.trim(),
             });
             quickTitle = "";

@@ -29,10 +29,10 @@
 
 	async function loadData() {
 		const [membersRes, tasksRes, eventsRes, catsRes] = await Promise.allSettled([
-			api.get<Member[]>(`/api/v1/families/${familyID}/members`),
-			api.get<Task[]>(`/api/v1/families/${familyID}/tasks`),
-			api.get<CalEvent[]>(`/api/v1/families/${familyID}/events?from=${todayStart.toISOString()}&to=${todayEnd.toISOString()}`),
-			api.get<AppCategory[]>(`/api/v1/families/${familyID}/categories`),
+			api.get<Member[]>(`/api/v1/households/${familyID}/members`),
+			api.get<Task[]>(`/api/v1/households/${familyID}/tasks`),
+			api.get<CalEvent[]>(`/api/v1/households/${familyID}/events?from=${todayStart.toISOString()}&to=${todayEnd.toISOString()}`),
+			api.get<AppCategory[]>(`/api/v1/households/${familyID}/categories`),
 		]);
 		if (membersRes.status === 'fulfilled') members = membersRes.value ?? [];
 		if (tasksRes.status === 'fulfilled') tasks = tasksRes.value ?? [];
@@ -42,7 +42,7 @@
 
 	onMount(() => {
 		loadData();
-		es = new EventSource(sseUrl(`/api/v1/families/${familyID}/stream`));
+		es = new EventSource(sseUrl(`/api/v1/households/${familyID}/stream`));
 		es.onmessage = (e) => { if (e.data === 'refresh') loadData(); };
 		es.onerror = () => { es?.close(); es = null; };
 	});
@@ -52,7 +52,7 @@
 		e.stopPropagation();
 		const newStatus = task.status === 'done' ? 'todo' : 'done';
 		try {
-			await api.patch(`/api/v1/families/${familyID}/tasks/${task.id}`, {
+			await api.patch(`/api/v1/households/${familyID}/tasks/${task.id}`, {
 				title: task.title, description: task.description, important: task.important,
 				status: newStatus, assigned_to: task.assigned_to, end_date: task.end_date, category_id: task.category_id,
 			});
@@ -82,7 +82,7 @@
 		const prev = [...dueTodayTasks];
 		dueTodayTasks = ids.map((id) => dueTodayTasks.find((t) => t.id === id)!).filter(Boolean);
 		try {
-			await api.put(`/api/v1/families/${familyID}/tasks/reorder`, { ids });
+			await api.put(`/api/v1/households/${familyID}/tasks/reorder`, { ids });
 		} catch { dueTodayTasks = prev; }
 	}
 </script>

@@ -25,7 +25,7 @@
 	async function createCategory() {
 		if (!newName.trim()) return;
 		try {
-			const cat = await api.post<AppCategory>(`/api/v1/families/${familyID}/categories`, {
+			const cat = await api.post<AppCategory>(`/api/v1/households/${familyID}/categories`, {
 				name: newName.trim(),
 				color: newColor,
 			});

@@ -90,10 +90,10 @@
 		agendaLoadingBottom = true;
 		try {
 			const [evs, tsks, mems, cats] = await Promise.all([
-				api.get<CalEvent[]>(`/api/v1/families/${familyID}/events?from=${agendaStart.toISOString()}&to=${agendaEnd.toISOString()}`).then(r => r ?? []),
-				api.get<Task[]>(`/api/v1/families/${familyID}/tasks`).then(r => r ?? []),
-				members.length ? Promise.resolve(members) : api.get<Member[]>(`/api/v1/families/${familyID}/members`).then(r => r ?? []),
-				categories.length ? Promise.resolve(categories) : api.get<AppCategory[]>(`/api/v1/families/${familyID}/categories`).then(r => r ?? []),
+				api.get<CalEvent[]>(`/api/v1/households/${familyID}/events?from=${agendaStart.toISOString()}&to=${agendaEnd.toISOString()}`).then(r => r ?? []),
+				api.get<Task[]>(`/api/v1/households/${familyID}/tasks`).then(r => r ?? []),
+				members.length ? Promise.resolve(members) : api.get<Member[]>(`/api/v1/households/${familyID}/members`).then(r => r ?? []),
+				categories.length ? Promise.resolve(categories) : api.get<AppCategory[]>(`/api/v1/households/${familyID}/categories`).then(r => r ?? []),
 			]);
 			agendaEvents = evs; tasks = tsks; members = mems; categories = cats;
 			agendaReady = true;
@@ -108,7 +108,7 @@
 		const newEnd = new Date(agendaEnd);
 		newEnd.setMonth(newEnd.getMonth() + 1);
 		try {
-			const evs = await api.get<CalEvent[]>(`/api/v1/families/${familyID}/events?from=${agendaEnd.toISOString()}&to=${newEnd.toISOString()}`).then(r => r ?? []);
+			const evs = await api.get<CalEvent[]>(`/api/v1/households/${familyID}/events?from=${agendaEnd.toISOString()}&to=${newEnd.toISOString()}`).then(r => r ?? []);
 			agendaEvents = [...agendaEvents, ...evs];
 			agendaEnd = newEnd;
 		} finally {
@@ -127,7 +127,7 @@
 			const scrollEl = document.querySelector('main');
 			const prevHeight = scrollEl?.scrollHeight ?? 0;
 			const prevTop    = scrollEl?.scrollTop ?? 0;
-			const evs = await api.get<CalEvent[]>(`/api/v1/families/${familyID}/events?from=${newStart.toISOString()}&to=${agendaStart.toISOString()}`).then(r => r ?? []);
+			const evs = await api.get<CalEvent[]>(`/api/v1/households/${familyID}/events?from=${newStart.toISOString()}&to=${agendaStart.toISOString()}`).then(r => r ?? []);
 			agendaEvents = [...evs, ...agendaEvents];
 			agendaStart = newStart;
 			await tick();
@@ -291,7 +291,7 @@
 				if (event.extendedProps.type === 'task') {
 					const t = event.extendedProps.data as Task;
 					const newDate = toDateISO(event.start as Date);
-					await api.patch(`/api/v1/families/${familyID}/tasks/${t.id}`, {
+					await api.patch(`/api/v1/households/${familyID}/tasks/${t.id}`, {
 						title: t.title, description: t.description, important: t.important,
 						status: t.status, assigned_to: t.assigned_to, category_id: t.category_id,
 						end_date: newDate,
@@ -322,10 +322,10 @@
 	async function loadData(from: Date, to: Date) {
 		try {
 			const [evs, tsks, mems, cats] = await Promise.all([
-				api.get<CalEvent[]>(`/api/v1/families/${familyID}/events?from=${from.toISOString()}&to=${to.toISOString()}`).then(r => r ?? []),
-				api.get<Task[]>(`/api/v1/families/${familyID}/tasks`).then(r => r ?? []),
-				members.length ? Promise.resolve(members) : api.get<Member[]>(`/api/v1/families/${familyID}/members`).then(r => r ?? []),
-				categories.length ? Promise.resolve(categories) : api.get<AppCategory[]>(`/api/v1/families/${familyID}/categories`).then(r => r ?? []),
+				api.get<CalEvent[]>(`/api/v1/households/${familyID}/events?from=${from.toISOString()}&to=${to.toISOString()}`).then(r => r ?? []),
+				api.get<Task[]>(`/api/v1/households/${familyID}/tasks`).then(r => r ?? []),
+				members.length ? Promise.resolve(members) : api.get<Member[]>(`/api/v1/households/${familyID}/members`).then(r => r ?? []),
+				categories.length ? Promise.resolve(categories) : api.get<AppCategory[]>(`/api/v1/households/${familyID}/categories`).then(r => r ?? []),
 			]);
 			events = evs; tasks = tsks; members = mems; categories = cats;
 		} catch { }
@@ -338,7 +338,7 @@
 		if (appView === 'agenda') {
 			await loadAgenda();
 		}
-		es = new EventSource(sseUrl(`/api/v1/families/${familyID}/stream`));
+		es = new EventSource(sseUrl(`/api/v1/households/${familyID}/stream`));
 		es.onmessage = (e) => {
 			if (e.data !== 'refresh') return;
 			if (appView === 'agenda') loadAgenda();
@@ -378,7 +378,7 @@
 
 	// ── Event / Task CRUD ──────────────────────────────────────────────────────
 	async function patchEvent(ev: CalEvent, start: Date, end: Date, allDay: boolean) {
-		await api.patch(`/api/v1/families/${familyID}/events/${ev.id}`, {
+		await api.patch(`/api/v1/households/${familyID}/events/${ev.id}`, {
 			title: ev.title, description: ev.description ?? '', location: ev.location ?? '',
 			start_at: start.toISOString(), end_at: end.toISOString(),
 			all_day: allDay, attendee_ids: ev.attendee_ids ?? [], category_id: ev.category_id,
@@ -389,7 +389,7 @@
 		e.stopPropagation();
 		const newStatus = task.status === 'done' ? 'todo' : 'done';
 		try {
-			await api.patch(`/api/v1/families/${familyID}/tasks/${task.id}`, {
+			await api.patch(`/api/v1/households/${familyID}/tasks/${task.id}`, {
 				title: task.title, description: task.description, important: task.important,
 				status: newStatus, assigned_to: task.assigned_to, end_date: task.end_date, category_id: task.category_id,
 			});

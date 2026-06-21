@@ -30,7 +30,7 @@ func (r *InviteRepository) GetByToken(ctx context.Context, token string) (*model
 	inv := &model.Invite{}
 	err := r.pool.QueryRow(ctx,
 		`SELECT i.token, i.family_id, f.name, i.created_by, i.created_at, i.expires_at, i.used_at
-		 FROM invites i JOIN families f ON f.id = i.family_id
+		 FROM invites i JOIN households f ON f.id = i.family_id
 		 WHERE i.token = $1`,
 		token,
 	).Scan(&inv.Token, &inv.FamilyID, &inv.FamilyName, &inv.CreatedBy, &inv.CreatedAt, &inv.ExpiresAt, &inv.UsedAt)

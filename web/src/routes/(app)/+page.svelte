@@ -14,7 +14,7 @@
 
 	onMount(async () => {
 		try {
-			families = (await api.get<Family[]>('/api/v1/families')) ?? [];
+			families = (await api.get<Family[]>('/api/v1/households')) ?? [];
 		} catch { } finally {
 			loading = false;
 		}

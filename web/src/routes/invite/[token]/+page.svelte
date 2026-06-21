@@ -48,7 +48,7 @@
 
 	async function link(virtualID: string) {
 		try {
-			await api.post(`/api/v1/families/${familyID}/members/virtual/${virtualID}/link`, {});
+			await api.post(`/api/v1/households/${familyID}/members/virtual/${virtualID}/link`, {});
 		} catch {
 			// non-fatal — still redirect
 		}
