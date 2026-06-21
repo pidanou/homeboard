@@ -49,13 +49,21 @@
 		yearly: 'FREQ=YEARLY',
 	};
 
-	export function open(t: 'task' | 'event' | 'birthday' = 'task') {
+	function toCalDate(d: Date) {
+		return new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
+	}
+	function formatTime(d: Date) {
+		return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+	}
+
+	export function open(t: 'task' | 'event' | 'birthday' = 'task', start?: Date, end?: Date, allDay = false) {
 		createType = t;
-		cf = { title: '', description: '', important: false, allDay: false, location: '', assignedTo: '', attendeeIDs: [] };
-		cfDueDate = undefined;
-		cfEventRange = { start: undefined, end: undefined };
-		cfStartTime = '09:00';
-		cfEndTime = '10:00';
+		cf = { title: '', description: '', important: false, allDay, location: '', assignedTo: '', attendeeIDs: [] };
+		const cd = start ? toCalDate(start) : undefined;
+		cfDueDate = cd;
+		cfEventRange = cd ? { start: cd, end: end ? toCalDate(end) : cd } : { start: undefined, end: undefined };
+		cfStartTime = start && !allDay ? formatTime(start) : '09:00';
+		cfEndTime = end && !allDay ? formatTime(end) : '10:00';
 		cfCategoryID = undefined;
 		cfRepeat = 'none';
 		cfIcon = undefined;

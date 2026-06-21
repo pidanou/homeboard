@@ -195,7 +195,7 @@
 
 	// ── Dialogs ───────────────────────────────────────────────────────────────
 	let editDialog: { openTask: (t: Task) => void; openEvent: (e: CalEvent) => void } | undefined = $state();
-	let createDialog: { open: (t?: 'task' | 'event') => void } | undefined = $state();
+	let createDialog: { open: (t?: 'task' | 'event' | 'birthday', start?: Date, end?: Date, allDay?: boolean) => void } | undefined = $state();
 
 	// ── Header height (for dynamic calendar height) ───────────────────────────
 	let headerEl = $state<HTMLElement | null>(null);
@@ -309,8 +309,13 @@
 				await loadData(viewStart, viewEnd);
 			} catch { revert(); }
 		},
-		dateClick: () => { createDialog?.open(); },
-		select: () => { createDialog?.open(); },
+		dateClick: ({ date, allDay }: any) => { createDialog?.open('task', date, date, allDay); },
+		select: ({ start, end, allDay }: any) => {
+			const s = start as Date;
+			// allDay select: end is exclusive (next day), clamp back one ms
+			const e = allDay ? new Date((end as Date).getTime() - 1) : end as Date;
+			createDialog?.open('event', s, e, allDay);
+		},
 	});
 
 	// ── Data loading ──────────────────────────────────────────────────────────
