@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-	appId: 'com.familyboard.app',
+	appId: 'com.noudapi.familyboard',
 	appName: 'Family Board',
 	webDir: 'build',
 	ios: {
