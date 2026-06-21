@@ -86,14 +86,16 @@ func main() {
 	sseHandler := handler.NewSSEHandler(hub, os.Getenv("JWT_SECRET"))
 
 	allowedOrigins := []string{"http://localhost:5173"}
-	if extra := os.Getenv("CORS_ALLOWED_ORIGINS"); extra != "" {
+	if extra := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS")); extra == "*" {
+		allowedOrigins = []string{"*"}
+	} else if extra != "" {
 		for _, o := range strings.Split(extra, ",") {
 			if o = strings.TrimSpace(o); o != "" {
 				allowedOrigins = append(allowedOrigins, o)
 			}
 		}
 	}
-	if origin := os.Getenv("APP_BASE_URL"); origin != "" {
+	if origin := os.Getenv("APP_BASE_URL"); origin != "" && allowedOrigins[0] != "*" {
 		allowedOrigins = append(allowedOrigins, origin)
 	}
 
