@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/public';
 import { toast } from 'svelte-sonner';
 
-function getBaseUrl(): string {
+export function getBaseUrl(): string {
 	if (typeof localStorage !== 'undefined') {
 		const stored = localStorage.getItem('api_url');
 		if (stored) return stored.replace(/\/$/, '');

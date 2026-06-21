@@ -8,7 +8,8 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
-	import { Camera, ChevronLeft } from 'lucide-svelte';
+	import { logout } from '$lib/auth';
+	import { Camera, ChevronLeft, LogOut } from 'lucide-svelte';
 
 	let user = $derived($currentUser);
 
@@ -233,4 +234,11 @@
 			<div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
 		</div>
 	{/if}
+
+	<div class="px-4 md:px-6 pb-8 pt-4">
+		<Button variant="destructive" class="w-full" onclick={logout}>
+			<LogOut class="w-4 h-4 mr-2" />
+			Sign out
+		</Button>
+	</div>
 </div>
