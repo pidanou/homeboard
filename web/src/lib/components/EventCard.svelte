@@ -23,7 +23,11 @@
 	class="w-full text-left flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer"
 	{onclick}
 >
-	<CalendarDays class="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
+	{#if event.birthday_of}
+		<span class="text-base mt-0.5 shrink-0">🎂</span>
+	{:else}
+		<CalendarDays class="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
+	{/if}
 	<div class="flex-1 min-w-0">
 		<div class="flex items-start justify-between gap-2">
 			<p class="text-sm font-medium truncate">{#if event.icon}<span class="mr-1">{event.icon}</span>{/if}{event.title}</p>
