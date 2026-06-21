@@ -25,6 +25,7 @@ services:
     environment:
       DATABASE_URL: postgres://familyboard:${POSTGRES_PASSWORD}@db:5432/familyboard?sslmode=disable
       JWT_SECRET: ${JWT_SECRET}
+      API_BASE_URL: ${API_BASE_URL}
       APP_BASE_URL: ${APP_BASE_URL}
       UPLOAD_DIR: /app/uploads
       PORT: 8080

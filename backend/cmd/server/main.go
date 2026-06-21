@@ -72,11 +72,9 @@ func main() {
 	if uploadDir == "" {
 		uploadDir = "./uploads"
 	}
-	appBaseURL := os.Getenv("APP_BASE_URL")
-
 	// Handlers
 	authHandler := handler.NewAuthHandler(authService)
-	profileHandler := handler.NewProfileHandler(authService, uploadDir, appBaseURL)
+	profileHandler := handler.NewProfileHandler(authService, uploadDir, os.Getenv("API_BASE_URL"))
 	householdHandler := handler.NewHouseholdHandler(householdService)
 	inviteHandler := handler.NewInviteHandler(inviteService, householdService, os.Getenv("JWT_SECRET"))
 	taskHandler := handler.NewTaskHandler(taskService, hub)

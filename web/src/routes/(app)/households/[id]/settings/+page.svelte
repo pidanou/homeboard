@@ -4,7 +4,7 @@
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { X, Pencil } from 'lucide-svelte';
+	import { X, Pencil, Clock } from 'lucide-svelte';
 	import { currentUser } from '$lib/stores/user';
 
 	type Invite = { token: string; expires_at: string };
@@ -144,7 +144,7 @@
 	}
 </script>
 
-<div class="flex flex-col gap-8 pt-4 md:pt-6 px-4 md:px-6">
+<div class="flex flex-col gap-8 pt-4 md:pt-6 px-4 md:px-6 pb-8">
 
 	<!-- Members -->
 	<div class="flex flex-col gap-3">
@@ -343,7 +343,12 @@
 					</Button>
 					<Button variant="destructive" size="sm" onclick={revokeInvite}>Revoke</Button>
 				</div>
-				<p class="text-xs text-muted-foreground">Expires {new Date(invite.expires_at).toLocaleDateString()}</p>
+				{@const daysLeft = Math.ceil((new Date(invite.expires_at).getTime() - Date.now()) / 86400000)}
+				<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
+					{daysLeft <= 1 ? 'bg-destructive/10 text-destructive' : daysLeft <= 3 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'bg-muted text-muted-foreground'}">
+					<Clock class="w-3 h-3" />
+					{daysLeft <= 0 ? 'Expires today' : `${daysLeft}d left`}
+				</span>
 			</div>
 		{:else}
 			<p class="text-sm text-muted-foreground">No active link. Generate one to invite someone.</p>
