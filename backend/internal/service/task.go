@@ -17,7 +17,7 @@ func NewTaskService(tasks repository.TaskRepository) *TaskService {
 	return &TaskService{tasks: tasks}
 }
 
-func (s *TaskService) Create(ctx context.Context, familyID, userID, title, description string, important bool, assignedTo *string, startDate, endDate *time.Time, categoryID *string) (*model.Task, error) {
+func (s *TaskService) Create(ctx context.Context, familyID, userID, title, description string, important bool, assignedTo *string, startDate, endDate *time.Time, categoryID *string, icon *string) (*model.Task, error) {
 	now := time.Now().UTC()
 	task := &model.Task{
 		ID:          uuid.NewString(),
@@ -30,6 +30,7 @@ func (s *TaskService) Create(ctx context.Context, familyID, userID, title, descr
 		StartDate:   startDate,
 		EndDate:     endDate,
 		CategoryID:  categoryID,
+		Icon:        icon,
 		CreatedBy:   userID,
 		CreatedAt:   now,
 		UpdatedAt:   now,

@@ -17,6 +17,7 @@
 	import { CalendarDate } from '@internationalized/date';
 	import { CalendarDays, Repeat } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
+	import IconPicker from '$lib/components/IconPicker.svelte';
 
 	let { familyID, members, categories, onSaved, onDeleted }: {
 		familyID: string;
@@ -44,6 +45,7 @@
 	let efRepeat = $state<RepeatVal>('none');
 	let efIsRecurring = $state(false);
 	let efScopePrompt = $state<'save' | 'delete' | null>(null);
+	let efIcon = $state<string | undefined>(undefined);
 
 	const RRULE: Record<string, string> = {
 		daily: 'FREQ=DAILY', weekly: 'FREQ=WEEKLY', monthly: 'FREQ=MONTHLY', yearly: 'FREQ=YEARLY',
@@ -62,6 +64,7 @@
 		};
 		efDueDate = t.end_date ? isoToCalDate(t.end_date) : undefined;
 		efCategoryID = t.category_id;
+		efIcon = t.icon;
 		isOpen = true;
 	}
 
@@ -82,6 +85,7 @@
 		efRepeat = (e.recurrence_rule ? (RRULE_REVERSE[e.recurrence_rule] ?? 'none') : 'none') as RepeatVal;
 		efIsRecurring = !!e.is_recurring;
 		efScopePrompt = null;
+		efIcon = e.icon;
 		isOpen = true;
 	}
 
@@ -105,6 +109,7 @@
 					assigned_to: ef.assignedTo || undefined,
 					end_date: efDueDate ? calDateToISO(efDueDate) : undefined,
 					category_id: efCategoryID,
+					icon: efIcon ?? null,
 				});
 			} else {
 				if (!efEventRange.start) return;
@@ -115,6 +120,7 @@
 					end_at: calDateTimeToISO(efEnd, efEndTime, ef.allDay),
 					all_day: ef.allDay, attendee_ids: ef.attendeeIDs, category_id: efCategoryID,
 					recurrence_rule: efRepeat !== 'none' ? RRULE[efRepeat] : null,
+					icon: efIcon ?? null,
 				});
 			}
 			onSaved();
@@ -153,11 +159,15 @@
 			<div class="flex flex-col gap-4 py-2 overflow-y-auto flex-1 min-h-0 px-1">
 				<div class="flex flex-col gap-1.5">
 					<Label for="ef-title">Title</Label>
-					<Input
-						id="ef-title"
-						bind:value={ef.title}
-						onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
-					/>
+					<div class="flex gap-2">
+						<IconPicker bind:value={efIcon} />
+						<Input
+							id="ef-title"
+							bind:value={ef.title}
+							class="flex-1"
+							onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
+						/>
+					</div>
 				</div>
 
 				<div class="flex flex-col gap-1.5">
