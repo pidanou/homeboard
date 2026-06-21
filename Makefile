@@ -1,7 +1,7 @@
 include .env
 export
 
-.PHONY: dev backend web db prod ios-dev
+.PHONY: dev backend web db prod ios-dev android-dev
 
 dev: db
 	npm --prefix web run dev &
@@ -25,3 +25,9 @@ ios-dev:
 	LIVE_RELOAD_URL="http://$$LOCAL_IP:5173" npx --prefix web cap sync ios && \
 	npm --prefix web run dev -- --host 0.0.0.0 &
 	npx --prefix web cap open ios
+
+android-dev:
+	@LOCAL_IP=$$(ipconfig getifaddr en0) && \
+	LIVE_RELOAD_URL="http://$$LOCAL_IP:5173" npx --prefix web cap sync android && \
+	npm --prefix web run dev -- --host 0.0.0.0 &
+	npx --prefix web cap open android
