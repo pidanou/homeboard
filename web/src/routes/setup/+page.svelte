@@ -25,8 +25,8 @@
 	<div class="w-full max-w-sm">
 		<div class="text-center mb-8">
 			<span class="text-4xl">🏠</span>
-			<h1 class="text-2xl font-bold mt-2 text-foreground">Household</h1>
-			<p class="text-sm text-muted-foreground mt-1">Enter your server address to get started.</p>
+			<h1 class="text-2xl font-bold mt-2 text-foreground">Homeboard</h1>
+			<p class="text-sm text-muted-foreground mt-1">Enter your Homeboard server address to get started.</p>
 		</div>
 		<div class="bg-card border border-border rounded-xl p-6 shadow-sm flex flex-col gap-4">
 			<div class="flex flex-col gap-1.5">

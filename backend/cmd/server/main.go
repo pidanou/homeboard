@@ -14,9 +14,9 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pidanou/family-board/internal/handler"
-	"github.com/pidanou/family-board/internal/repository/postgres"
-	"github.com/pidanou/family-board/internal/service"
+	"github.com/pidanou/homeboard/internal/handler"
+	"github.com/pidanou/homeboard/internal/repository/postgres"
+	"github.com/pidanou/homeboard/internal/service"
 )
 
 func main() {

@@ -15,10 +15,10 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pidanou/family-board/internal/handler"
-	"github.com/pidanou/family-board/internal/model"
-	pgRepo "github.com/pidanou/family-board/internal/repository/postgres"
-	"github.com/pidanou/family-board/internal/service"
+	"github.com/pidanou/homeboard/internal/handler"
+	"github.com/pidanou/homeboard/internal/model"
+	pgRepo "github.com/pidanou/homeboard/internal/repository/postgres"
+	"github.com/pidanou/homeboard/internal/service"
 )
 
 const testJWTSecret = "test-secret-for-role-enforcement"

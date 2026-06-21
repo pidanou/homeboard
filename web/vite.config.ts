@@ -19,9 +19,9 @@ export default defineConfig({
 		VitePWA({
 			registerType: 'autoUpdate',
 			manifest: {
-				name: 'Family Board',
-				short_name: 'FamilyBoard',
-				description: 'Your family, organised.',
+				name: 'Homeboard',
+				short_name: 'Homeboard',
+				description: 'Your home, organised.',
 				theme_color: '#9a6022',
 				background_color: '#2b1f14',
 				display: 'standalone',

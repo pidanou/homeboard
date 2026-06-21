@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/pidanou/family-board/internal/service"
+	"github.com/pidanou/homeboard/internal/service"
 )
 
 type contextKey string

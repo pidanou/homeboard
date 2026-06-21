@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pidanou/family-board/internal/model"
-	"github.com/pidanou/family-board/internal/repository"
+	"github.com/pidanou/homeboard/internal/model"
+	"github.com/pidanou/homeboard/internal/repository"
 )
 
 type InviteService struct {
