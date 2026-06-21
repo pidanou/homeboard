@@ -7,12 +7,13 @@ type Task struct {
 	FamilyID    string     `json:"family_id"`
 	Title       string     `json:"title"`
 	Description string     `json:"description,omitempty"`
-	Status      string     `json:"status"`    // todo | done
-	Important   bool       `json:"important"` // flag for important tasks
+	Important   bool       `json:"important,omitempty"`
+	Status      string     `json:"status"`
 	AssignedTo  *string    `json:"assigned_to,omitempty"`
 	StartDate   *time.Time `json:"start_date,omitempty"`
 	EndDate     *time.Time `json:"end_date,omitempty"`
 	CategoryID  *string    `json:"category_id,omitempty"`
+	Icon        *string    `json:"icon,omitempty"`
 	ManualOrder *int       `json:"manual_order,omitempty"`
 	CreatedBy   string     `json:"created_by"`
 	CreatedAt   time.Time  `json:"created_at"`
