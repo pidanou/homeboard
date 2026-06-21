@@ -10,17 +10,19 @@ import (
 
 type CategoryHandler struct {
 	categories *service.CategoryService
+	families   *service.FamilyService
 	hub        *Hub
 }
 
-func NewCategoryHandler(categories *service.CategoryService, hub *Hub) *CategoryHandler {
-	return &CategoryHandler{categories: categories, hub: hub}
+func NewCategoryHandler(categories *service.CategoryService, families *service.FamilyService, hub *Hub) *CategoryHandler {
+	return &CategoryHandler{categories: categories, families: families, hub: hub}
 }
 
 func (h *CategoryHandler) Routes() http.Handler {
 	r := chi.NewRouter()
 	r.Get("/", h.list)
 	r.Post("/", h.create)
+	r.Put("/{categoryID}", h.update)
 	r.Delete("/{categoryID}", h.delete)
 	return r
 }
@@ -38,6 +40,10 @@ func (h *CategoryHandler) list(w http.ResponseWriter, r *http.Request) {
 
 func (h *CategoryHandler) create(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
+	if err := requireAdmin(r, familyID, h.families); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 	var body struct {
 		Name  string `json:"name"`
 		Color string `json:"color"`
@@ -60,9 +66,38 @@ func (h *CategoryHandler) create(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(category)
 }
 
+func (h *CategoryHandler) update(w http.ResponseWriter, r *http.Request) {
+	familyID := chi.URLParam(r, "familyID")
+	categoryID := chi.URLParam(r, "categoryID")
+	if err := requireAdmin(r, familyID, h.families); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+	var body struct {
+		Name  string `json:"name"`
+		Color string `json:"color"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
+		http.Error(w, "name is required", http.StatusBadRequest)
+		return
+	}
+	cat, err := h.categories.Update(r.Context(), categoryID, familyID, body.Name, body.Color)
+	if err != nil {
+		http.Error(w, "failed to update category", http.StatusInternalServerError)
+		return
+	}
+	h.hub.Broadcast(familyID)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(cat)
+}
+
 func (h *CategoryHandler) delete(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	categoryID := chi.URLParam(r, "categoryID")
+	if err := requireAdmin(r, familyID, h.families); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 	if err := h.categories.Delete(r.Context(), categoryID, familyID); err != nil {
 		http.Error(w, "failed to delete category", http.StatusInternalServerError)
 		return

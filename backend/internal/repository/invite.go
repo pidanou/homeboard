@@ -12,4 +12,5 @@ type InviteRepository interface {
 	ListByFamilyID(ctx context.Context, familyID string) ([]*model.Invite, error)
 	MarkUsed(ctx context.Context, token string) error
 	Delete(ctx context.Context, token string) error
+	DeleteByFamilyID(ctx context.Context, familyID string) error
 }

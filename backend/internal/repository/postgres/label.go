@@ -49,3 +49,11 @@ func (r *CategoryRepository) Delete(ctx context.Context, categoryID, familyID st
 	_, err := r.pool.Exec(ctx, `DELETE FROM categories WHERE id = $1 AND family_id = $2`, categoryID, familyID)
 	return err
 }
+
+func (r *CategoryRepository) Update(ctx context.Context, category *model.Category) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE categories SET name = $1, color = $2 WHERE id = $3 AND family_id = $4`,
+		category.Name, category.Color, category.ID, category.FamilyID,
+	)
+	return err
+}

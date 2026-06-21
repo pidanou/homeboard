@@ -23,6 +23,8 @@ func (h *FamilyHandler) Routes() http.Handler {
 	r.Get("/{familyID}", h.get)
 	r.Get("/{familyID}/members", h.members)
 	r.Post("/{familyID}/members/virtual", h.createVirtual)
+	r.Delete("/{familyID}/members/{memberID}", h.removeMember)
+	r.Put("/{familyID}/members/{memberID}/role", h.updateRole)
 	r.Delete("/{familyID}/members/virtual/{memberID}", h.deleteVirtual)
 	r.Post("/{familyID}/members/virtual/{memberID}/link", h.linkVirtual)
 	r.Get("/{familyID}/members/virtual/unlinked", h.unlinkedVirtual)
@@ -92,6 +94,11 @@ func (h *FamilyHandler) members(w http.ResponseWriter, r *http.Request) {
 
 func (h *FamilyHandler) createVirtual(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
+	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
+	if !ok || callerID == "" {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
 	var body struct {
 		Name string `json:"name"`
 	}
@@ -99,9 +106,9 @@ func (h *FamilyHandler) createVirtual(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "name required", http.StatusBadRequest)
 		return
 	}
-	m, err := h.families.CreateVirtualMember(r.Context(), familyID, body.Name)
+	m, err := h.families.CreateVirtualMember(r.Context(), familyID, body.Name, callerID)
 	if err != nil {
-		http.Error(w, "failed to create virtual member", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -112,8 +119,35 @@ func (h *FamilyHandler) createVirtual(w http.ResponseWriter, r *http.Request) {
 func (h *FamilyHandler) deleteVirtual(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	memberID := chi.URLParam(r, "memberID")
-	if err := h.families.DeleteVirtualMember(r.Context(), memberID, familyID); err != nil {
-		http.Error(w, "failed to delete virtual member", http.StatusInternalServerError)
+	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
+	if !ok || callerID == "" {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if err := h.families.DeleteVirtualMember(r.Context(), memberID, familyID, callerID); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *FamilyHandler) updateRole(w http.ResponseWriter, r *http.Request) {
+	familyID := chi.URLParam(r, "familyID")
+	memberID := chi.URLParam(r, "memberID")
+	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
+	if !ok || callerID == "" {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	var body struct {
+		Role string `json:"role"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+	if err := h.families.UpdateMemberRole(r.Context(), memberID, familyID, body.Role, callerID); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -128,6 +162,21 @@ func (h *FamilyHandler) unlinkedVirtual(w http.ResponseWriter, r *http.Request) 
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(members)
+}
+
+func (h *FamilyHandler) removeMember(w http.ResponseWriter, r *http.Request) {
+	familyID := chi.URLParam(r, "familyID")
+	memberID := chi.URLParam(r, "memberID")
+	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
+	if !ok || callerID == "" {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if err := h.families.RemoveMember(r.Context(), memberID, familyID, callerID); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *FamilyHandler) linkVirtual(w http.ResponseWriter, r *http.Request) {
