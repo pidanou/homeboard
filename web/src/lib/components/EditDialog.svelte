@@ -4,7 +4,6 @@
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -12,10 +11,9 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import { Calendar } from '$lib/components/ui/calendar';
 	import { RangeCalendar } from '$lib/components/ui/range-calendar';
-	import { Select as SelectPrimitive } from 'bits-ui';
 	import type { DateRange } from 'bits-ui';
 	import { CalendarDate } from '@internationalized/date';
-	import { CalendarDays, Repeat } from 'lucide-svelte';
+	import { CalendarDays } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 	import IconPicker from '$lib/components/IconPicker.svelte';
 
@@ -47,6 +45,11 @@
 	let efScopePrompt = $state<'save' | 'delete' | null>(null);
 	let efIcon = $state<string | undefined>(undefined);
 	let efBirthdayOf = $state<string | undefined>(undefined);
+	let efShowMore = $state(false);
+
+	const REPEAT_LABELS: Record<string, string> = {
+		none: 'Does not repeat', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly'
+	};
 
 	const RRULE: Record<string, string> = {
 		daily: 'FREQ=DAILY', weekly: 'FREQ=WEEKLY', monthly: 'FREQ=MONTHLY', yearly: 'FREQ=YEARLY',
@@ -66,6 +69,7 @@
 		efDueDate = t.end_date ? isoToCalDate(t.end_date) : undefined;
 		efCategoryID = t.category_id;
 		efIcon = t.icon;
+		efShowMore = !!(t.description || t.category_id);
 		isOpen = true;
 	}
 
@@ -88,6 +92,7 @@
 		efScopePrompt = null;
 		efIcon = e.icon;
 		efBirthdayOf = e.birthday_of ?? undefined;
+		efShowMore = !!(e.description || e.recurrence_rule || e.location || e.birthday_of || e.category_id);
 		isOpen = true;
 	}
 
@@ -160,51 +165,40 @@
 				<Dialog.Title>Edit {editKind}</Dialog.Title>
 			</Dialog.Header>
 
-			<div class="flex flex-col gap-4 py-2 overflow-y-auto flex-1 min-h-0 px-1">
-				<div class="flex flex-col gap-1.5">
-					<Label for="ef-title">Title</Label>
-					<div class="flex gap-2">
-						<IconPicker bind:value={efIcon} />
-						<Input
-							id="ef-title"
-							bind:value={ef.title}
-							class="flex-1"
-							onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
-						/>
-					</div>
-				</div>
-
-				<div class="flex flex-col gap-1.5">
-					<Label for="ef-desc">Description</Label>
-					<Textarea id="ef-desc" bind:value={ef.description} placeholder="Optional details…" rows={2} />
+			<div class="flex flex-col gap-3 py-2 overflow-y-auto flex-1 min-h-0 px-1">
+				<!-- Title -->
+				<div class="flex gap-2">
+					<IconPicker bind:value={efIcon} />
+					<Input
+						bind:value={ef.title}
+						class="flex-1"
+						onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
+					/>
 				</div>
 
 				{#if editKind === 'task'}
-					<div class="flex gap-3">
-						<div class="flex flex-col gap-1.5 flex-1">
-							<label class="flex items-center gap-2 text-sm cursor-pointer mt-5">
-								<Checkbox bind:checked={ef.important} />
-								Important
-							</label>
-						</div>
-						<div class="flex flex-col gap-1.5 flex-1">
-							<Label>Due date</Label>
-							<Popover.Root bind:open={efDueOpen}>
-								<Popover.Trigger>
-									<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
-										<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
-										{efDueDate ? fmtCalDate(efDueDate) : 'Pick a date'}
-									</Button>
-								</Popover.Trigger>
-								<Popover.Content class="w-auto p-0" align="start">
-									<Calendar type="single" bind:value={efDueDate} onValueChange={() => (efDueOpen = false)} />
-								</Popover.Content>
-							</Popover.Root>
-						</div>
+					<!-- Task primary: important + due date -->
+					<div class="flex items-center gap-2">
+						<label class="flex items-center gap-2 text-sm cursor-pointer shrink-0">
+							<Checkbox bind:checked={ef.important} />
+							Important
+						</label>
+						<Popover.Root bind:open={efDueOpen}>
+							<Popover.Trigger class="flex-1">
+								<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
+									<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
+									{efDueDate ? fmtCalDate(efDueDate) : 'No due date'}
+								</Button>
+							</Popover.Trigger>
+							<Popover.Content class="w-auto p-0" align="start">
+								<Calendar type="single" bind:value={efDueDate} onValueChange={() => (efDueOpen = false)} />
+							</Popover.Content>
+						</Popover.Root>
 					</div>
-					{#if members.length > 0}
-						<div class="flex flex-col gap-1.5">
-							<Label>Assign to</Label>
+
+					<!-- Task secondary -->
+					{#if efShowMore}
+						{#if members.length > 0}
 							<Select.Root type="single" bind:value={ef.assignedTo}>
 								<Select.Trigger class="w-full">{members.find(m => m.user_id === ef.assignedTo)?.name ?? 'Unassigned'}</Select.Trigger>
 								<Select.Content>
@@ -214,51 +208,41 @@
 									{/each}
 								</Select.Content>
 							</Select.Root>
-						</div>
+						{/if}
+						<Textarea bind:value={ef.description} placeholder="Notes…" rows={2} />
+						<CategoryPicker {familyID} {categories} bind:selectedID={efCategoryID} />
 					{/if}
 				{:else}
-					<div class="flex flex-col gap-1.5">
-						<Label>Dates</Label>
-						<Popover.Root bind:open={efEventPickerOpen}>
-							<Popover.Trigger>
-								<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
-									<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
-									{rangeLabelFor(efEventRange)}
-								</Button>
-							</Popover.Trigger>
-							<Popover.Content class="w-auto p-0" align="start">
-								<RangeCalendar
-									bind:value={efEventRange}
-									onValueChange={() => { if (efEventRange.start && efEventRange.end) efEventPickerOpen = false; }}
-								/>
-							</Popover.Content>
-						</Popover.Root>
-					</div>
-					{#if !ef.allDay}
-						<div class="flex gap-3">
-							<div class="flex flex-col gap-1.5 flex-1">
-								<Label for="ef-start-time">Start time</Label>
-								<Input id="ef-start-time" type="time" bind:value={efStartTime} />
-							</div>
-							<div class="flex flex-col gap-1.5 flex-1">
-								<Label for="ef-end-time">End time</Label>
-								<Input id="ef-end-time" type="time" bind:value={efEndTime} />
-							</div>
-						</div>
-					{/if}
+					<!-- Event primary: dates, all day, times -->
+					<Popover.Root bind:open={efEventPickerOpen}>
+						<Popover.Trigger>
+							<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
+								<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
+								{rangeLabelFor(efEventRange)}
+							</Button>
+						</Popover.Trigger>
+						<Popover.Content class="w-auto p-0" align="start">
+							<RangeCalendar
+								bind:value={efEventRange}
+								onValueChange={() => { if (efEventRange.start && efEventRange.end) efEventPickerOpen = false; }}
+							/>
+						</Popover.Content>
+					</Popover.Root>
 					<label class="flex items-center gap-2 text-sm cursor-pointer">
 						<Checkbox bind:checked={ef.allDay} />
 						All day
 					</label>
-					<div class="flex flex-col gap-1.5">
-						<Label>Repeat</Label>
+					{#if !ef.allDay}
+						<div class="flex gap-2">
+							<Input type="time" bind:value={efStartTime} class="flex-1" />
+							<Input type="time" bind:value={efEndTime} class="flex-1" />
+						</div>
+					{/if}
+
+					<!-- Event secondary -->
+					{#if efShowMore}
 						<Select.Root type="single" bind:value={efRepeat}>
-							<Select.Trigger class="w-full">
-								<div class="flex items-center gap-2">
-									<Repeat class="w-4 h-4 text-muted-foreground shrink-0" />
-									<SelectPrimitive.Value placeholder="Does not repeat" />
-								</div>
-							</Select.Trigger>
+							<Select.Trigger class="w-full">{REPEAT_LABELS[efRepeat] ?? 'Does not repeat'}</Select.Trigger>
 							<Select.Content>
 								<Select.Item value="none">Does not repeat</Select.Item>
 								<Select.Item value="daily">Daily</Select.Item>
@@ -267,18 +251,9 @@
 								<Select.Item value="yearly">Yearly</Select.Item>
 							</Select.Content>
 						</Select.Root>
-					</div>
-					<div class="flex flex-col gap-1.5">
-						<Label for="ef-location">Location</Label>
-						<Input id="ef-location" bind:value={ef.location} placeholder="Optional location…" />
-					</div>
-					<div class="flex flex-col gap-1.5">
-						<Label for="ef-birthday-of">Birthday of</Label>
-						<Input id="ef-birthday-of" bind:value={efBirthdayOf} placeholder="Name (sets yearly recurrence)" />
-					</div>
-					{#if members.length > 0}
-						<div class="flex flex-col gap-1.5">
-							<Label>Members</Label>
+						<Input bind:value={ef.location} placeholder="Location…" />
+						<Input bind:value={efBirthdayOf} placeholder="Birthday of (name)…" />
+						{#if members.length > 0}
 							<div class="flex flex-col gap-1.5">
 								{#each members as m}
 									<label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -290,14 +265,16 @@
 									</label>
 								{/each}
 							</div>
-						</div>
+						{/if}
+						<Textarea bind:value={ef.description} placeholder="Notes…" rows={2} />
+						<CategoryPicker {familyID} {categories} bind:selectedID={efCategoryID} />
 					{/if}
 				{/if}
 
-				<div class="flex flex-col gap-1.5">
-					<Label>Category</Label>
-					<CategoryPicker {familyID} {categories} bind:selectedID={efCategoryID} />
-				</div>
+				<button
+					class="text-xs text-muted-foreground hover:text-foreground transition-colors text-left w-fit"
+					onclick={() => (efShowMore = !efShowMore)}
+				>{efShowMore ? '− Less options' : '+ More options'}</button>
 			</div>
 
 			<Dialog.Footer class="flex-col gap-2">
