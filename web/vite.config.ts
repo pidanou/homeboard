@@ -5,7 +5,10 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-	server: { allowedHosts: true },
+	server: {
+		allowedHosts: true,
+		hmr: { host: process.env.LOCAL_IP || 'localhost' },
+	},
 	optimizeDeps: { exclude: ['svelte-sonner'] },
 	plugins: [
 		tailwindcss(),
