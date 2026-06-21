@@ -52,13 +52,13 @@
 	] : []);
 
 	const currentSection = $derived(() => {
-		if (!familyID) return currentPath === '/profile' ? 'Profile' : 'Family Board';
+		if (!familyID) return currentPath === '/profile' ? 'Profile' : 'Homeboard';
 		if (currentPath === `/households/${familyID}`) return 'Today';
 		if (currentPath.endsWith('/board')) return 'Board';
 		if (currentPath.endsWith('/calendar')) return 'Calendar';
 		if (currentPath.endsWith('/lists')) return 'Lists';
 		if (currentPath.endsWith('/settings')) return 'Settings';
-		return 'Household';
+		return 'Homeboard';
 	});
 </script>
 

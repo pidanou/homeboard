@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/pidanou/family-board/internal/model"
+	"github.com/pidanou/homeboard/internal/model"
 )
 
 type TaskRepository interface {

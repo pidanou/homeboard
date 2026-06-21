@@ -1,4 +1,4 @@
-module github.com/pidanou/family-board
+module github.com/pidanou/homeboard
 
 go 1.25.5
 

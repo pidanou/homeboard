@@ -11,7 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/pidanou/family-board/internal/service"
+	"github.com/pidanou/homeboard/internal/service"
 )
 
 type ProfileHandler struct {

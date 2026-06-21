@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/pidanou/family-board/internal/service"
+	"github.com/pidanou/homeboard/internal/service"
 )
 
 func parseOptionalTime(s *string) (*time.Time, error) {

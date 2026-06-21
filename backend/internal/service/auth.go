@@ -8,8 +8,8 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/pidanou/family-board/internal/model"
-	"github.com/pidanou/family-board/internal/repository"
+	"github.com/pidanou/homeboard/internal/model"
+	"github.com/pidanou/homeboard/internal/repository"
 	"golang.org/x/crypto/bcrypt"
 )
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/pidanou/family-board/internal/model"
+	"github.com/pidanou/homeboard/internal/model"
 )
 
 type EventRepository interface {

@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.noudapi.familyboard"
+    namespace "com.noudapi.homeboard"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.noudapi.familyboard"
+        applicationId "com.noudapi.homeboard"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

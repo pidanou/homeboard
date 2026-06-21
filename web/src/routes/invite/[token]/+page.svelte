@@ -58,7 +58,7 @@
 
 <div class="min-h-screen flex items-center justify-center px-4">
 	<div class="max-w-sm w-full text-center flex flex-col gap-4">
-		<h1 class="text-2xl font-bold">Household</h1>
+		<h1 class="text-2xl font-bold">Homeboard</h1>
 
 		{#if failed}
 			<p class="text-destructive text-sm">Invite not found or expired.</p>

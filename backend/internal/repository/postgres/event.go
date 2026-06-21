@@ -9,7 +9,7 @@ import (
 
 	rrule "github.com/teambition/rrule-go"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pidanou/family-board/internal/model"
+	"github.com/pidanou/homeboard/internal/model"
 )
 
 type EventRepository struct {
