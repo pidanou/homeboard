@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { env } from '$env/dynamic/public';
+
 	import favicon from '$lib/assets/favicon.svg';
 	import { Toaster } from 'svelte-sonner';
 	import '../app.css';
@@ -15,7 +15,8 @@
 		apply(mq.matches);
 		mq.addEventListener('change', (e) => apply(e.matches));
 
-		if (!env.PUBLIC_API_URL && !localStorage.getItem('api_url') && $page.url.pathname !== '/setup') {
+		const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+		if (isNative && !localStorage.getItem('api_url') && $page.url.pathname !== '/setup') {
 			goto('/setup');
 		}
 	});
