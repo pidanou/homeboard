@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api/client';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
 
 	let name = $state('');
 	let loading = $state(false);
@@ -17,26 +20,17 @@
 	}
 </script>
 
-<div class="max-w-sm mx-auto">
-	<h2 class="text-xl font-semibold mb-6">Create a family</h2>
-	<form onsubmit={submit} class="flex flex-col gap-4">
-		<div class="flex flex-col gap-1">
-			<label for="name" class="text-sm font-medium">Family name</label>
-			<input
-				id="name"
-				type="text"
-				bind:value={name}
-				required
-				placeholder="The Smiths"
-				class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-			/>
-		</div>
-<button
-			type="submit"
-			disabled={loading}
-			class="bg-primary-500 text-white rounded-lg px-4 py-2 font-medium hover:bg-primary-600 disabled:opacity-50 transition-colors"
-		>
-			{loading ? 'Creating…' : 'Create'}
-		</button>
-	</form>
+<div class="px-4 md:px-6 pt-6 pb-8">
+	<div class="max-w-sm mx-auto">
+		<h2 class="text-xl font-semibold mb-6">Create a family</h2>
+		<form onsubmit={submit} class="flex flex-col gap-4">
+			<div class="flex flex-col gap-1.5">
+				<Label for="name">Family name</Label>
+				<Input id="name" bind:value={name} required placeholder="The Smiths" />
+			</div>
+			<Button type="submit" disabled={loading}>
+				{loading ? 'Creating…' : 'Create'}
+			</Button>
+		</form>
+	</div>
 </div>
