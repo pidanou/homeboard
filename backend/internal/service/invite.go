@@ -22,6 +22,9 @@ func NewInviteService(invites repository.InviteRepository, families repository.F
 }
 
 func (s *InviteService) Create(ctx context.Context, familyID, createdBy string) (*model.Invite, error) {
+	if err := s.invites.DeleteByFamilyID(ctx, familyID); err != nil {
+		return nil, fmt.Errorf("clear existing invites: %w", err)
+	}
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
 		return nil, fmt.Errorf("generate token: %w", err)

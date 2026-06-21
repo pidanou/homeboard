@@ -38,3 +38,11 @@ func (s *CategoryService) ListForFamily(ctx context.Context, familyID string) ([
 func (s *CategoryService) Delete(ctx context.Context, categoryID, familyID string) error {
 	return s.categories.Delete(ctx, categoryID, familyID)
 }
+
+func (s *CategoryService) Update(ctx context.Context, categoryID, familyID, name, color string) (*model.Category, error) {
+	cat := &model.Category{ID: categoryID, FamilyID: familyID, Name: name, Color: color}
+	if err := s.categories.Update(ctx, cat); err != nil {
+		return nil, err
+	}
+	return cat, nil
+}

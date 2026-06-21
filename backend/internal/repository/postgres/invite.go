@@ -68,6 +68,11 @@ func (r *InviteRepository) Delete(ctx context.Context, token string) error {
 	return err
 }
 
+func (r *InviteRepository) DeleteByFamilyID(ctx context.Context, familyID string) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM invites WHERE family_id = $1`, familyID)
+	return err
+}
+
 func (r *InviteRepository) MarkUsed(ctx context.Context, token string) error {
 	now := time.Now().UTC()
 	_, err := r.pool.Exec(ctx,

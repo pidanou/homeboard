@@ -16,4 +16,8 @@ type FamilyRepository interface {
 	DeleteVirtualMember(ctx context.Context, id, familyID string) error
 	GetUnlinkedVirtualMembers(ctx context.Context, familyID string) ([]*model.VirtualMember, error)
 	LinkVirtualMember(ctx context.Context, virtualID, familyID, userID string) error
+	RemoveMember(ctx context.Context, userID, familyID string) error
+	GetMemberRole(ctx context.Context, userID, familyID string) (string, error)
+	UpdateMemberRole(ctx context.Context, userID, familyID, role string) error
+	CountAdmins(ctx context.Context, familyID string) (int, error)
 }

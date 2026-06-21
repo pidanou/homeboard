@@ -70,7 +70,11 @@ func (s *FamilyService) GetMembers(ctx context.Context, familyID string) ([]*mod
 	return real, nil
 }
 
-func (s *FamilyService) CreateVirtualMember(ctx context.Context, familyID, name string) (*model.VirtualMember, error) {
+func (s *FamilyService) CreateVirtualMember(ctx context.Context, familyID, name, callerID string) (*model.VirtualMember, error) {
+	role, err := s.families.GetMemberRole(ctx, callerID, familyID)
+	if err != nil || role != "admin" {
+		return nil, fmt.Errorf("only admins can create virtual members")
+	}
 	m := &model.VirtualMember{
 		ID:        uuid.NewString(),
 		FamilyID:  familyID,
@@ -83,7 +87,11 @@ func (s *FamilyService) CreateVirtualMember(ctx context.Context, familyID, name 
 	return m, nil
 }
 
-func (s *FamilyService) DeleteVirtualMember(ctx context.Context, id, familyID string) error {
+func (s *FamilyService) DeleteVirtualMember(ctx context.Context, id, familyID, callerID string) error {
+	role, err := s.families.GetMemberRole(ctx, callerID, familyID)
+	if err != nil || role != "admin" {
+		return fmt.Errorf("only admins can remove virtual members")
+	}
 	return s.families.DeleteVirtualMember(ctx, id, familyID)
 }
 
@@ -93,4 +101,42 @@ func (s *FamilyService) GetUnlinkedVirtualMembers(ctx context.Context, familyID 
 
 func (s *FamilyService) LinkVirtualMember(ctx context.Context, virtualID, familyID, userID string) error {
 	return s.families.LinkVirtualMember(ctx, virtualID, familyID, userID)
+}
+
+func (s *FamilyService) GetMemberRole(ctx context.Context, userID, familyID string) (string, error) {
+	return s.families.GetMemberRole(ctx, userID, familyID)
+}
+
+func (s *FamilyService) UpdateMemberRole(ctx context.Context, targetID, familyID, role, callerID string) error {
+	if role != "admin" && role != "member" {
+		return fmt.Errorf("invalid role")
+	}
+	callerRole, err := s.families.GetMemberRole(ctx, callerID, familyID)
+	if err != nil || callerRole != "admin" {
+		return fmt.Errorf("only admins can change roles")
+	}
+	if callerID == targetID {
+		return fmt.Errorf("cannot change your own role")
+	}
+	if role == "member" {
+		count, err := s.families.CountAdmins(ctx, familyID)
+		if err != nil {
+			return err
+		}
+		if count <= 1 {
+			return fmt.Errorf("cannot demote the last admin")
+		}
+	}
+	return s.families.UpdateMemberRole(ctx, targetID, familyID, role)
+}
+
+func (s *FamilyService) RemoveMember(ctx context.Context, userID, familyID, callerID string) error {
+	if userID == callerID {
+		return fmt.Errorf("cannot remove yourself")
+	}
+	callerRole, err := s.families.GetMemberRole(ctx, callerID, familyID)
+	if err != nil || callerRole != "admin" {
+		return fmt.Errorf("only admins can remove members")
+	}
+	return s.families.RemoveMember(ctx, userID, familyID)
 }

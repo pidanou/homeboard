@@ -77,10 +77,10 @@ func main() {
 	authHandler := handler.NewAuthHandler(authService)
 	profileHandler := handler.NewProfileHandler(authService, uploadDir, appBaseURL)
 	familyHandler := handler.NewFamilyHandler(familyService)
-	inviteHandler := handler.NewInviteHandler(inviteService, os.Getenv("JWT_SECRET"))
+	inviteHandler := handler.NewInviteHandler(inviteService, familyService, os.Getenv("JWT_SECRET"))
 	taskHandler := handler.NewTaskHandler(taskService, hub)
 	eventHandler := handler.NewEventHandler(eventService, hub)
-	labelHandler := handler.NewCategoryHandler(labelService, hub)
+	labelHandler := handler.NewCategoryHandler(labelService, familyService, hub)
 	listHandler := handler.NewListHandler(listService, hub)
 	sseHandler := handler.NewSSEHandler(hub, os.Getenv("JWT_SECRET"))
 

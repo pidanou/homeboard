@@ -135,6 +135,40 @@ func (r *FamilyRepository) LinkVirtualMember(ctx context.Context, virtualID, fam
 	return tx.Commit(ctx)
 }
 
+func (r *FamilyRepository) GetMemberRole(ctx context.Context, userID, familyID string) (string, error) {
+	var role string
+	err := r.pool.QueryRow(ctx,
+		`SELECT role FROM family_members WHERE user_id = $1 AND family_id = $2`,
+		userID, familyID,
+	).Scan(&role)
+	return role, err
+}
+
+func (r *FamilyRepository) UpdateMemberRole(ctx context.Context, userID, familyID, role string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE family_members SET role = $1 WHERE user_id = $2 AND family_id = $3`,
+		role, userID, familyID,
+	)
+	return err
+}
+
+func (r *FamilyRepository) CountAdmins(ctx context.Context, familyID string) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM family_members WHERE family_id = $1 AND role = 'admin'`,
+		familyID,
+	).Scan(&count)
+	return count, err
+}
+
+func (r *FamilyRepository) RemoveMember(ctx context.Context, userID, familyID string) error {
+	_, err := r.pool.Exec(ctx,
+		`DELETE FROM family_members WHERE user_id = $1 AND family_id = $2`,
+		userID, familyID,
+	)
+	return err
+}
+
 func (r *FamilyRepository) GetFamiliesByUserID(ctx context.Context, userID string) ([]*model.Family, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT f.id, f.name, f.created_at

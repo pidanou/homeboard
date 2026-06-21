@@ -2,15 +2,29 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/pidanou/family-board/internal/service"
 )
 
 type contextKey string
 
 const ContextKeyUserID contextKey = "userID"
+
+func requireAdmin(r *http.Request, familyID string, families *service.FamilyService) error {
+	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
+	if !ok || callerID == "" {
+		return fmt.Errorf("unauthorized")
+	}
+	role, err := families.GetMemberRole(r.Context(), callerID, familyID)
+	if err != nil || role != "admin" {
+		return fmt.Errorf("admin required")
+	}
+	return nil
+}
 
 func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {

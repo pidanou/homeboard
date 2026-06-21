@@ -4,7 +4,8 @@
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { X, UserX } from 'lucide-svelte';
+	import { X, Pencil } from 'lucide-svelte';
+	import { currentUser } from '$lib/stores/user';
 
 	type Invite = { token: string; expires_at: string };
 	type Member = { user_id: string; name: string; email: string; role: string; joined_at: string; virtual?: boolean };
@@ -20,14 +21,22 @@
 
 	const familyID = $derived($page.params.id);
 
-	let invites = $state<Invite[]>([]);
+	let invite = $state<Invite | null>(null);
 	let members = $state<Member[]>([]);
+
+	const myRole = $derived(members.find((m) => m.user_id === $currentUser?.id)?.role ?? 'member');
+	const isAdmin = $derived(myRole === 'admin');
+	const realCount = $derived(members.filter((m) => !m.virtual).length);
+	const virtualCount = $derived(members.filter((m) => m.virtual).length);
 	let categories = $state<AppCategory[]>([]);
 	let copied = $state<string | null>(null);
 	let newCategoryName = $state('');
 	let newCategoryColor = $state<CategoryColor>('blue');
 	let addingVirtual = $state(false);
 	let newVirtualName = $state('');
+	let editingCatID = $state<string | null>(null);
+	let editingCatName = $state('');
+	let editingCatColor = $state<CategoryColor>('blue');
 
 	onMount(async () => {
 		const [membersResult, invitesResult, categoriesResult] = await Promise.allSettled([
@@ -36,7 +45,7 @@
 			api.get<AppCategory[]>(`/api/v1/families/${familyID}/categories`),
 		]);
 		if (membersResult.status === 'fulfilled') members = membersResult.value ?? [];
-		if (invitesResult.status === 'fulfilled') invites = invitesResult.value ?? [];
+		if (invitesResult.status === 'fulfilled') invite = (invitesResult.value ?? [])[0] ?? null;
 		if (categoriesResult.status === 'fulfilled') categories = categoriesResult.value ?? [];
 	});
 
@@ -76,17 +85,51 @@
 		} catch { }
 	}
 
-	async function createInvite() {
+	async function updateRole(userID: string, role: 'admin' | 'member') {
 		try {
-			const inv = await api.post<Invite>(`/api/v1/families/${familyID}/invites`, {});
-			invites = [inv, ...invites];
+			await api.put(`/api/v1/families/${familyID}/members/${userID}/role`, { role });
+			members = members.map((m) => (m.user_id === userID ? { ...m, role } : m));
+		} catch {}
+	}
+
+	async function kickMember(userID: string) {
+		try {
+			await api.delete(`/api/v1/families/${familyID}/members/${userID}`);
+			members = members.filter((m) => m.user_id !== userID);
 		} catch { }
 	}
 
-	async function revokeInvite(token: string) {
+	function startEditCat(cat: AppCategory) {
+		editingCatID = cat.id;
+		editingCatName = cat.name;
+		editingCatColor = cat.color;
+	}
+
+	async function saveEditCat(cat: AppCategory) {
+		if (!editingCatName.trim()) return;
 		try {
-			await api.delete(`/api/v1/families/${familyID}/invites/${token}`);
-			invites = invites.filter(i => i.token !== token);
+			await api.put(`/api/v1/families/${familyID}/categories/${cat.id}`, {
+				name: editingCatName.trim(),
+				color: editingCatColor,
+			});
+			categories = categories.map((c) =>
+				c.id === cat.id ? { ...c, name: editingCatName.trim(), color: editingCatColor } : c
+			);
+			editingCatID = null;
+		} catch { }
+	}
+
+	async function generateInvite() {
+		try {
+			invite = await api.post<Invite>(`/api/v1/families/${familyID}/invites`, {});
+		} catch { }
+	}
+
+	async function revokeInvite() {
+		try {
+			if (!invite) return;
+			await api.delete(`/api/v1/families/${familyID}/invites/${invite.token}`);
+			invite = null;
 		} catch { }
 	}
 
@@ -105,11 +148,18 @@
 
 	<!-- Members -->
 	<div class="flex flex-col gap-3">
-		<div class="flex items-center justify-between">
-			<h3 class="text-sm font-semibold">Members ({members.length})</h3>
-			<Button size="sm" variant="outline" onclick={() => (addingVirtual = !addingVirtual)}>
-				+ Without account
-			</Button>
+		<div class="flex items-start justify-between gap-3">
+			<div>
+				<h3 class="text-sm font-semibold">Members</h3>
+				<p class="text-xs text-muted-foreground">
+					{realCount} with account{virtualCount > 0 ? ` · ${virtualCount} without` : ''}
+				</p>
+			</div>
+			{#if isAdmin}
+				<Button size="sm" variant="outline" class="shrink-0" onclick={() => (addingVirtual = !addingVirtual)}>
+					Add without account
+				</Button>
+			{/if}
 		</div>
 
 		{#if addingVirtual}
@@ -132,11 +182,7 @@
 				{#each members as member (member.user_id)}
 					<div class="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
 						<div class="w-8 h-8 rounded-full {member.virtual ? 'bg-muted text-muted-foreground' : 'bg-primary/15 text-primary'} flex items-center justify-center text-xs font-semibold shrink-0">
-							{#if member.virtual}
-								<UserX class="w-4 h-4" />
-							{:else}
-								{initials(member.name)}
-							{/if}
+							{initials(member.name)}
 						</div>
 						<div class="flex-1 min-w-0">
 							<p class="text-sm font-medium truncate">{member.name}</p>
@@ -149,15 +195,39 @@
 							</p>
 						</div>
 						{#if member.virtual}
-							<button
-								onclick={() => deleteVirtualMember(member.user_id)}
-								class="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-								aria-label="Remove"
-							>
-								<X class="w-3.5 h-3.5" />
-							</button>
+							{#if isAdmin}
+								<button
+									onclick={() => deleteVirtualMember(member.user_id)}
+									class="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+									aria-label="Remove"
+								>
+									<X class="w-3.5 h-3.5" />
+								</button>
+							{/if}
 						{:else}
-							<span class="text-xs text-muted-foreground capitalize">{member.role}</span>
+							<div class="flex flex-wrap items-center justify-end gap-1 shrink-0">
+								<span class="text-xs px-1.5 py-0.5 rounded-full font-medium
+									{member.role === 'admin' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}">
+									{member.role === 'admin' ? 'Admin' : 'Member'}
+								</span>
+								{#if isAdmin && member.user_id !== $currentUser?.id}
+									<Button
+										size="sm"
+										variant="outline"
+										onclick={() => updateRole(member.user_id, member.role === 'admin' ? 'member' : 'admin')}
+										class="h-6 px-2 text-xs"
+									>
+										{member.role === 'admin' ? 'Make member' : 'Make admin'}
+									</Button>
+									<button
+										onclick={() => kickMember(member.user_id)}
+										class="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+										aria-label="Kick member"
+									>
+										<X class="w-3.5 h-3.5" />
+									</button>
+								{/if}
+							</div>
 						{/if}
 					</div>
 				{/each}
@@ -171,17 +241,56 @@
 		{#if categories.length > 0}
 			<div class="flex flex-col gap-1.5">
 				{#each categories as cat (cat.id)}
-					<div class="flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-2.5">
-						<span class="flex items-center gap-2 text-sm">
-							<span class="w-3 h-3 rounded-full {CATEGORY_DOT[cat.color]} shrink-0"></span>
-							{cat.name}
-						</span>
-						<button
-							onclick={() => deleteCategory(cat.id)}
-							class="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-						>
-							<X class="w-3.5 h-3.5" />
-						</button>
+					<div class="flex flex-col gap-2 rounded-lg border border-border bg-card px-4 py-2.5">
+						{#if editingCatID === cat.id}
+							<Input
+								bind:value={editingCatName}
+								class="h-7 text-sm"
+								onkeydown={(e) => {
+									if (e.key === 'Enter') { e.preventDefault(); saveEditCat(cat); }
+									if (e.key === 'Escape') { editingCatID = null; }
+								}}
+							/>
+							<div class="flex flex-wrap gap-1.5">
+								{#each CATEGORY_COLORS as c}
+									<button
+										type="button"
+										onclick={() => (editingCatColor = c)}
+										class="w-5 h-5 rounded-full {CATEGORY_DOT[c]} transition-all
+											{editingCatColor === c ? 'ring-2 ring-offset-1 ring-foreground' : 'opacity-60 hover:opacity-100'}"
+									></button>
+								{/each}
+							</div>
+							<div class="flex gap-2">
+								<Button size="sm" onclick={() => saveEditCat(cat)} disabled={!editingCatName.trim()} class="flex-1">Save</Button>
+								<Button size="sm" variant="ghost" onclick={() => (editingCatID = null)}>Cancel</Button>
+							</div>
+						{:else}
+							<div class="group flex items-center justify-between gap-2">
+								<span class="flex items-center gap-2 text-sm">
+									<span class="w-3 h-3 rounded-full {CATEGORY_DOT[cat.color]} shrink-0"></span>
+									{cat.name}
+								</span>
+								{#if isAdmin}
+									<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+										<button
+											onclick={() => startEditCat(cat)}
+											class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+											aria-label="Edit"
+										>
+											<Pencil class="w-3.5 h-3.5" />
+										</button>
+										<button
+											onclick={() => deleteCategory(cat.id)}
+											class="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+											aria-label="Delete"
+										>
+											<X class="w-3.5 h-3.5" />
+										</button>
+									</div>
+								{/if}
+							</div>
+						{/if}
 					</div>
 				{/each}
 			</div>
@@ -189,6 +298,7 @@
 			<p class="text-sm text-muted-foreground">No categories yet.</p>
 		{/if}
 
+		{#if isAdmin}
 		<div class="flex flex-col gap-2 rounded-lg border border-border bg-card p-4">
 			<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">New category</p>
 			<Input
@@ -211,31 +321,34 @@
 				Add category
 			</Button>
 		</div>
-	</div>
-
-	<!-- Invite links -->
-	<div class="flex flex-col gap-3">
-		<div class="flex items-center justify-between">
-			<h3 class="text-sm font-semibold">Invite links</h3>
-			<Button size="sm" variant="outline" onclick={createInvite}>Generate new</Button>
-		</div>
-
-		{#if invites.length === 0}
-			<p class="text-sm text-muted-foreground">No active invites. Generate one to share.</p>
-		{:else}
-			{#each invites as invite (invite.token)}
-				<div class="flex flex-col gap-1">
-					<div class="flex gap-2">
-						<Input readonly value="{location.origin}/invite/{invite.token}" class="flex-1 text-xs" />
-						<Button variant="outline" size="sm" onclick={() => copyLink(invite.token)}>
-							{copied === invite.token ? 'Copied!' : 'Copy'}
-						</Button>
-						<Button variant="destructive" size="sm" onclick={() => revokeInvite(invite.token)}>Revoke</Button>
-					</div>
-					<p class="text-xs text-muted-foreground">Expires {new Date(invite.expires_at).toLocaleDateString()}</p>
-				</div>
-			{/each}
 		{/if}
 	</div>
+
+	<!-- Invite link — admin only -->
+	{#if isAdmin}
+	<div class="flex flex-col gap-3">
+		<div class="flex items-center justify-between">
+			<h3 class="text-sm font-semibold">Invite link</h3>
+			<Button size="sm" variant="outline" onclick={generateInvite}>
+				{invite ? 'Regenerate' : 'Generate link'}
+			</Button>
+		</div>
+
+		{#if invite}
+			<div class="flex flex-col gap-1">
+				<div class="flex gap-2">
+					<Input readonly value="{location.origin}/invite/{invite.token}" class="flex-1 text-xs" />
+					<Button variant="outline" size="sm" onclick={() => copyLink(invite!.token)}>
+						{copied === invite.token ? 'Copied!' : 'Copy'}
+					</Button>
+					<Button variant="destructive" size="sm" onclick={revokeInvite}>Revoke</Button>
+				</div>
+				<p class="text-xs text-muted-foreground">Expires {new Date(invite.expires_at).toLocaleDateString()}</p>
+			</div>
+		{:else}
+			<p class="text-sm text-muted-foreground">No active link. Generate one to invite someone.</p>
+		{/if}
+	</div>
+	{/if}
 
 </div>

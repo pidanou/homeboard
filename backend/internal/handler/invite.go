@@ -9,12 +9,13 @@ import (
 )
 
 type InviteHandler struct {
-	invites    *service.InviteService
-	jwtSecret  string
+	invites   *service.InviteService
+	families  *service.FamilyService
+	jwtSecret string
 }
 
-func NewInviteHandler(invites *service.InviteService, jwtSecret string) *InviteHandler {
-	return &InviteHandler{invites: invites, jwtSecret: jwtSecret}
+func NewInviteHandler(invites *service.InviteService, families *service.FamilyService, jwtSecret string) *InviteHandler {
+	return &InviteHandler{invites: invites, families: families, jwtSecret: jwtSecret}
 }
 
 func (h *InviteHandler) Routes() http.Handler {
@@ -36,6 +37,11 @@ func (h *InviteHandler) PublicRoutes() http.Handler {
 }
 
 func (h *InviteHandler) delete(w http.ResponseWriter, r *http.Request) {
+	familyID := chi.URLParam(r, "familyID")
+	if err := requireAdmin(r, familyID, h.families); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 	token := chi.URLParam(r, "token")
 	if err := h.invites.Delete(r.Context(), token); err != nil {
 		http.Error(w, "failed to delete invite", http.StatusInternalServerError)
@@ -60,6 +66,10 @@ func (h *InviteHandler) list(w http.ResponseWriter, r *http.Request) {
 func (h *InviteHandler) create(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(ContextKeyUserID).(string)
 	familyID := chi.URLParam(r, "familyID")
+	if err := requireAdmin(r, familyID, h.families); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
 	invite, err := h.invites.Create(r.Context(), familyID, userID)
 	if err != nil {
