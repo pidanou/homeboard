@@ -19,6 +19,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 			...(token ? { Authorization: `Bearer ${token}` } : {}),
 			...init.headers
 		}
+	}).catch((err) => {
+		toast.error(`Cannot reach server: ${getBaseUrl()}`);
+		throw err;
 	});
 
 	if (!res.ok) {
