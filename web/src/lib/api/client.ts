@@ -1,12 +1,18 @@
 import { env } from '$env/dynamic/public';
 import { toast } from 'svelte-sonner';
 
-const BASE_URL = env.PUBLIC_API_URL ?? 'http://localhost:8080';
+function getBaseUrl(): string {
+	if (typeof localStorage !== 'undefined') {
+		const stored = localStorage.getItem('api_url');
+		if (stored) return stored.replace(/\/$/, '');
+	}
+	return env.PUBLIC_API_URL ?? 'http://localhost:8080';
+}
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 	const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
 
-	const res = await fetch(`${BASE_URL}${path}`, {
+	const res = await fetch(`${getBaseUrl()}${path}`, {
 		...init,
 		headers: {
 			'Content-Type': 'application/json',
@@ -36,7 +42,7 @@ export const api = {
 	delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 	upload: async <T>(path: string, formData: FormData): Promise<T> => {
 		const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
-		const res = await fetch(`${BASE_URL}${path}`, {
+		const res = await fetch(`${getBaseUrl()}${path}`, {
 			method: 'POST',
 			body: formData,
 			headers: token ? { Authorization: `Bearer ${token}` } : {}
@@ -54,6 +60,6 @@ export const api = {
 /** Returns an EventSource URL with the JWT token as a query param (EventSource can't set headers). */
 export function sseUrl(path: string): string {
 	const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
-	const url = `${BASE_URL}${path}`;
+	const url = `${getBaseUrl()}${path}`;
 	return token ? `${url}?token=${encodeURIComponent(token)}` : url;
 }
