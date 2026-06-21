@@ -4,7 +4,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 
-	let url = $state('');
+	let url = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('api_url') ?? '') : '');
 	let error = $state('');
 
 	function save() {
