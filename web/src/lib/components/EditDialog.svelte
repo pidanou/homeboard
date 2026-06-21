@@ -103,7 +103,7 @@
 		isOpen = false;
 		try {
 			if (editKind === 'task') {
-				await api.patch(`/api/v1/families/${familyID}/tasks/${id}`, {
+				await api.patch(`/api/v1/households/${familyID}/tasks/${id}`, {
 					title: ef.title.trim(), description: ef.description,
 					important: ef.important, status: ef.status,
 					assigned_to: ef.assignedTo || undefined,
@@ -114,7 +114,7 @@
 			} else {
 				if (!efEventRange.start) return;
 				const efEnd = efEventRange.end ?? efEventRange.start;
-				await api.patch(`/api/v1/families/${familyID}/events/${id}`, {
+				await api.patch(`/api/v1/households/${familyID}/events/${id}`, {
 					title: ef.title.trim(), description: ef.description, location: ef.location,
 					start_at: calDateTimeToISO(efEventRange.start, efStartTime, ef.allDay),
 					end_at: calDateTimeToISO(efEnd, efEndTime, ef.allDay),
@@ -136,9 +136,9 @@
 		isOpen = false;
 		try {
 			if (editKind === 'task') {
-				await api.delete(`/api/v1/families/${familyID}/tasks/${id}`);
+				await api.delete(`/api/v1/households/${familyID}/tasks/${id}`);
 			} else {
-				await api.delete(`/api/v1/families/${familyID}/events/${id}`);
+				await api.delete(`/api/v1/households/${familyID}/events/${id}`);
 			}
 			onDeleted();
 		} catch { }

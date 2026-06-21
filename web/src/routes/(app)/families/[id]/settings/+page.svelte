@@ -40,9 +40,9 @@
 
 	onMount(async () => {
 		const [membersResult, invitesResult, categoriesResult] = await Promise.allSettled([
-			api.get<Member[]>(`/api/v1/families/${familyID}/members`),
-			api.get<Invite[]>(`/api/v1/families/${familyID}/invites`),
-			api.get<AppCategory[]>(`/api/v1/families/${familyID}/categories`),
+			api.get<Member[]>(`/api/v1/households/${familyID}/members`),
+			api.get<Invite[]>(`/api/v1/households/${familyID}/invites`),
+			api.get<AppCategory[]>(`/api/v1/households/${familyID}/categories`),
 		]);
 		if (membersResult.status === 'fulfilled') members = membersResult.value ?? [];
 		if (invitesResult.status === 'fulfilled') invite = (invitesResult.value ?? [])[0] ?? null;
@@ -52,7 +52,7 @@
 	async function createCategory() {
 		if (!newCategoryName.trim()) return;
 		try {
-			const cat = await api.post<AppCategory>(`/api/v1/families/${familyID}/categories`, {
+			const cat = await api.post<AppCategory>(`/api/v1/households/${familyID}/categories`, {
 				name: newCategoryName.trim(),
 				color: newCategoryColor,
 			});
@@ -63,7 +63,7 @@
 
 	async function deleteCategory(categoryID: string) {
 		try {
-			await api.delete(`/api/v1/families/${familyID}/categories/${categoryID}`);
+			await api.delete(`/api/v1/households/${familyID}/categories/${categoryID}`);
 			categories = categories.filter((c) => c.id !== categoryID);
 		} catch { }
 	}
@@ -71,7 +71,7 @@
 	async function createVirtualMember() {
 		if (!newVirtualName.trim()) return;
 		try {
-			const vm = await api.post<{ id: string; name: string }>(`/api/v1/families/${familyID}/members/virtual`, { name: newVirtualName.trim() });
+			const vm = await api.post<{ id: string; name: string }>(`/api/v1/households/${familyID}/members/virtual`, { name: newVirtualName.trim() });
 			members = [...members, { user_id: vm.id, name: vm.name, email: '', role: '', joined_at: '', virtual: true }];
 			newVirtualName = '';
 			addingVirtual = false;
@@ -80,21 +80,21 @@
 
 	async function deleteVirtualMember(id: string) {
 		try {
-			await api.delete(`/api/v1/families/${familyID}/members/virtual/${id}`);
+			await api.delete(`/api/v1/households/${familyID}/members/virtual/${id}`);
 			members = members.filter((m) => m.user_id !== id);
 		} catch { }
 	}
 
 	async function updateRole(userID: string, role: 'admin' | 'member') {
 		try {
-			await api.put(`/api/v1/families/${familyID}/members/${userID}/role`, { role });
+			await api.put(`/api/v1/households/${familyID}/members/${userID}/role`, { role });
 			members = members.map((m) => (m.user_id === userID ? { ...m, role } : m));
 		} catch {}
 	}
 
 	async function kickMember(userID: string) {
 		try {
-			await api.delete(`/api/v1/families/${familyID}/members/${userID}`);
+			await api.delete(`/api/v1/households/${familyID}/members/${userID}`);
 			members = members.filter((m) => m.user_id !== userID);
 		} catch { }
 	}
@@ -108,7 +108,7 @@
 	async function saveEditCat(cat: AppCategory) {
 		if (!editingCatName.trim()) return;
 		try {
-			await api.put(`/api/v1/families/${familyID}/categories/${cat.id}`, {
+			await api.put(`/api/v1/households/${familyID}/categories/${cat.id}`, {
 				name: editingCatName.trim(),
 				color: editingCatColor,
 			});
@@ -121,14 +121,14 @@
 
 	async function generateInvite() {
 		try {
-			invite = await api.post<Invite>(`/api/v1/families/${familyID}/invites`, {});
+			invite = await api.post<Invite>(`/api/v1/households/${familyID}/invites`, {});
 		} catch { }
 	}
 
 	async function revokeInvite() {
 		try {
 			if (!invite) return;
-			await api.delete(`/api/v1/families/${familyID}/invites/${invite.token}`);
+			await api.delete(`/api/v1/households/${familyID}/invites/${invite.token}`);
 			invite = null;
 		} catch { }
 	}

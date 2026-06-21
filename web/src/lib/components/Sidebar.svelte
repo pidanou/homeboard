@@ -23,7 +23,7 @@
 
 	onMount(async () => {
 		initTheme();
-		families = (await api.get<Family[]>('/api/v1/families')) ?? [];
+		families = (await api.get<Family[]>('/api/v1/households')) ?? [];
 	});
 
 	const currentFamily = $derived(families.find(f => f.id === familyID));

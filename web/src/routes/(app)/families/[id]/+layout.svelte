@@ -11,7 +11,7 @@
 	const familyID = $derived($page.params.id);
 
 	onMount(async () => {
-		family = await api.get<Family>(`/api/v1/families/${familyID}`);
+		family = await api.get<Family>(`/api/v1/households/${familyID}`);
 	});
 </script>
 

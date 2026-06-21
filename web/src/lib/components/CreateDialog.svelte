@@ -78,7 +78,7 @@
 		if (!cf.title.trim()) return;
 		try {
 			if (createType === 'task') {
-				await api.post(`/api/v1/families/${familyID}/tasks`, {
+				await api.post(`/api/v1/households/${familyID}/tasks`, {
 					title: cf.title.trim(),
 					description: cf.description,
 					important: cf.important,
@@ -89,7 +89,7 @@
 				});
 			} else if (createType === 'birthday') {
 				if (!cfDueDate) return;
-				await api.post(`/api/v1/families/${familyID}/events`, {
+				await api.post(`/api/v1/households/${familyID}/events`, {
 					title: cf.title.trim(),
 					description: cf.description,
 					start_at: calDateTimeToISO(cfDueDate, '00:00', true),
@@ -103,7 +103,7 @@
 			} else {
 				if (!cfEventRange.start) return;
 				const cfEnd = cfEventRange.end ?? cfEventRange.start;
-				await api.post(`/api/v1/families/${familyID}/events`, {
+				await api.post(`/api/v1/households/${familyID}/events`, {
 					title: cf.title.trim(),
 					description: cf.description,
 					location: cf.location,

@@ -28,7 +28,7 @@
 	let es: EventSource | null = null;
 
 	async function loadLists() {
-		const res = await api.get<AppList[]>(`/api/v1/families/${familyID}/lists`);
+		const res = await api.get<AppList[]>(`/api/v1/households/${familyID}/lists`);
 		lists = res ?? [];
 		const saved = localStorage.getItem(STORAGE_KEY);
 		if (saved && lists.find((l) => l.id === saved)) {
@@ -40,7 +40,7 @@
 
 	async function loadItems() {
 		if (!activeListID) return;
-		const res = await api.get<AppListItem[]>(`/api/v1/families/${familyID}/lists/${activeListID}/items`);
+		const res = await api.get<AppListItem[]>(`/api/v1/households/${familyID}/lists/${activeListID}/items`);
 		items = res ?? [];
 	}
 
@@ -58,7 +58,7 @@
 
 	onMount(() => {
 		loadAll();
-		es = new EventSource(sseUrl(`/api/v1/families/${familyID}/stream`) as string);
+		es = new EventSource(sseUrl(`/api/v1/households/${familyID}/stream`) as string);
 		es.onmessage = (e) => { if (e.data === 'refresh') loadAll(); };
 		es.onerror = () => { es?.close(); es = null; };
 	});
@@ -69,7 +69,7 @@
 		e.preventDefault();
 		if (!newListName.trim()) return;
 		try {
-			const list = await api.post<AppList>(`/api/v1/families/${familyID}/lists`, { name: newListName.trim() });
+			const list = await api.post<AppList>(`/api/v1/households/${familyID}/lists`, { name: newListName.trim() });
 			lists = [...lists, list];
 			activeListID = list.id;
 			newListName = '';
@@ -79,7 +79,7 @@
 
 	async function deleteList(id: string) {
 		try {
-			await api.delete(`/api/v1/families/${familyID}/lists/${id}`);
+			await api.delete(`/api/v1/households/${familyID}/lists/${id}`);
 			lists = lists.filter((l) => l.id !== id);
 			confirmDeleteList = null;
 			if (activeListID === id) {
@@ -93,7 +93,7 @@
 		e.preventDefault();
 		if (!newItemName.trim() || !activeListID) return;
 		try {
-			const item = await api.post<AppListItem>(`/api/v1/families/${familyID}/lists/${activeListID}/items`, { name: newItemName.trim() });
+			const item = await api.post<AppListItem>(`/api/v1/households/${familyID}/lists/${activeListID}/items`, { name: newItemName.trim() });
 			items = [item, ...items];
 			newItemName = '';
 		} catch { }
@@ -101,7 +101,7 @@
 
 	async function toggleItem(item: AppListItem) {
 		try {
-			await api.patch(`/api/v1/families/${familyID}/lists/${activeListID}/items/${item.id}`, {
+			await api.patch(`/api/v1/households/${familyID}/lists/${activeListID}/items/${item.id}`, {
 				name: item.name, checked: !item.checked,
 			});
 			items = items.map((i) => (i.id === item.id ? { ...i, checked: !item.checked } : i));
@@ -110,14 +110,14 @@
 
 	async function deleteItem(itemID: string) {
 		try {
-			await api.delete(`/api/v1/families/${familyID}/lists/${activeListID}/items/${itemID}`);
+			await api.delete(`/api/v1/households/${familyID}/lists/${activeListID}/items/${itemID}`);
 			items = items.filter((i) => i.id !== itemID);
 		} catch { }
 	}
 
 	async function clearChecked() {
 		try {
-			await api.delete(`/api/v1/families/${familyID}/lists/${activeListID}/items/checked`);
+			await api.delete(`/api/v1/households/${familyID}/lists/${activeListID}/items/checked`);
 			items = items.filter((i) => !i.checked);
 		} catch { }
 	}
@@ -125,7 +125,7 @@
 	async function submitRenameList() {
 		if (!renamingListID || !renameListValue.trim()) { renamingListID = null; return; }
 		try {
-			await api.patch(`/api/v1/families/${familyID}/lists/${renamingListID}`, { name: renameListValue.trim() });
+			await api.patch(`/api/v1/households/${familyID}/lists/${renamingListID}`, { name: renameListValue.trim() });
 			lists = lists.map(l => l.id === renamingListID ? { ...l, name: renameListValue.trim() } : l);
 		} catch { }
 		renamingListID = null;
@@ -136,7 +136,7 @@
 		const item = items.find(i => i.id === renamingItemID);
 		if (!item) { renamingItemID = null; return; }
 		try {
-			await api.patch(`/api/v1/families/${familyID}/lists/${activeListID}/items/${renamingItemID}`, { name: renameItemValue.trim(), checked: item.checked });
+			await api.patch(`/api/v1/households/${familyID}/lists/${activeListID}/items/${renamingItemID}`, { name: renameItemValue.trim(), checked: item.checked });
 			items = items.map(i => i.id === renamingItemID ? { ...i, name: renameItemValue.trim() } : i);
 		} catch { }
 		renamingItemID = null;

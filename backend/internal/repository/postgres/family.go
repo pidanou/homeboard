@@ -18,7 +18,7 @@ func NewFamilyRepository(pool *pgxpool.Pool) *FamilyRepository {
 
 func (r *FamilyRepository) Create(ctx context.Context, family *model.Family) error {
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO families (id, name, created_at) VALUES ($1, $2, $3)`,
+		`INSERT INTO households (id, name, created_at) VALUES ($1, $2, $3)`,
 		family.ID, family.Name, family.CreatedAt,
 	)
 	return err
@@ -27,7 +27,7 @@ func (r *FamilyRepository) Create(ctx context.Context, family *model.Family) err
 func (r *FamilyRepository) GetByID(ctx context.Context, id string) (*model.Family, error) {
 	family := &model.Family{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, name, created_at FROM families WHERE id = $1`,
+		`SELECT id, name, created_at FROM households WHERE id = $1`,
 		id,
 	).Scan(&family.ID, &family.Name, &family.CreatedAt)
 	if err != nil {
@@ -38,7 +38,7 @@ func (r *FamilyRepository) GetByID(ctx context.Context, id string) (*model.Famil
 
 func (r *FamilyRepository) AddMember(ctx context.Context, member *model.FamilyMember) error {
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO family_members (family_id, user_id, role, joined_at)
+		`INSERT INTO household_members (family_id, user_id, role, joined_at)
 		 VALUES ($1, $2, $3, $4)
 		 ON CONFLICT (family_id, user_id) DO NOTHING`,
 		member.FamilyID, member.UserID, member.Role, member.JoinedAt,
@@ -49,7 +49,7 @@ func (r *FamilyRepository) AddMember(ctx context.Context, member *model.FamilyMe
 func (r *FamilyRepository) GetMembers(ctx context.Context, familyID string) ([]*model.FamilyMember, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT fm.family_id, fm.user_id, u.name, u.email, fm.role, fm.joined_at
-		 FROM family_members fm JOIN users u ON u.id = fm.user_id
+		 FROM household_members fm JOIN users u ON u.id = fm.user_id
 		 WHERE fm.family_id = $1`,
 		familyID,
 	)
@@ -138,7 +138,7 @@ func (r *FamilyRepository) LinkVirtualMember(ctx context.Context, virtualID, fam
 func (r *FamilyRepository) GetMemberRole(ctx context.Context, userID, familyID string) (string, error) {
 	var role string
 	err := r.pool.QueryRow(ctx,
-		`SELECT role FROM family_members WHERE user_id = $1 AND family_id = $2`,
+		`SELECT role FROM household_members WHERE user_id = $1 AND family_id = $2`,
 		userID, familyID,
 	).Scan(&role)
 	return role, err
@@ -146,7 +146,7 @@ func (r *FamilyRepository) GetMemberRole(ctx context.Context, userID, familyID s
 
 func (r *FamilyRepository) UpdateMemberRole(ctx context.Context, userID, familyID, role string) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE family_members SET role = $1 WHERE user_id = $2 AND family_id = $3`,
+		`UPDATE household_members SET role = $1 WHERE user_id = $2 AND family_id = $3`,
 		role, userID, familyID,
 	)
 	return err
@@ -155,7 +155,7 @@ func (r *FamilyRepository) UpdateMemberRole(ctx context.Context, userID, familyI
 func (r *FamilyRepository) CountAdmins(ctx context.Context, familyID string) (int, error) {
 	var count int
 	err := r.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM family_members WHERE family_id = $1 AND role = 'admin'`,
+		`SELECT COUNT(*) FROM household_members WHERE family_id = $1 AND role = 'admin'`,
 		familyID,
 	).Scan(&count)
 	return count, err
@@ -163,7 +163,7 @@ func (r *FamilyRepository) CountAdmins(ctx context.Context, familyID string) (in
 
 func (r *FamilyRepository) RemoveMember(ctx context.Context, userID, familyID string) error {
 	_, err := r.pool.Exec(ctx,
-		`DELETE FROM family_members WHERE user_id = $1 AND family_id = $2`,
+		`DELETE FROM household_members WHERE user_id = $1 AND family_id = $2`,
 		userID, familyID,
 	)
 	return err
@@ -172,8 +172,8 @@ func (r *FamilyRepository) RemoveMember(ctx context.Context, userID, familyID st
 func (r *FamilyRepository) GetFamiliesByUserID(ctx context.Context, userID string) ([]*model.Family, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT f.id, f.name, f.created_at
-		 FROM families f
-		 JOIN family_members fm ON fm.family_id = f.id
+		 FROM households f
+		 JOIN household_members fm ON fm.family_id = f.id
 		 WHERE fm.user_id = $1`,
 		userID,
 	)

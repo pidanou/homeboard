@@ -62,10 +62,10 @@ func newTestEnv(t *testing.T) *testEnv {
 	r.Group(func(r chi.Router) {
 		r.Use(handler.AuthMiddleware(testJWTSecret))
 		r.Mount("/families", familyH.Routes())
-		r.Route("/families/{familyID}/invites", func(r chi.Router) {
+		r.Route("/households/{familyID}/invites", func(r chi.Router) {
 			r.Mount("/", inviteH.Routes())
 		})
-		r.Route("/families/{familyID}/categories", func(r chi.Router) {
+		r.Route("/households/{familyID}/categories", func(r chi.Router) {
 			r.Mount("/", labelH.Routes())
 		})
 	})
@@ -103,7 +103,7 @@ func (e *testEnv) seedFamily(t *testing.T) (familyID, adminID, memberID string) 
 	}
 
 	_, err := e.pool.Exec(ctx,
-		`INSERT INTO families (id, name, created_at) VALUES ($1, $2, $3)`,
+		`INSERT INTO households (id, name, created_at) VALUES ($1, $2, $3)`,
 		familyID, "Test Family "+familyID[:8], time.Now().UTC(),
 	)
 	if err != nil {
@@ -112,7 +112,7 @@ func (e *testEnv) seedFamily(t *testing.T) (familyID, adminID, memberID string) 
 
 	for _, m := range []struct{ id, role string }{{adminID, "admin"}, {memberID, "member"}} {
 		_, err := e.pool.Exec(ctx,
-			`INSERT INTO family_members (family_id, user_id, role, joined_at) VALUES ($1, $2, $3, $4)`,
+			`INSERT INTO household_members (family_id, user_id, role, joined_at) VALUES ($1, $2, $3, $4)`,
 			familyID, m.id, m.role, time.Now().UTC(),
 		)
 		if err != nil {
@@ -121,8 +121,8 @@ func (e *testEnv) seedFamily(t *testing.T) (familyID, adminID, memberID string) 
 	}
 
 	t.Cleanup(func() {
-		e.pool.Exec(ctx, `DELETE FROM family_members WHERE family_id = $1`, familyID)
-		e.pool.Exec(ctx, `DELETE FROM families WHERE id = $1`, familyID)
+		e.pool.Exec(ctx, `DELETE FROM household_members WHERE family_id = $1`, familyID)
+		e.pool.Exec(ctx, `DELETE FROM households WHERE id = $1`, familyID)
 		e.pool.Exec(ctx, `DELETE FROM users WHERE id = ANY($1)`, []string{adminID, memberID})
 	})
 
@@ -155,7 +155,7 @@ func (e *testEnv) do(method, url string, token string, body any) *http.Response 
 func TestKickMember(t *testing.T) {
 	e := newTestEnv(t)
 	familyID, adminID, memberID := e.seedFamily(t)
-	url := fmt.Sprintf("/families/%s/members/%s", familyID, memberID)
+	url := fmt.Sprintf("/households/%s/members/%s", familyID, memberID)
 
 	t.Run("member cannot kick", func(t *testing.T) {
 		resp := e.do("DELETE", url, e.token(memberID), nil)
@@ -170,14 +170,14 @@ func TestKickMember(t *testing.T) {
 		targetID := uuid.NewString()
 		e.pool.Exec(ctx, `INSERT INTO users (id, email, name, password_hash, created_at) VALUES ($1, $2, $3, 'x', $4)`,
 			targetID, "kick-target@test.com", "Kick Target", time.Now().UTC())
-		e.pool.Exec(ctx, `INSERT INTO family_members (family_id, user_id, role, joined_at) VALUES ($1, $2, 'member', $3)`,
+		e.pool.Exec(ctx, `INSERT INTO household_members (family_id, user_id, role, joined_at) VALUES ($1, $2, 'member', $3)`,
 			familyID, targetID, time.Now().UTC())
 		t.Cleanup(func() {
-			e.pool.Exec(ctx, `DELETE FROM family_members WHERE user_id = $1`, targetID)
+			e.pool.Exec(ctx, `DELETE FROM household_members WHERE user_id = $1`, targetID)
 			e.pool.Exec(ctx, `DELETE FROM users WHERE id = $1`, targetID)
 		})
 
-		resp := e.do("DELETE", fmt.Sprintf("/families/%s/members/%s", familyID, targetID), e.token(adminID), nil)
+		resp := e.do("DELETE", fmt.Sprintf("/households/%s/members/%s", familyID, targetID), e.token(adminID), nil)
 		if resp.StatusCode != http.StatusNoContent {
 			t.Errorf("want 204, got %d", resp.StatusCode)
 		}
@@ -187,7 +187,7 @@ func TestKickMember(t *testing.T) {
 func TestUpdateRole(t *testing.T) {
 	e := newTestEnv(t)
 	familyID, adminID, memberID := e.seedFamily(t)
-	url := fmt.Sprintf("/families/%s/members/%s/role", familyID, memberID)
+	url := fmt.Sprintf("/households/%s/members/%s/role", familyID, memberID)
 
 	t.Run("member cannot change role", func(t *testing.T) {
 		resp := e.do("PUT", url, e.token(memberID), model.FamilyMember{Role: "admin"})
@@ -207,9 +207,9 @@ func TestUpdateRole(t *testing.T) {
 		// adminID is now the only admin (memberID was promoted in previous subtest)
 		// promote memberID back to check, then demote adminID should fail
 		e.pool.Exec(context.Background(),
-			`UPDATE family_members SET role = 'member' WHERE user_id = $1 AND family_id = $2`,
+			`UPDATE household_members SET role = 'member' WHERE user_id = $1 AND family_id = $2`,
 			memberID, familyID)
-		resp := e.do("PUT", fmt.Sprintf("/families/%s/members/%s/role", familyID, adminID),
+		resp := e.do("PUT", fmt.Sprintf("/households/%s/members/%s/role", familyID, adminID),
 			e.token(adminID), map[string]string{"role": "member"})
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Errorf("want 400 (last admin protection), got %d", resp.StatusCode)
@@ -220,7 +220,7 @@ func TestUpdateRole(t *testing.T) {
 func TestCreateVirtualMember(t *testing.T) {
 	e := newTestEnv(t)
 	familyID, adminID, memberID := e.seedFamily(t)
-	url := fmt.Sprintf("/families/%s/members/virtual", familyID)
+	url := fmt.Sprintf("/households/%s/members/virtual", familyID)
 	body := map[string]string{"name": "Virtual Kid"}
 
 	t.Run("member cannot create virtual", func(t *testing.T) {
@@ -262,9 +262,9 @@ func TestCategoryMutations(t *testing.T) {
 		url    string
 		body   any
 	}{
-		{"create", "POST", fmt.Sprintf("/families/%s/categories", familyID), map[string]string{"name": "X", "color": "red"}},
-		{"update", "PUT", fmt.Sprintf("/families/%s/categories/%s", familyID, catID), map[string]string{"name": "Y", "color": "green"}},
-		{"delete", "DELETE", fmt.Sprintf("/families/%s/categories/%s", familyID, catID), nil},
+		{"create", "POST", fmt.Sprintf("/households/%s/categories", familyID), map[string]string{"name": "X", "color": "red"}},
+		{"update", "PUT", fmt.Sprintf("/households/%s/categories/%s", familyID, catID), map[string]string{"name": "Y", "color": "green"}},
+		{"delete", "DELETE", fmt.Sprintf("/households/%s/categories/%s", familyID, catID), nil},
 	}
 
 	for _, tc := range cases {
@@ -277,7 +277,7 @@ func TestCategoryMutations(t *testing.T) {
 	}
 
 	t.Run("admin can create category", func(t *testing.T) {
-		resp := e.do("POST", fmt.Sprintf("/families/%s/categories", familyID), e.token(adminID),
+		resp := e.do("POST", fmt.Sprintf("/households/%s/categories", familyID), e.token(adminID),
 			map[string]string{"name": "AdminCat", "color": "teal"})
 		if resp.StatusCode != http.StatusCreated {
 			t.Errorf("want 201, got %d", resp.StatusCode)
@@ -295,21 +295,21 @@ func TestInviteMutations(t *testing.T) {
 	familyID, adminID, memberID := e.seedFamily(t)
 
 	t.Run("member cannot generate invite", func(t *testing.T) {
-		resp := e.do("POST", fmt.Sprintf("/families/%s/invites", familyID), e.token(memberID), map[string]string{})
+		resp := e.do("POST", fmt.Sprintf("/households/%s/invites", familyID), e.token(memberID), map[string]string{})
 		if resp.StatusCode != http.StatusForbidden {
 			t.Errorf("want 403, got %d", resp.StatusCode)
 		}
 	})
 
 	t.Run("admin can generate and revoke invite", func(t *testing.T) {
-		resp := e.do("POST", fmt.Sprintf("/families/%s/invites", familyID), e.token(adminID), map[string]string{})
+		resp := e.do("POST", fmt.Sprintf("/households/%s/invites", familyID), e.token(adminID), map[string]string{})
 		if resp.StatusCode != http.StatusCreated {
 			t.Errorf("want 201, got %d", resp.StatusCode)
 		}
 		var inv model.Invite
 		json.NewDecoder(resp.Body).Decode(&inv)
 
-		resp2 := e.do("DELETE", fmt.Sprintf("/families/%s/invites/%s", familyID, inv.Token), e.token(adminID), nil)
+		resp2 := e.do("DELETE", fmt.Sprintf("/households/%s/invites/%s", familyID, inv.Token), e.token(adminID), nil)
 		if resp2.StatusCode != http.StatusNoContent {
 			t.Errorf("revoke: want 204, got %d", resp2.StatusCode)
 		}
@@ -317,14 +317,14 @@ func TestInviteMutations(t *testing.T) {
 
 	t.Run("member cannot revoke invite", func(t *testing.T) {
 		// admin generates one first
-		resp := e.do("POST", fmt.Sprintf("/families/%s/invites", familyID), e.token(adminID), map[string]string{})
+		resp := e.do("POST", fmt.Sprintf("/households/%s/invites", familyID), e.token(adminID), map[string]string{})
 		var inv model.Invite
 		json.NewDecoder(resp.Body).Decode(&inv)
 		t.Cleanup(func() {
 			e.pool.Exec(context.Background(), `DELETE FROM invites WHERE token = $1`, inv.Token)
 		})
 
-		resp2 := e.do("DELETE", fmt.Sprintf("/families/%s/invites/%s", familyID, inv.Token), e.token(memberID), nil)
+		resp2 := e.do("DELETE", fmt.Sprintf("/households/%s/invites/%s", familyID, inv.Token), e.token(memberID), nil)
 		if resp2.StatusCode != http.StatusForbidden {
 			t.Errorf("want 403, got %d", resp2.StatusCode)
 		}

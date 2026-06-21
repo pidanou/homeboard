@@ -105,7 +105,7 @@ func main() {
 		r.Mount("/auth", authHandler.Routes())
 		r.Mount("/invites", inviteHandler.PublicRoutes())
 		// SSE stream: does its own JWT auth via ?token= (EventSource can't set headers)
-		r.Route("/families/{familyID}/stream", func(r chi.Router) {
+		r.Route("/households/{familyID}/stream", func(r chi.Router) {
 			r.Mount("/", sseHandler.Routes())
 		})
 		r.Handle("/uploads/avatars/*", http.StripPrefix("/api/v1/uploads/avatars/", http.FileServer(http.Dir(uploadDir+"/avatars"))))
@@ -113,20 +113,20 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(handler.AuthMiddleware(os.Getenv("JWT_SECRET")))
 			r.Mount("/profile", profileHandler.Routes())
-			r.Mount("/families", familyHandler.Routes())
-			r.Route("/families/{familyID}/invites", func(r chi.Router) {
+			r.Mount("/households", familyHandler.Routes())
+			r.Route("/households/{familyID}/invites", func(r chi.Router) {
 				r.Mount("/", inviteHandler.Routes())
 			})
-			r.Route("/families/{familyID}/tasks", func(r chi.Router) {
+			r.Route("/households/{familyID}/tasks", func(r chi.Router) {
 				r.Mount("/", taskHandler.Routes())
 			})
-			r.Route("/families/{familyID}/events", func(r chi.Router) {
+			r.Route("/households/{familyID}/events", func(r chi.Router) {
 				r.Mount("/", eventHandler.Routes())
 			})
-			r.Route("/families/{familyID}/categories", func(r chi.Router) {
+			r.Route("/households/{familyID}/categories", func(r chi.Router) {
 				r.Mount("/", labelHandler.Routes())
 			})
-			r.Route("/families/{familyID}/lists", func(r chi.Router) {
+			r.Route("/households/{familyID}/lists", func(r chi.Router) {
 				r.Mount("/", listHandler.Routes())
 			})
 		})
