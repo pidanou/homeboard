@@ -14,3 +14,9 @@ web/build/
 # OS
 .DS_Store
 Thumbs.db
+
+**/tmp/**
+
+# Android Studio
+web/android/.idea/deploymentTargetSelector.xml
+web/android/.idea/
