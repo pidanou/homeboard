@@ -50,7 +50,7 @@
 			onclick={onclose}
 		>
 			<span class="text-xl">🏠</span>
-			Family Board
+			Household
 		</a>
 	</div>
 
@@ -60,7 +60,7 @@
 			<Popover.Trigger
 				class="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-left
 					hover:bg-sidebar-accent/60 transition-colors cursor-pointer"
-				aria-label="Switch family"
+				aria-label="Switch household"
 			>
 				<Users class="w-4 h-4 shrink-0 text-muted-foreground" />
 				<span class="flex-1 truncate font-medium text-sidebar-foreground">
@@ -88,7 +88,7 @@
 					class="flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-accent transition-colors w-full text-muted-foreground"
 				>
 					<Plus class="w-4 h-4 shrink-0" />
-					New family
+					New household
 				</a>
 			</Popover.Content>
 		</Popover.Root>
@@ -113,7 +113,7 @@
 				</a>
 			{/each}
 		{:else}
-			<p class="px-2 text-xs text-muted-foreground mt-1">Select a family to get started.</p>
+			<p class="px-2 text-xs text-muted-foreground mt-1">Select a household to get started.</p>
 		{/if}
 	</div>
 

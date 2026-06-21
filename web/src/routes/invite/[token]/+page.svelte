@@ -58,14 +58,14 @@
 
 <div class="min-h-screen flex items-center justify-center px-4">
 	<div class="max-w-sm w-full text-center flex flex-col gap-4">
-		<h1 class="text-2xl font-bold">Family Board</h1>
+		<h1 class="text-2xl font-bold">Household</h1>
 
 		{#if failed}
 			<p class="text-destructive text-sm">Invite not found or expired.</p>
 
 		{:else if unlinked.length > 0}
 			<!-- Linking prompt -->
-			<p class="text-muted-foreground text-sm">Are you one of these people already in the family?</p>
+			<p class="text-muted-foreground text-sm">Are you one of these people already in the household?</p>
 			<div class="flex flex-col gap-2 text-left">
 				{#each unlinked as vm (vm.id)}
 					<button

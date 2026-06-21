@@ -58,7 +58,7 @@
 		if (currentPath.endsWith('/calendar')) return 'Calendar';
 		if (currentPath.endsWith('/lists')) return 'Lists';
 		if (currentPath.endsWith('/settings')) return 'Settings';
-		return 'Family Board';
+		return 'Household';
 	});
 </script>
 
