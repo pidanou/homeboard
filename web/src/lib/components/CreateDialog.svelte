@@ -4,7 +4,6 @@
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -12,10 +11,9 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import { Calendar } from '$lib/components/ui/calendar';
 	import { RangeCalendar } from '$lib/components/ui/range-calendar';
-	import { Select as SelectPrimitive } from 'bits-ui';
 	import type { DateRange } from 'bits-ui';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
-	import { CheckSquare, CalendarDays, Repeat } from 'lucide-svelte';
+	import { CalendarDays } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 	import IconPicker from '$lib/components/IconPicker.svelte';
 
@@ -40,6 +38,11 @@
 	let cfEventPickerOpen = $state(false);
 	let cfCategoryID = $state<string | undefined>(undefined);
 	let cfBirthdayOf = $state('');
+	let cfShowMore = $state(false);
+
+	const REPEAT_LABELS: Record<string, string> = {
+		none: 'Does not repeat', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly'
+	};
 	let cfRepeat = $state<'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'>('none');
 	let cfIcon = $state<string | undefined>(undefined);
 
@@ -69,6 +72,7 @@
 		cfBirthdayOf = '';
 		cfRepeat = 'none';
 		cfIcon = undefined;
+		cfShowMore = false;
 		isOpen = true;
 	}
 
@@ -121,63 +125,50 @@
 				<Dialog.Title>New ticket</Dialog.Title>
 			</Dialog.Header>
 
-			<div class="flex flex-col gap-4 py-2 overflow-y-auto flex-1 min-h-0 px-1">
-				<div class="flex gap-2">
+			<div class="flex flex-col gap-3 py-2 overflow-y-auto flex-1 min-h-0 px-1">
+				<!-- Type switcher: compact pills -->
+				<div class="flex gap-1.5">
 					<button
-						class="flex-1 flex flex-col items-center gap-1.5 rounded-lg border-2 py-3 text-sm font-medium transition-colors cursor-pointer
-							{createType === 'task' ? 'border-primary bg-primary/5 text-primary' : 'border-border text-muted-foreground hover:border-muted-foreground'}"
+						class="px-3 py-1 rounded-full text-sm font-medium transition-colors cursor-pointer
+							{createType === 'task' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}"
 						onclick={() => (createType = 'task')}
-					>
-						<CheckSquare class="w-5 h-5" />Task
-					</button>
+					>Task</button>
 					<button
-						class="flex-1 flex flex-col items-center gap-1.5 rounded-lg border-2 py-3 text-sm font-medium transition-colors cursor-pointer
-							{createType === 'event' ? 'border-blue-500 bg-blue-500/5 text-blue-600 dark:text-blue-400' : 'border-border text-muted-foreground hover:border-muted-foreground'}"
+						class="px-3 py-1 rounded-full text-sm font-medium transition-colors cursor-pointer
+							{createType === 'event' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}"
 						onclick={() => (createType = 'event')}
-					>
-						<CalendarDays class="w-5 h-5" />Event
-					</button>
+					>Event</button>
 				</div>
 
-				<div class="flex flex-col gap-1.5">
-					<Label for="cf-title">Title</Label>
-					<div class="flex gap-2">
-						<IconPicker bind:value={cfIcon} />
-						<Input id="cf-title" bind:value={cf.title} placeholder={createType === 'task' ? 'Buy groceries…' : 'Team dinner…'} class="flex-1" />
-					</div>
-				</div>
-
-				<div class="flex flex-col gap-1.5">
-					<Label for="cf-desc">Description</Label>
-					<Textarea id="cf-desc" bind:value={cf.description} placeholder="Optional details…" rows={2} />
+				<!-- Title -->
+				<div class="flex gap-2">
+					<IconPicker bind:value={cfIcon} />
+					<Input bind:value={cf.title} placeholder={createType === 'task' ? 'Buy groceries…' : 'Team dinner…'} class="flex-1" />
 				</div>
 
 				{#if createType === 'task'}
-					<div class="flex gap-3">
-						<div class="flex flex-col gap-1.5 flex-1">
-							<label class="flex items-center gap-2 text-sm cursor-pointer mt-5">
-								<Checkbox bind:checked={cf.important} />
-								Important
-							</label>
-						</div>
-						<div class="flex flex-col gap-1.5 flex-1">
-							<Label>Due date</Label>
-							<Popover.Root bind:open={cfDueOpen}>
-								<Popover.Trigger>
-									<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
-										<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
-										{cfDueDate ? fmtCalDate(cfDueDate) : 'Pick a date'}
-									</Button>
-								</Popover.Trigger>
-								<Popover.Content class="w-auto p-0" align="start">
-									<Calendar type="single" bind:value={cfDueDate} onValueChange={() => (cfDueOpen = false)} />
-								</Popover.Content>
-							</Popover.Root>
-						</div>
+					<!-- Task primary: important + due date -->
+					<div class="flex items-center gap-2">
+						<label class="flex items-center gap-2 text-sm cursor-pointer shrink-0">
+							<Checkbox bind:checked={cf.important} />
+							Important
+						</label>
+						<Popover.Root bind:open={cfDueOpen}>
+							<Popover.Trigger class="flex-1">
+								<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
+									<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
+									{cfDueDate ? fmtCalDate(cfDueDate) : 'No due date'}
+								</Button>
+							</Popover.Trigger>
+							<Popover.Content class="w-auto p-0" align="start">
+								<Calendar type="single" bind:value={cfDueDate} onValueChange={() => (cfDueOpen = false)} />
+							</Popover.Content>
+						</Popover.Root>
 					</div>
-					{#if members.length > 0}
-						<div class="flex flex-col gap-1.5">
-							<Label>Assign to</Label>
+
+					<!-- Task secondary -->
+					{#if cfShowMore}
+						{#if members.length > 0}
 							<Select.Root type="single" bind:value={cf.assignedTo}>
 								<Select.Trigger class="w-full">{members.find(m => m.user_id === cf.assignedTo)?.name ?? 'Unassigned'}</Select.Trigger>
 								<Select.Content>
@@ -187,51 +178,41 @@
 									{/each}
 								</Select.Content>
 							</Select.Root>
-						</div>
+						{/if}
+						<Textarea bind:value={cf.description} placeholder="Notes…" rows={2} />
+						<CategoryPicker {familyID} {categories} bind:selectedID={cfCategoryID} />
 					{/if}
 				{:else}
-					<div class="flex flex-col gap-1.5">
-						<Label>Dates</Label>
-						<Popover.Root bind:open={cfEventPickerOpen}>
-							<Popover.Trigger>
-								<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
-									<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
-									{rangeLabelFor(cfEventRange)}
-								</Button>
-							</Popover.Trigger>
-							<Popover.Content class="w-auto p-0" align="start">
-								<RangeCalendar
-									bind:value={cfEventRange}
-									onValueChange={() => { if (cfEventRange.start && cfEventRange.end) cfEventPickerOpen = false; }}
-								/>
-							</Popover.Content>
-						</Popover.Root>
-					</div>
-					{#if !cf.allDay}
-						<div class="flex gap-3">
-							<div class="flex flex-col gap-1.5 flex-1">
-								<Label for="cf-start-time">Start time</Label>
-								<Input id="cf-start-time" type="time" bind:value={cfStartTime} />
-							</div>
-							<div class="flex flex-col gap-1.5 flex-1">
-								<Label for="cf-end-time">End time</Label>
-								<Input id="cf-end-time" type="time" bind:value={cfEndTime} />
-							</div>
-						</div>
-					{/if}
+					<!-- Event primary: dates, all day, times -->
+					<Popover.Root bind:open={cfEventPickerOpen}>
+						<Popover.Trigger>
+							<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
+								<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
+								{rangeLabelFor(cfEventRange)}
+							</Button>
+						</Popover.Trigger>
+						<Popover.Content class="w-auto p-0" align="start">
+							<RangeCalendar
+								bind:value={cfEventRange}
+								onValueChange={() => { if (cfEventRange.start && cfEventRange.end) cfEventPickerOpen = false; }}
+							/>
+						</Popover.Content>
+					</Popover.Root>
 					<label class="flex items-center gap-2 text-sm cursor-pointer">
 						<Checkbox bind:checked={cf.allDay} />
 						All day
 					</label>
-					<div class="flex flex-col gap-1.5">
-						<Label>Repeat</Label>
+					{#if !cf.allDay}
+						<div class="flex gap-2">
+							<Input type="time" bind:value={cfStartTime} class="flex-1" />
+							<Input type="time" bind:value={cfEndTime} class="flex-1" />
+						</div>
+					{/if}
+
+					<!-- Event secondary -->
+					{#if cfShowMore}
 						<Select.Root type="single" bind:value={cfRepeat}>
-							<Select.Trigger class="w-full">
-								<div class="flex items-center gap-2">
-									<Repeat class="w-4 h-4 text-muted-foreground shrink-0" />
-									<SelectPrimitive.Value placeholder="Does not repeat" />
-								</div>
-							</Select.Trigger>
+							<Select.Trigger class="w-full">{REPEAT_LABELS[cfRepeat] ?? 'Does not repeat'}</Select.Trigger>
 							<Select.Content>
 								<Select.Item value="none">Does not repeat</Select.Item>
 								<Select.Item value="daily">Daily</Select.Item>
@@ -240,18 +221,9 @@
 								<Select.Item value="yearly">Yearly</Select.Item>
 							</Select.Content>
 						</Select.Root>
-					</div>
-					<div class="flex flex-col gap-1.5">
-						<Label for="cf-location">Location</Label>
-						<Input id="cf-location" bind:value={cf.location} placeholder="Optional location…" />
-					</div>
-					<div class="flex flex-col gap-1.5">
-						<Label for="cf-birthday-of">Birthday of</Label>
-						<Input id="cf-birthday-of" bind:value={cfBirthdayOf} placeholder="Name (sets yearly recurrence)" />
-					</div>
-					{#if members.length > 0}
-						<div class="flex flex-col gap-1.5">
-							<Label>Members</Label>
+						<Input bind:value={cf.location} placeholder="Location…" />
+						<Input bind:value={cfBirthdayOf} placeholder="Birthday of (name)…" />
+						{#if members.length > 0}
 							<div class="flex flex-col gap-1.5">
 								{#each members as m}
 									<label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -263,14 +235,16 @@
 									</label>
 								{/each}
 							</div>
-						</div>
+						{/if}
+						<Textarea bind:value={cf.description} placeholder="Notes…" rows={2} />
+						<CategoryPicker {familyID} {categories} bind:selectedID={cfCategoryID} />
 					{/if}
 				{/if}
 
-				<div class="flex flex-col gap-1.5">
-					<Label>Category</Label>
-					<CategoryPicker {familyID} {categories} bind:selectedID={cfCategoryID} />
-				</div>
+				<button
+					class="text-xs text-muted-foreground hover:text-foreground transition-colors text-left w-fit"
+					onclick={() => (cfShowMore = !cfShowMore)}
+				>{cfShowMore ? '− Less options' : '+ More options'}</button>
 			</div>
 
 			<Dialog.Footer class="gap-2">
