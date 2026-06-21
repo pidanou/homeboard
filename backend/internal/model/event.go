@@ -11,14 +11,16 @@ type Event struct {
 	StartAt            time.Time  `json:"start_at"`
 	EndAt              time.Time  `json:"end_at"`
 	AllDay             bool       `json:"all_day"`
-	AttendeeIDs        []string   `json:"attendee_ids,omitempty"`
 	CategoryID         *string    `json:"category_id,omitempty"`
 	RecurrenceRule     *string    `json:"recurrence_rule,omitempty"`
 	RecurrenceParentID *string    `json:"recurrence_parent_id,omitempty"`
-	RecurrenceDate     *time.Time `json:"occurrence_date,omitempty"`
+	RecurrenceDate     *time.Time `json:"recurrence_date,omitempty"`
 	Cancelled          bool       `json:"cancelled,omitempty"`
 	IsRecurring        bool       `json:"is_recurring,omitempty"`
+	Icon               *string    `json:"icon,omitempty"`
+	Type               string     `json:"type"`
 	CreatedBy          string     `json:"created_by"`
 	CreatedAt          time.Time  `json:"created_at"`
 	UpdatedAt          time.Time  `json:"updated_at"`
+	AttendeeIDs        []string   `json:"attendee_ids"`
 }

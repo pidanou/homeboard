@@ -18,7 +18,10 @@ func NewEventService(events repository.EventRepository) *EventService {
 	return &EventService{events: events}
 }
 
-func (s *EventService) Create(ctx context.Context, familyID, userID, title, description, location string, startAt, endAt time.Time, allDay bool, attendeeIDs []string, categoryID *string, recurrenceRule *string) (*model.Event, error) {
+func (s *EventService) Create(ctx context.Context, familyID, userID, title, description, location string, startAt, endAt time.Time, allDay bool, attendeeIDs []string, categoryID *string, recurrenceRule *string, eventType string, icon *string) (*model.Event, error) {
+	if eventType == "" {
+		eventType = "default"
+	}
 	now := time.Now().UTC()
 	event := &model.Event{
 		ID:             uuid.NewString(),
@@ -32,6 +35,8 @@ func (s *EventService) Create(ctx context.Context, familyID, userID, title, desc
 		AttendeeIDs:    attendeeIDs,
 		CategoryID:     categoryID,
 		RecurrenceRule: recurrenceRule,
+		Type:           eventType,
+		Icon:           icon,
 		CreatedBy:      userID,
 		CreatedAt:      now,
 		UpdatedAt:      now,

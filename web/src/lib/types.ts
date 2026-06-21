@@ -29,6 +29,7 @@ export type Task = {
 	end_date?: string;
 	start_date?: string;
 	category_id?: string;
+	icon?: string;
 };
 
 export type CalEvent = {
@@ -44,6 +45,8 @@ export type CalEvent = {
 	recurrence_rule?: string;
 	is_recurring?: boolean;
 	occurrence_date?: string;
+	type?: string;
+	icon?: string;
 };
 
 export type Filter = 'all' | 'tasks' | 'events' | 'done';

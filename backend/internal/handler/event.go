@@ -76,6 +76,8 @@ func (h *EventHandler) create(w http.ResponseWriter, r *http.Request) {
 		AttendeeIDs    []string `json:"attendee_ids"`
 		CategoryID     *string  `json:"category_id"`
 		RecurrenceRule *string  `json:"recurrence_rule"`
+		Type           string   `json:"type"`
+		Icon           *string  `json:"icon"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Title == "" {
 		http.Error(w, "title is required", http.StatusBadRequest)
@@ -92,7 +94,7 @@ func (h *EventHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	event, err := h.events.Create(r.Context(), familyID, userID, body.Title, body.Description, body.Location, startAt, endAt, body.AllDay, body.AttendeeIDs, body.CategoryID, body.RecurrenceRule)
+	event, err := h.events.Create(r.Context(), familyID, userID, body.Title, body.Description, body.Location, startAt, endAt, body.AllDay, body.AttendeeIDs, body.CategoryID, body.RecurrenceRule, body.Type, body.Icon)
 	if err != nil {
 		http.Error(w, "failed to create event", http.StatusInternalServerError)
 		return
@@ -118,6 +120,7 @@ func (h *EventHandler) update(w http.ResponseWriter, r *http.Request) {
 		AttendeeIDs    []string `json:"attendee_ids"`
 		CategoryID     *string  `json:"category_id"`
 		RecurrenceRule *string  `json:"recurrence_rule"`
+		Icon           *string  `json:"icon"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid request", http.StatusBadRequest)
@@ -153,7 +156,7 @@ func (h *EventHandler) update(w http.ResponseWriter, r *http.Request) {
 			Title: body.Title, Description: body.Description, Location: body.Location,
 			StartAt: startAt.UTC(), EndAt: endAt.UTC(), AllDay: body.AllDay,
 			AttendeeIDs: body.AttendeeIDs, CategoryID: body.CategoryID,
-			RecurrenceRule: body.RecurrenceRule,
+			RecurrenceRule: body.RecurrenceRule, Icon: body.Icon,
 		}
 		if err := h.events.Update(r.Context(), event); err != nil {
 			http.Error(w, "failed to update event", http.StatusInternalServerError)

@@ -5,7 +5,7 @@
 	import { Calendar, DayGrid, TimeGrid, Interaction } from '@event-calendar/core';
 	import { api, sseUrl } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
-	import { X, CalendarDays } from 'lucide-svelte';
+	import { X, CalendarDays, Cake } from 'lucide-svelte';
 	import type { CalEvent, Task, Member, AppCategory } from '$lib/types';
 	import { dotClass, CATEGORY_HEX } from '$lib/categories';
 	import { fmtTime } from '$lib/dates';
@@ -226,9 +226,11 @@
 		});
 		return [
 			...filteredEvents.map(ev => {
-				const hex = categoryHex(ev.category_id);
+				const hex = ev.type === 'birthday' ? '#ec4899' : categoryHex(ev.category_id);
+				const prefix = ev.type === 'birthday' ? '🎂' : (ev.icon ?? '');
+				const title = prefix ? prefix + ' ' + ev.title : ev.title;
 				return {
-					id: ev.id, title: ev.title, start: ev.start_at, end: ev.end_at, allDay: ev.all_day,
+					id: ev.id, title, start: ev.start_at, end: ev.end_at, allDay: ev.all_day,
 					editable: true,
 					...(hex ? { backgroundColor: hex, borderColor: hex, textColor: '#fff' } : {}),
 					extendedProps: { type: 'event', data: ev },
@@ -250,6 +252,13 @@
 	$effect(() => { ecOptions.events = ecEvents; });
 
 	// ── EC options ────────────────────────────────────────────────────────────
+	function timeGridEventContent({ event }: any) {
+		const h4 = document.createElement('h4');
+		h4.className = 'ec-event-title';
+		h4.textContent = event.title;
+		return { domNodes: [h4] };
+	}
+
 	let ecOptions = $state<Record<string, unknown>>({
 		view: 'dayGridMonth',
 		date: today,
@@ -262,6 +271,10 @@
 		firstDay: 1,
 		dayMaxEvents: true,
 		events: [],
+		views: {
+			timeGridWeek: { eventContent: timeGridEventContent },
+			timeGridDay: { eventContent: timeGridEventContent },
+		},
 		datesSet: ({ view }: any) => {
 			periodLabel = view.title;
 			viewStart    = view.activeStart;
@@ -490,6 +503,11 @@
 								<span class="text-xs text-muted-foreground tabular-nums w-12 shrink-0 text-right">
 									{ev.all_day ? 'All day' : fmtTime(ev.start_at)}
 								</span>
+								{#if ev.type === 'birthday'}
+									<Cake class="w-3.5 h-3.5 text-pink-500 shrink-0" />
+								{:else if ev.icon}
+									<span class="text-sm shrink-0">{ev.icon}</span>
+								{/if}
 								<span class="text-sm font-medium flex-1 min-w-0 truncate">{ev.title}</span>
 								{#if ev.location}
 									<span class="text-xs text-muted-foreground truncate hidden sm:block max-w-32">{ev.location}</span>
