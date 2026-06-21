@@ -11,7 +11,7 @@ backend: db
 	cd backend && wgo run ./cmd/server
 
 web:
-	npm --prefix web run dev -- --host 0.0.0.0
+	LOCAL_IP=$$(ipconfig getifaddr en0) npm --prefix web run dev -- --host 0.0.0.0
 
 db:
 	docker compose --env-file .env up db -d
