@@ -33,11 +33,11 @@
 	}
 
 	const subNav = $derived(familyID ? [
-		{ label: 'Today',    href: `/families/${familyID}`,          icon: Sun },
-		{ label: 'Board',    href: `/families/${familyID}/board`,     icon: LayoutList },
-		{ label: 'Calendar', href: `/families/${familyID}/calendar`,  icon: CalendarDays },
-		{ label: 'Lists',    href: `/families/${familyID}/lists`,     icon: ListChecks },
-		{ label: 'Settings', href: `/families/${familyID}/settings`,  icon: Settings },
+		{ label: 'Today',    href: `/households/${familyID}`,          icon: Sun },
+		{ label: 'Board',    href: `/households/${familyID}/board`,     icon: LayoutList },
+		{ label: 'Calendar', href: `/households/${familyID}/calendar`,  icon: CalendarDays },
+		{ label: 'Lists',    href: `/households/${familyID}/lists`,     icon: ListChecks },
+		{ label: 'Settings', href: `/households/${familyID}/settings`,  icon: Settings },
 	] : []);
 </script>
 
@@ -71,7 +71,7 @@
 			<Popover.Content class="w-56 p-1 gap-0" align="start">
 				{#each families as family (family.id)}
 					<a
-						href="/families/{family.id}"
+						href="/households/{family.id}"
 						onclick={() => { switcherOpen = false; onclose?.(); }}
 						class="flex items-center gap-2 px-2 py-2 rounded-xl text-sm hover:bg-accent transition-colors w-full"
 					>
@@ -83,7 +83,7 @@
 					<div class="my-1 h-px bg-border"></div>
 				{/if}
 				<a
-					href="/families/new"
+					href="/households/new"
 					onclick={() => { switcherOpen = false; onclose?.(); }}
 					class="flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-accent transition-colors w-full text-muted-foreground"
 				>

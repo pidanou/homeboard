@@ -36,7 +36,7 @@
 	<div>
 		<div class="flex items-center justify-between mb-4">
 			<h2 class="text-xl font-semibold">Your households</h2>
-			<Button href="/families/new" size="sm">New household</Button>
+			<Button href="/households/new" size="sm">New household</Button>
 		</div>
 
 		{#if loading}
@@ -47,7 +47,7 @@
 			<ul class="flex flex-col gap-2">
 				{#each families as family (family.id)}
 					<li>
-						<a href="/families/{family.id}">
+						<a href="/households/{family.id}">
 							<Card class="hover:bg-muted/50 transition-colors cursor-pointer">
 								<CardHeader>
 									<CardTitle class="text-base">{family.name}</CardTitle>
