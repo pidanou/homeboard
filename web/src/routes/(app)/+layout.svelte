@@ -83,7 +83,8 @@
 		<!-- Main area -->
 		<div class="flex-1 flex flex-col min-w-0 md:ml-56">
 			<!-- Mobile top bar -->
-			<header class="md:hidden sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-sm px-4 h-14 flex items-center justify-between shrink-0">
+			<header class="md:hidden sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-sm px-4 safe-area-top flex flex-col shrink-0">
+				<div class="h-14 flex items-center justify-between w-full">
 				<span class="font-semibold text-base">{currentSection()}</span>
 				<div class="flex items-center gap-1">
 					{#if user}
@@ -98,6 +99,7 @@
 					>
 						<Menu class="w-5 h-5" />
 					</button>
+				</div>
 				</div>
 			</header>
 
