@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { env } from '$env/dynamic/public';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 
-	let url = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('api_url') ?? '') : '');
+	let url = $state(localStorage.getItem('api_url') ?? env.PUBLIC_API_URL ?? '');
 	let error = $state('');
 
 	function save() {

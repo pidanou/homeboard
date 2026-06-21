@@ -7,7 +7,7 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
 	import { currentUser, loadCurrentUser } from '$lib/stores/user';
-	import { Sun, LayoutList, CalendarDays, ListChecks, Settings } from 'lucide-svelte';
+	import { Sun, LayoutList, CalendarDays, ListChecks, Settings, ChevronDown } from 'lucide-svelte';
 
 	let { children } = $props();
 	let ready = $state(false);
@@ -80,7 +80,10 @@
 			<header class="md:hidden sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-sm px-4 safe-area-top flex flex-col shrink-0">
 				<div class="h-14 flex items-center justify-between w-full">
 					{#if householdName}
-						<a href="/" class="font-semibold text-base truncate max-w-[65%] hover:opacity-70 transition-opacity">{householdName}</a>
+						<a href="/" class="flex items-center gap-1 font-semibold text-base truncate max-w-[65%] hover:opacity-70 transition-opacity">
+						<span class="truncate">{householdName}</span>
+						<ChevronDown class="w-4 h-4 shrink-0 text-muted-foreground" />
+					</a>
 					{:else}
 						<span class="font-semibold text-base">{currentSection()}</span>
 					{/if}
