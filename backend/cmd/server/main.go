@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -84,7 +85,14 @@ func main() {
 	listHandler := handler.NewListHandler(listService, hub)
 	sseHandler := handler.NewSSEHandler(hub, os.Getenv("JWT_SECRET"))
 
-	allowedOrigins := []string{"http://localhost:5173", "https://*.ngrok-free.app", "https://*.ngrok.io"}
+	allowedOrigins := []string{"http://localhost:5173"}
+	if extra := os.Getenv("CORS_ALLOWED_ORIGINS"); extra != "" {
+		for _, o := range strings.Split(extra, ",") {
+			if o = strings.TrimSpace(o); o != "" {
+				allowedOrigins = append(allowedOrigins, o)
+			}
+		}
+	}
 	if origin := os.Getenv("APP_BASE_URL"); origin != "" {
 		allowedOrigins = append(allowedOrigins, origin)
 	}
