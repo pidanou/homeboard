@@ -14,10 +14,10 @@ import (
 
 type InviteService struct {
 	invites  repository.InviteRepository
-	families repository.FamilyRepository
+	families repository.HouseholdRepository
 }
 
-func NewInviteService(invites repository.InviteRepository, families repository.FamilyRepository) *InviteService {
+func NewInviteService(invites repository.InviteRepository, families repository.HouseholdRepository) *InviteService {
 	return &InviteService{invites: invites, families: families}
 }
 
@@ -61,7 +61,7 @@ func (s *InviteService) Accept(ctx context.Context, token, userID string) (*Acce
 		return nil, errors.New("invite expired")
 	}
 
-	member := &model.FamilyMember{
+	member := &model.HouseholdMember{
 		FamilyID: invite.FamilyID,
 		UserID:   userID,
 		Role:     "member",

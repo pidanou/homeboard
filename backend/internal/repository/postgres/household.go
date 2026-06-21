@@ -8,15 +8,15 @@ import (
 	"github.com/pidanou/family-board/internal/model"
 )
 
-type FamilyRepository struct {
+type HouseholdRepository struct {
 	pool *pgxpool.Pool
 }
 
-func NewFamilyRepository(pool *pgxpool.Pool) *FamilyRepository {
-	return &FamilyRepository{pool: pool}
+func NewHouseholdRepository(pool *pgxpool.Pool) *HouseholdRepository {
+	return &HouseholdRepository{pool: pool}
 }
 
-func (r *FamilyRepository) Create(ctx context.Context, family *model.Family) error {
+func (r *HouseholdRepository) Create(ctx context.Context, family *model.Household) error {
 	_, err := r.pool.Exec(ctx,
 		`INSERT INTO households (id, name, created_at) VALUES ($1, $2, $3)`,
 		family.ID, family.Name, family.CreatedAt,
@@ -24,8 +24,8 @@ func (r *FamilyRepository) Create(ctx context.Context, family *model.Family) err
 	return err
 }
 
-func (r *FamilyRepository) GetByID(ctx context.Context, id string) (*model.Family, error) {
-	family := &model.Family{}
+func (r *HouseholdRepository) GetByID(ctx context.Context, id string) (*model.Household, error) {
+	family := &model.Household{}
 	err := r.pool.QueryRow(ctx,
 		`SELECT id, name, created_at FROM households WHERE id = $1`,
 		id,
@@ -36,7 +36,7 @@ func (r *FamilyRepository) GetByID(ctx context.Context, id string) (*model.Famil
 	return family, nil
 }
 
-func (r *FamilyRepository) AddMember(ctx context.Context, member *model.FamilyMember) error {
+func (r *HouseholdRepository) AddMember(ctx context.Context, member *model.HouseholdMember) error {
 	_, err := r.pool.Exec(ctx,
 		`INSERT INTO household_members (family_id, user_id, role, joined_at)
 		 VALUES ($1, $2, $3, $4)
@@ -46,7 +46,7 @@ func (r *FamilyRepository) AddMember(ctx context.Context, member *model.FamilyMe
 	return err
 }
 
-func (r *FamilyRepository) GetMembers(ctx context.Context, familyID string) ([]*model.FamilyMember, error) {
+func (r *HouseholdRepository) GetMembers(ctx context.Context, familyID string) ([]*model.HouseholdMember, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT fm.family_id, fm.user_id, u.name, u.email, fm.role, fm.joined_at
 		 FROM household_members fm JOIN users u ON u.id = fm.user_id
@@ -58,9 +58,9 @@ func (r *FamilyRepository) GetMembers(ctx context.Context, familyID string) ([]*
 	}
 	defer rows.Close()
 
-	var members []*model.FamilyMember
+	var members []*model.HouseholdMember
 	for rows.Next() {
-		m := &model.FamilyMember{}
+		m := &model.HouseholdMember{}
 		if err := rows.Scan(&m.FamilyID, &m.UserID, &m.Name, &m.Email, &m.Role, &m.JoinedAt); err != nil {
 			return nil, err
 		}
@@ -69,7 +69,7 @@ func (r *FamilyRepository) GetMembers(ctx context.Context, familyID string) ([]*
 	return members, rows.Err()
 }
 
-func (r *FamilyRepository) CreateVirtualMember(ctx context.Context, m *model.VirtualMember) error {
+func (r *HouseholdRepository) CreateVirtualMember(ctx context.Context, m *model.VirtualMember) error {
 	_, err := r.pool.Exec(ctx,
 		`INSERT INTO virtual_members (id, family_id, name, created_at) VALUES ($1, $2, $3, $4)`,
 		m.ID, m.FamilyID, m.Name, m.CreatedAt,
@@ -77,7 +77,7 @@ func (r *FamilyRepository) CreateVirtualMember(ctx context.Context, m *model.Vir
 	return err
 }
 
-func (r *FamilyRepository) DeleteVirtualMember(ctx context.Context, id, familyID string) error {
+func (r *HouseholdRepository) DeleteVirtualMember(ctx context.Context, id, familyID string) error {
 	_, err := r.pool.Exec(ctx,
 		`DELETE FROM virtual_members WHERE id = $1 AND family_id = $2`,
 		id, familyID,
@@ -85,7 +85,7 @@ func (r *FamilyRepository) DeleteVirtualMember(ctx context.Context, id, familyID
 	return err
 }
 
-func (r *FamilyRepository) GetUnlinkedVirtualMembers(ctx context.Context, familyID string) ([]*model.VirtualMember, error) {
+func (r *HouseholdRepository) GetUnlinkedVirtualMembers(ctx context.Context, familyID string) ([]*model.VirtualMember, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT id, family_id, name, linked_user_id, created_at FROM virtual_members
 		 WHERE family_id = $1 AND linked_user_id IS NULL ORDER BY created_at`,
@@ -106,7 +106,7 @@ func (r *FamilyRepository) GetUnlinkedVirtualMembers(ctx context.Context, family
 	return members, rows.Err()
 }
 
-func (r *FamilyRepository) LinkVirtualMember(ctx context.Context, virtualID, familyID, userID string) error {
+func (r *HouseholdRepository) LinkVirtualMember(ctx context.Context, virtualID, familyID, userID string) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -135,7 +135,7 @@ func (r *FamilyRepository) LinkVirtualMember(ctx context.Context, virtualID, fam
 	return tx.Commit(ctx)
 }
 
-func (r *FamilyRepository) GetMemberRole(ctx context.Context, userID, familyID string) (string, error) {
+func (r *HouseholdRepository) GetMemberRole(ctx context.Context, userID, familyID string) (string, error) {
 	var role string
 	err := r.pool.QueryRow(ctx,
 		`SELECT role FROM household_members WHERE user_id = $1 AND family_id = $2`,
@@ -144,7 +144,7 @@ func (r *FamilyRepository) GetMemberRole(ctx context.Context, userID, familyID s
 	return role, err
 }
 
-func (r *FamilyRepository) UpdateMemberRole(ctx context.Context, userID, familyID, role string) error {
+func (r *HouseholdRepository) UpdateMemberRole(ctx context.Context, userID, familyID, role string) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE household_members SET role = $1 WHERE user_id = $2 AND family_id = $3`,
 		role, userID, familyID,
@@ -152,7 +152,7 @@ func (r *FamilyRepository) UpdateMemberRole(ctx context.Context, userID, familyI
 	return err
 }
 
-func (r *FamilyRepository) CountAdmins(ctx context.Context, familyID string) (int, error) {
+func (r *HouseholdRepository) CountAdmins(ctx context.Context, familyID string) (int, error) {
 	var count int
 	err := r.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM household_members WHERE family_id = $1 AND role = 'admin'`,
@@ -161,7 +161,7 @@ func (r *FamilyRepository) CountAdmins(ctx context.Context, familyID string) (in
 	return count, err
 }
 
-func (r *FamilyRepository) RemoveMember(ctx context.Context, userID, familyID string) error {
+func (r *HouseholdRepository) RemoveMember(ctx context.Context, userID, familyID string) error {
 	_, err := r.pool.Exec(ctx,
 		`DELETE FROM household_members WHERE user_id = $1 AND family_id = $2`,
 		userID, familyID,
@@ -169,7 +169,7 @@ func (r *FamilyRepository) RemoveMember(ctx context.Context, userID, familyID st
 	return err
 }
 
-func (r *FamilyRepository) GetFamiliesByUserID(ctx context.Context, userID string) ([]*model.Family, error) {
+func (r *HouseholdRepository) GetHouseholdsByUserID(ctx context.Context, userID string) ([]*model.Household, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT f.id, f.name, f.created_at
 		 FROM households f
@@ -182,9 +182,9 @@ func (r *FamilyRepository) GetFamiliesByUserID(ctx context.Context, userID strin
 	}
 	defer rows.Close()
 
-	families := make([]*model.Family, 0)
+	families := make([]*model.Household, 0)
 	for rows.Next() {
-		f := &model.Family{}
+		f := &model.Household{}
 		if err := rows.Scan(&f.ID, &f.Name, &f.CreatedAt); err != nil {
 			return nil, err
 		}

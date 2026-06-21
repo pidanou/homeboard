@@ -14,7 +14,7 @@ type contextKey string
 
 const ContextKeyUserID contextKey = "userID"
 
-func requireAdmin(r *http.Request, familyID string, families *service.FamilyService) error {
+func requireAdmin(r *http.Request, familyID string, families *service.HouseholdService) error {
 	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
 	if !ok || callerID == "" {
 		return fmt.Errorf("unauthorized")

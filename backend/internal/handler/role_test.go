@@ -45,23 +45,23 @@ func newTestEnv(t *testing.T) *testEnv {
 		t.Fatalf("connect db: %v", err)
 	}
 
-	familyRepo := pgRepo.NewFamilyRepository(pool)
+	householdRepo := pgRepo.NewHouseholdRepository(pool)
 	inviteRepo := pgRepo.NewInviteRepository(pool)
 	labelRepo := pgRepo.NewCategoryRepository(pool)
 
-	familySvc := service.NewFamilyService(familyRepo)
-	inviteSvc := service.NewInviteService(inviteRepo, familyRepo)
+	householdSvc := service.NewHouseholdService(householdRepo)
+	inviteSvc := service.NewInviteService(inviteRepo, householdRepo)
 	labelSvc := service.NewCategoryService(labelRepo)
 	hub := handler.NewHub()
 
-	familyH := handler.NewFamilyHandler(familySvc)
-	inviteH := handler.NewInviteHandler(inviteSvc, familySvc, testJWTSecret)
-	labelH := handler.NewCategoryHandler(labelSvc, familySvc, hub)
+	householdH := handler.NewHouseholdHandler(householdSvc)
+	inviteH := handler.NewInviteHandler(inviteSvc, householdSvc, testJWTSecret)
+	labelH := handler.NewCategoryHandler(labelSvc, householdSvc, hub)
 
 	r := chi.NewRouter()
 	r.Group(func(r chi.Router) {
 		r.Use(handler.AuthMiddleware(testJWTSecret))
-		r.Mount("/families", familyH.Routes())
+		r.Mount("/families", householdH.Routes())
 		r.Route("/households/{familyID}/invites", func(r chi.Router) {
 			r.Mount("/", inviteH.Routes())
 		})
@@ -190,7 +190,7 @@ func TestUpdateRole(t *testing.T) {
 	url := fmt.Sprintf("/households/%s/members/%s/role", familyID, memberID)
 
 	t.Run("member cannot change role", func(t *testing.T) {
-		resp := e.do("PUT", url, e.token(memberID), model.FamilyMember{Role: "admin"})
+		resp := e.do("PUT", url, e.token(memberID), model.HouseholdMember{Role: "admin"})
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Errorf("want 400, got %d", resp.StatusCode)
 		}

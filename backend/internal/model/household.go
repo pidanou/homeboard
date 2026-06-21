@@ -2,13 +2,13 @@ package model
 
 import "time"
 
-type Family struct {
+type Household struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
-type FamilyMember struct {
+type HouseholdMember struct {
 	FamilyID string    `json:"family_id"`
 	UserID   string    `json:"user_id"`
 	Name     string    `json:"name"`

@@ -10,11 +10,11 @@ import (
 
 type InviteHandler struct {
 	invites   *service.InviteService
-	families  *service.FamilyService
+	families  *service.HouseholdService
 	jwtSecret string
 }
 
-func NewInviteHandler(invites *service.InviteService, families *service.FamilyService, jwtSecret string) *InviteHandler {
+func NewInviteHandler(invites *service.InviteService, families *service.HouseholdService, jwtSecret string) *InviteHandler {
 	return &InviteHandler{invites: invites, families: families, jwtSecret: jwtSecret}
 }
 
