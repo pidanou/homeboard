@@ -203,6 +203,23 @@ One focused sweep to reconcile the full UI against `docs/specs/design.md`.
 
 ---
 
+## M17 — Roles, birthday events, and emoji icons ✅
+
+- ✅ Role model: `admin` | `member` on `family_members`; last-admin protection
+- ✅ Kick member: `DELETE /families/{id}/members/{memberID}` (admin only)
+- ✅ Role management: `PUT /families/{id}/members/{memberID}/role` (admin only)
+- ✅ Admin-only gates on category mutations and virtual member management
+- ✅ Single invite link: generating a new one atomically revokes the previous
+- ✅ Settings page redesigned: role badges, role toggle, inline category rename/color, invite section
+- ✅ Integration tests for all role enforcement endpoints (`role_test.go`)
+- ✅ Capacitor adapter-static config (`vite.config.ts`)
+- ✅ Birthday event type: `type TEXT NOT NULL DEFAULT 'default'` on events (migration 000017); `birthday` events auto-set `all_day=true`, `recurrence_rule=FREQ=YEARLY`; cake icon (🎂) in all calendar views
+- ✅ Emoji icons on tasks and events: `icon TEXT` column (migration 000018); IconPicker component (40 emojis); picker in create/edit dialogs; icons displayed in all list and calendar views
+- ✅ Calendar date prefill: clicking a day pre-fills task/birthday due date; drag-select pre-fills event date range and times
+- ✅ Week/day views: removed redundant time label from event tiles (position on time axis conveys time)
+
+---
+
 ## Deferred / no milestone yet
 
 These are captured in spec out-of-scope tables. Promote to a milestone when prioritised.
@@ -210,12 +227,14 @@ These are captured in spec out-of-scope tables. Promote to a milestone when prio
 | Feature | Spec reference |
 |---|---|
 | ~~Recurring events~~ | ✅ M16 |
+| ~~Role management~~ | ✅ M17 |
+| ~~Birthday reminders~~ | ✅ M17 |
+| ~~Emoji icons on tasks/events~~ | ✅ M17 |
+| ~~Inline list rename~~ | ✅ done |
 | External calendar sync (iCal, Google, CalDAV) | `calendar.md` |
 | Push notifications | `calendar.md`, `app.md` |
 | Search / full-text filter | `board.md` |
 | Bulk actions (select multiple, bulk delete/assign) | `board.md` |
-| Inline item rename (lists) | `lists.md` |
-| Inline list rename | `lists.md` |
 | Subtasks | `board.md` |
 | List item categories / aisle grouping | `lists.md` |
 | Activity feed / audit log | `app.md` |
