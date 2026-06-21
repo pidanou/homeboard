@@ -39,4 +39,7 @@
 	<p class="text-sm text-center text-muted-foreground">
 		No account? <a href="/register" class="text-primary underline-offset-4 hover:underline">Register</a>
 	</p>
+	<p class="text-sm text-center text-muted-foreground">
+		<a href="/setup" class="text-muted-foreground underline-offset-4 hover:underline">Change server</a>
+	</p>
 </form>
