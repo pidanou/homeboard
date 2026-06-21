@@ -122,9 +122,9 @@
 					start_at: calDateTimeToISO(efEventRange.start, efStartTime, ef.allDay),
 					end_at: calDateTimeToISO(efEnd, efEndTime, ef.allDay),
 					all_day: ef.allDay, attendee_ids: ef.attendeeIDs, category_id: efCategoryID,
-					recurrence_rule: efRepeat !== 'none' ? RRULE[efRepeat] : null,
+					recurrence_rule: efBirthdayOf?.trim() ? RRULE['yearly'] : (efRepeat !== 'none' ? RRULE[efRepeat] : null),
 					icon: efIcon ?? null,
-					birthday_of: efBirthdayOf ?? null,
+					birthday_of: efBirthdayOf?.trim() || null,
 				});
 			}
 			onSaved();
@@ -271,6 +271,10 @@
 					<div class="flex flex-col gap-1.5">
 						<Label for="ef-location">Location</Label>
 						<Input id="ef-location" bind:value={ef.location} placeholder="Optional location…" />
+					</div>
+					<div class="flex flex-col gap-1.5">
+						<Label for="ef-birthday-of">Birthday of</Label>
+						<Input id="ef-birthday-of" bind:value={efBirthdayOf} placeholder="Name (sets yearly recurrence)" />
 					</div>
 					{#if members.length > 0}
 						<div class="flex flex-col gap-1.5">

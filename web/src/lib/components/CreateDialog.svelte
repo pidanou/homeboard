@@ -15,7 +15,7 @@
 	import { Select as SelectPrimitive } from 'bits-ui';
 	import type { DateRange } from 'bits-ui';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
-	import { CheckSquare, CalendarDays, Repeat, Cake } from 'lucide-svelte';
+	import { CheckSquare, CalendarDays, Repeat } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 	import IconPicker from '$lib/components/IconPicker.svelte';
 
@@ -27,7 +27,7 @@
 	} = $props();
 
 	let isOpen = $state(false);
-	let createType = $state<'task' | 'event' | 'birthday'>('task');
+	let createType = $state<'task' | 'event'>('task');
 	let cf = $state({
 		title: '', description: '', important: false,
 		allDay: false, location: '', assignedTo: '', attendeeIDs: [] as string[],
@@ -39,6 +39,7 @@
 	let cfEndTime = $state('10:00');
 	let cfEventPickerOpen = $state(false);
 	let cfCategoryID = $state<string | undefined>(undefined);
+	let cfBirthdayOf = $state('');
 	let cfRepeat = $state<'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'>('none');
 	let cfIcon = $state<string | undefined>(undefined);
 
@@ -56,7 +57,7 @@
 		return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 	}
 
-	export function open(t: 'task' | 'event' | 'birthday' = 'task', start?: Date, end?: Date, allDay = false) {
+	export function open(t: 'task' | 'event' = 'task', start?: Date, end?: Date, allDay = false) {
 		createType = t;
 		cf = { title: '', description: '', important: false, allDay, location: '', assignedTo: '', attendeeIDs: [] };
 		const cd = start ? toCalDate(start) : undefined;
@@ -65,6 +66,7 @@
 		cfStartTime = start && !allDay ? formatTime(start) : '09:00';
 		cfEndTime = end && !allDay ? formatTime(end) : '10:00';
 		cfCategoryID = undefined;
+		cfBirthdayOf = '';
 		cfRepeat = 'none';
 		cfIcon = undefined;
 		isOpen = true;
@@ -87,34 +89,22 @@
 					category_id: cfCategoryID,
 					icon: cfIcon,
 				});
-			} else if (createType === 'birthday') {
-				if (!cfDueDate || !cf.title.trim()) return;
-				await api.post(`/api/v1/households/${familyID}/events`, {
-					title: `${cf.title.trim()}'s Birthday`,
-					description: cf.description,
-					start_at: calDateTimeToISO(cfDueDate, '00:00', true),
-					end_at: calDateTimeToISO(cfDueDate, '00:00', true),
-					all_day: true,
-					attendee_ids: [],
-					category_id: cfCategoryID,
-					recurrence_rule: RRULE['yearly'],
-					type: 'birthday',
-					birthday_of: cf.title.trim(),
-				});
 			} else {
 				if (!cfEventRange.start) return;
 				const cfEnd = cfEventRange.end ?? cfEventRange.start;
+				const isBirthday = cfBirthdayOf.trim() !== '';
 				await api.post(`/api/v1/households/${familyID}/events`, {
 					title: cf.title.trim(),
 					description: cf.description,
 					location: cf.location,
-					start_at: calDateTimeToISO(cfEventRange.start, cfStartTime, cf.allDay),
-					end_at: calDateTimeToISO(cfEnd, cfEndTime, cf.allDay),
-					all_day: cf.allDay,
+					start_at: calDateTimeToISO(cfEventRange.start, cfStartTime, cf.allDay || isBirthday),
+					end_at: calDateTimeToISO(cfEnd, cfEndTime, cf.allDay || isBirthday),
+					all_day: cf.allDay || isBirthday,
 					attendee_ids: cf.attendeeIDs,
 					category_id: cfCategoryID,
-					recurrence_rule: cfRepeat !== 'none' ? RRULE[cfRepeat] : undefined,
+					recurrence_rule: isBirthday ? RRULE['yearly'] : (cfRepeat !== 'none' ? RRULE[cfRepeat] : undefined),
 					icon: cfIcon,
+					birthday_of: isBirthday ? cfBirthdayOf.trim() : undefined,
 				});
 			}
 			isOpen = false;
@@ -147,13 +137,6 @@
 					>
 						<CalendarDays class="w-5 h-5" />Event
 					</button>
-					<button
-						class="flex-1 flex flex-col items-center gap-1.5 rounded-lg border-2 py-3 text-sm font-medium transition-colors cursor-pointer
-							{createType === 'birthday' ? 'border-pink-500 bg-pink-500/5 text-pink-600 dark:text-pink-400' : 'border-border text-muted-foreground hover:border-muted-foreground'}"
-						onclick={() => (createType = 'birthday')}
-					>
-						<Cake class="w-5 h-5" />Birthday
-					</button>
 				</div>
 
 				<div class="flex flex-col gap-1.5">
@@ -169,22 +152,7 @@
 					<Textarea id="cf-desc" bind:value={cf.description} placeholder="Optional details…" rows={2} />
 				</div>
 
-				{#if createType === 'birthday'}
-					<div class="flex flex-col gap-1.5">
-						<Label>Date of birth</Label>
-						<Popover.Root bind:open={cfDueOpen}>
-							<Popover.Trigger>
-								<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
-									<Cake class="w-4 h-4 text-muted-foreground shrink-0" />
-									{cfDueDate ? fmtCalDate(cfDueDate) : 'Pick a date'}
-								</Button>
-							</Popover.Trigger>
-							<Popover.Content class="w-auto p-0" align="start">
-								<Calendar type="single" bind:value={cfDueDate} onValueChange={() => (cfDueOpen = false)} />
-							</Popover.Content>
-						</Popover.Root>
-					</div>
-				{:else if createType === 'task'}
+				{#if createType === 'task'}
 					<div class="flex gap-3">
 						<div class="flex flex-col gap-1.5 flex-1">
 							<label class="flex items-center gap-2 text-sm cursor-pointer mt-5">
@@ -277,6 +245,10 @@
 						<Label for="cf-location">Location</Label>
 						<Input id="cf-location" bind:value={cf.location} placeholder="Optional location…" />
 					</div>
+					<div class="flex flex-col gap-1.5">
+						<Label for="cf-birthday-of">Birthday of</Label>
+						<Input id="cf-birthday-of" bind:value={cfBirthdayOf} placeholder="Name (sets yearly recurrence)" />
+					</div>
 					{#if members.length > 0}
 						<div class="flex flex-col gap-1.5">
 							<Label>Members</Label>
@@ -303,7 +275,7 @@
 
 			<Dialog.Footer class="gap-2">
 				<Button variant="outline" onclick={() => (isOpen = false)}>Cancel</Button>
-				<Button onclick={submit} disabled={!cf.title.trim() || (createType === 'event' && !cfEventRange.start) || (createType === 'birthday' && !cfDueDate)}>
+				<Button onclick={submit} disabled={!cf.title.trim() || (createType === 'event' && !cfEventRange.start)}>
 					Create
 				</Button>
 			</Dialog.Footer>

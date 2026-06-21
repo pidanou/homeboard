@@ -5,7 +5,7 @@
 	import { Calendar, DayGrid, TimeGrid, Interaction } from '@event-calendar/core';
 	import { api, sseUrl } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
-	import { X, CalendarDays, Cake } from 'lucide-svelte';
+	import { X, CalendarDays } from 'lucide-svelte';
 	import type { CalEvent, Task, Member, AppCategory } from '$lib/types';
 	import { dotClass, CATEGORY_HEX } from '$lib/categories';
 	import { fmtTime } from '$lib/dates';
@@ -195,7 +195,7 @@
 
 	// ── Dialogs ───────────────────────────────────────────────────────────────
 	let editDialog: { openTask: (t: Task) => void; openEvent: (e: CalEvent) => void } | undefined = $state();
-	let createDialog: { open: (t?: 'task' | 'event' | 'birthday', start?: Date, end?: Date, allDay?: boolean) => void } | undefined = $state();
+	let createDialog: { open: (t?: 'task' | 'event', start?: Date, end?: Date, allDay?: boolean) => void } | undefined = $state();
 
 	// ── Header height (for dynamic calendar height) ───────────────────────────
 	let headerEl = $state<HTMLElement | null>(null);
@@ -226,8 +226,8 @@
 		});
 		return [
 			...filteredEvents.map(ev => {
-				const hex = ev.type === 'birthday' ? '#ec4899' : categoryHex(ev.category_id);
-				const prefix = ev.type === 'birthday' ? '🎂' : (ev.icon ?? '');
+				const hex = ev.birthday_of ? '#ec4899' : categoryHex(ev.category_id);
+				const prefix = ev.birthday_of ? '🎂' : (ev.icon ?? '');
 				const title = prefix ? prefix + ' ' + ev.title : ev.title;
 				return {
 					id: ev.id, title, start: ev.start_at, end: ev.end_at, allDay: ev.all_day,
@@ -508,8 +508,8 @@
 								<span class="text-xs text-muted-foreground tabular-nums w-12 shrink-0 text-right">
 									{ev.all_day ? 'All day' : fmtTime(ev.start_at)}
 								</span>
-								{#if ev.type === 'birthday'}
-									<Cake class="w-3.5 h-3.5 text-pink-500 shrink-0" />
+								{#if ev.birthday_of}
+									<span class="text-sm shrink-0">🎂</span>
 								{:else if ev.icon}
 									<span class="text-sm shrink-0">{ev.icon}</span>
 								{/if}
