@@ -15,8 +15,9 @@
 	import { Select as SelectPrimitive } from 'bits-ui';
 	import type { DateRange } from 'bits-ui';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
-	import { CheckSquare, CalendarDays, Repeat } from 'lucide-svelte';
+	import { CheckSquare, CalendarDays, Repeat, Cake } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
+	import IconPicker from '$lib/components/IconPicker.svelte';
 
 	let { familyID, members, categories, onCreated }: {
 		familyID: string;
@@ -26,7 +27,7 @@
 	} = $props();
 
 	let isOpen = $state(false);
-	let createType = $state<'task' | 'event'>('task');
+	let createType = $state<'task' | 'event' | 'birthday'>('task');
 	let cf = $state({
 		title: '', description: '', important: false,
 		allDay: false, location: '', assignedTo: '', attendeeIDs: [] as string[],
@@ -39,6 +40,7 @@
 	let cfEventPickerOpen = $state(false);
 	let cfCategoryID = $state<string | undefined>(undefined);
 	let cfRepeat = $state<'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'>('none');
+	let cfIcon = $state<string | undefined>(undefined);
 
 	const RRULE: Record<string, string> = {
 		daily: 'FREQ=DAILY',
@@ -47,7 +49,7 @@
 		yearly: 'FREQ=YEARLY',
 	};
 
-	export function open(t: 'task' | 'event' = 'task') {
+	export function open(t: 'task' | 'event' | 'birthday' = 'task') {
 		createType = t;
 		cf = { title: '', description: '', important: false, allDay: false, location: '', assignedTo: '', attendeeIDs: [] };
 		cfDueDate = undefined;
@@ -56,6 +58,7 @@
 		cfEndTime = '10:00';
 		cfCategoryID = undefined;
 		cfRepeat = 'none';
+		cfIcon = undefined;
 		isOpen = true;
 	}
 
@@ -74,6 +77,20 @@
 					assigned_to: cf.assignedTo || undefined,
 					end_date: cfDueDate ? calDateToISO(cfDueDate) : undefined,
 					category_id: cfCategoryID,
+					icon: cfIcon,
+				});
+			} else if (createType === 'birthday') {
+				if (!cfDueDate) return;
+				await api.post(`/api/v1/families/${familyID}/events`, {
+					title: cf.title.trim(),
+					description: cf.description,
+					start_at: calDateTimeToISO(cfDueDate, '00:00', true),
+					end_at: calDateTimeToISO(cfDueDate, '00:00', true),
+					all_day: true,
+					attendee_ids: [],
+					category_id: cfCategoryID,
+					recurrence_rule: RRULE['yearly'],
+					type: 'birthday',
 				});
 			} else {
 				if (!cfEventRange.start) return;
@@ -88,6 +105,7 @@
 					attendee_ids: cf.attendeeIDs,
 					category_id: cfCategoryID,
 					recurrence_rule: cfRepeat !== 'none' ? RRULE[cfRepeat] : undefined,
+					icon: cfIcon,
 				});
 			}
 			isOpen = false;
@@ -120,11 +138,21 @@
 					>
 						<CalendarDays class="w-5 h-5" />Event
 					</button>
+					<button
+						class="flex-1 flex flex-col items-center gap-1.5 rounded-lg border-2 py-3 text-sm font-medium transition-colors cursor-pointer
+							{createType === 'birthday' ? 'border-pink-500 bg-pink-500/5 text-pink-600 dark:text-pink-400' : 'border-border text-muted-foreground hover:border-muted-foreground'}"
+						onclick={() => (createType = 'birthday')}
+					>
+						<Cake class="w-5 h-5" />Birthday
+					</button>
 				</div>
 
 				<div class="flex flex-col gap-1.5">
 					<Label for="cf-title">Title</Label>
-					<Input id="cf-title" bind:value={cf.title} placeholder={createType === 'task' ? 'Buy groceries…' : 'Team dinner…'} />
+					<div class="flex gap-2">
+						<IconPicker bind:value={cfIcon} />
+						<Input id="cf-title" bind:value={cf.title} placeholder={createType === 'task' ? 'Buy groceries…' : 'Team dinner…'} class="flex-1" />
+					</div>
 				</div>
 
 				<div class="flex flex-col gap-1.5">
@@ -132,7 +160,22 @@
 					<Textarea id="cf-desc" bind:value={cf.description} placeholder="Optional details…" rows={2} />
 				</div>
 
-				{#if createType === 'task'}
+				{#if createType === 'birthday'}
+					<div class="flex flex-col gap-1.5">
+						<Label>Date of birth</Label>
+						<Popover.Root bind:open={cfDueOpen}>
+							<Popover.Trigger>
+								<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
+									<Cake class="w-4 h-4 text-muted-foreground shrink-0" />
+									{cfDueDate ? fmtCalDate(cfDueDate) : 'Pick a date'}
+								</Button>
+							</Popover.Trigger>
+							<Popover.Content class="w-auto p-0" align="start">
+								<Calendar type="single" bind:value={cfDueDate} onValueChange={() => (cfDueOpen = false)} />
+							</Popover.Content>
+						</Popover.Root>
+					</div>
+				{:else if createType === 'task'}
 					<div class="flex gap-3">
 						<div class="flex flex-col gap-1.5 flex-1">
 							<label class="flex items-center gap-2 text-sm cursor-pointer mt-5">
@@ -251,7 +294,7 @@
 
 			<Dialog.Footer class="gap-2">
 				<Button variant="outline" onclick={() => (isOpen = false)}>Cancel</Button>
-				<Button onclick={submit} disabled={!cf.title.trim() || (createType === 'event' && !cfEventRange.start)}>
+				<Button onclick={submit} disabled={!cf.title.trim() || (createType === 'event' && !cfEventRange.start) || (createType === 'birthday' && !cfDueDate)}>
 					Create
 				</Button>
 			</Dialog.Footer>
