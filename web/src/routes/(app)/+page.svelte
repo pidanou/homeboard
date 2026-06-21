@@ -35,14 +35,14 @@
 <div class="max-w-lg mx-auto flex flex-col gap-8">
 	<div>
 		<div class="flex items-center justify-between mb-4">
-			<h2 class="text-xl font-semibold">Your families</h2>
-			<Button href="/families/new" size="sm">New family</Button>
+			<h2 class="text-xl font-semibold">Your households</h2>
+			<Button href="/families/new" size="sm">New household</Button>
 		</div>
 
 		{#if loading}
 			<p class="text-sm text-muted-foreground">Loading…</p>
 		{:else if families.length === 0}
-			<p class="text-sm text-muted-foreground">No families yet. Create one or join with an invite link.</p>
+			<p class="text-sm text-muted-foreground">No households yet. Create one or join with an invite link.</p>
 		{:else}
 			<ul class="flex flex-col gap-2">
 				{#each families as family (family.id)}
