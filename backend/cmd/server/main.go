@@ -116,10 +116,9 @@ func main() {
 		r.Route("/households/{familyID}/stream", func(r chi.Router) {
 			r.Mount("/", sseHandler.Routes())
 		})
-		r.Handle("/uploads/avatars/*", http.StripPrefix("/api/v1/uploads/avatars/", http.FileServer(http.Dir(uploadDir+"/avatars"))))
-
 		r.Group(func(r chi.Router) {
 			r.Use(handler.AuthMiddleware(os.Getenv("JWT_SECRET")))
+			r.Handle("/uploads/avatars/*", http.StripPrefix("/api/v1/uploads/avatars/", http.FileServer(http.Dir(uploadDir+"/avatars"))))
 			r.Mount("/profile", profileHandler.Routes())
 			r.Mount("/households", householdHandler.Routes())
 			r.Route("/households/{familyID}/invites", func(r chi.Router) {

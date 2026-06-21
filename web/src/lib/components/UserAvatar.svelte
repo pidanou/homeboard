@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getBaseUrl } from '$lib/api/client';
+	import { onDestroy } from 'svelte';
 
 	let {
 		name,
@@ -24,6 +25,25 @@
 		}
 	})());
 
+	let blobUrl = $state<string | null>(null);
+	let prevFetched = '';
+
+	$effect(() => {
+		const url = resolvedUrl;
+		if (!url || url === prevFetched) return;
+		prevFetched = url;
+		const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+		fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+			.then(r => r.ok ? r.blob() : null)
+			.then(blob => {
+				if (blobUrl) URL.revokeObjectURL(blobUrl);
+				blobUrl = blob ? URL.createObjectURL(blob) : null;
+			})
+			.catch(() => { blobUrl = null; });
+	});
+
+	onDestroy(() => { if (blobUrl) URL.revokeObjectURL(blobUrl); });
+
 	const initials = $derived(() => {
 		const parts = name.trim().split(/\s+/);
 		if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? '?';
@@ -41,9 +61,9 @@
 	const bg = $derived(`hsl(${hue()}, 55%, 65%)`);
 </script>
 
-{#if resolvedUrl}
+{#if blobUrl}
 	<img
-		src={resolvedUrl}
+		src={blobUrl}
 		alt={name}
 		style="width:{size}px;height:{size}px"
 		class="rounded-full object-cover shrink-0 {className}"
