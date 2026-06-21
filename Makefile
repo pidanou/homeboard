@@ -21,13 +21,13 @@ prod:
 	docker compose --env-file .env up --build -d
 
 ios-dev:
-	@LOCAL_IP=$$(ipconfig getifaddr en0) && \
-	LIVE_RELOAD_URL="http://$$LOCAL_IP:5173" npx --prefix web cap sync ios && \
-	npm --prefix web run dev -- --host 0.0.0.0 &
-	npx --prefix web cap open ios
+	@cd web && LOCAL_IP=$$(ipconfig getifaddr en0) && \
+	LIVE_RELOAD_URL="http://$$LOCAL_IP:5173" npx cap sync ios && \
+	npm run dev -- --host 0.0.0.0 & \
+	npx cap open ios
 
 android-dev:
-	@LOCAL_IP=$$(ipconfig getifaddr en0) && \
-	LIVE_RELOAD_URL="http://$$LOCAL_IP:5173" npx --prefix web cap sync android && \
-	npm --prefix web run dev -- --host 0.0.0.0 &
-	npx --prefix web cap open android
+	@cd web && LOCAL_IP=$$(ipconfig getifaddr en0) && \
+	LIVE_RELOAD_URL="http://$$LOCAL_IP:5173" npx cap sync android && \
+	npm run dev -- --host 0.0.0.0 & \
+	npx cap open android
