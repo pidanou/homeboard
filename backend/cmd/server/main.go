@@ -48,7 +48,7 @@ func main() {
 
 	// Repositories
 	userRepo := postgres.NewUserRepository(pool)
-	familyRepo := postgres.NewFamilyRepository(pool)
+	householdRepo := postgres.NewHouseholdRepository(pool)
 	inviteRepo := postgres.NewInviteRepository(pool)
 	taskRepo := postgres.NewTaskRepository(pool)
 	eventRepo := postgres.NewEventRepository(pool)
@@ -57,8 +57,8 @@ func main() {
 
 	// Services
 	authService := service.NewAuthService(userRepo, os.Getenv("JWT_SECRET"))
-	familyService := service.NewFamilyService(familyRepo)
-	inviteService := service.NewInviteService(inviteRepo, familyRepo)
+	householdService := service.NewHouseholdService(householdRepo)
+	inviteService := service.NewInviteService(inviteRepo, householdRepo)
 	taskService := service.NewTaskService(taskRepo)
 	eventService := service.NewEventService(eventRepo)
 	labelService := service.NewCategoryService(labelRepo)
@@ -76,11 +76,11 @@ func main() {
 	// Handlers
 	authHandler := handler.NewAuthHandler(authService)
 	profileHandler := handler.NewProfileHandler(authService, uploadDir, appBaseURL)
-	familyHandler := handler.NewFamilyHandler(familyService)
-	inviteHandler := handler.NewInviteHandler(inviteService, familyService, os.Getenv("JWT_SECRET"))
+	householdHandler := handler.NewHouseholdHandler(householdService)
+	inviteHandler := handler.NewInviteHandler(inviteService, householdService, os.Getenv("JWT_SECRET"))
 	taskHandler := handler.NewTaskHandler(taskService, hub)
 	eventHandler := handler.NewEventHandler(eventService, hub)
-	labelHandler := handler.NewCategoryHandler(labelService, familyService, hub)
+	labelHandler := handler.NewCategoryHandler(labelService, householdService, hub)
 	listHandler := handler.NewListHandler(listService, hub)
 	sseHandler := handler.NewSSEHandler(hub, os.Getenv("JWT_SECRET"))
 
@@ -113,7 +113,7 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(handler.AuthMiddleware(os.Getenv("JWT_SECRET")))
 			r.Mount("/profile", profileHandler.Routes())
-			r.Mount("/households", familyHandler.Routes())
+			r.Mount("/households", householdHandler.Routes())
 			r.Route("/households/{familyID}/invites", func(r chi.Router) {
 				r.Mount("/", inviteHandler.Routes())
 			})

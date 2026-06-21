@@ -8,15 +8,15 @@ import (
 	"github.com/pidanou/family-board/internal/service"
 )
 
-type FamilyHandler struct {
-	families *service.FamilyService
+type HouseholdHandler struct {
+	families *service.HouseholdService
 }
 
-func NewFamilyHandler(families *service.FamilyService) *FamilyHandler {
-	return &FamilyHandler{families: families}
+func NewHouseholdHandler(families *service.HouseholdService) *HouseholdHandler {
+	return &HouseholdHandler{families: families}
 }
 
-func (h *FamilyHandler) Routes() http.Handler {
+func (h *HouseholdHandler) Routes() http.Handler {
 	r := chi.NewRouter()
 	r.Get("/", h.list)
 	r.Post("/", h.create)
@@ -31,7 +31,7 @@ func (h *FamilyHandler) Routes() http.Handler {
 	return r
 }
 
-func (h *FamilyHandler) list(w http.ResponseWriter, r *http.Request) {
+func (h *HouseholdHandler) list(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(ContextKeyUserID).(string)
 
 	families, err := h.families.ListForUser(r.Context(), userID)
@@ -44,7 +44,7 @@ func (h *FamilyHandler) list(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(families)
 }
 
-func (h *FamilyHandler) create(w http.ResponseWriter, r *http.Request) {
+func (h *HouseholdHandler) create(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(ContextKeyUserID).(string)
 
 	var body struct {
@@ -66,7 +66,7 @@ func (h *FamilyHandler) create(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(family)
 }
 
-func (h *FamilyHandler) get(w http.ResponseWriter, r *http.Request) {
+func (h *HouseholdHandler) get(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 
 	family, err := h.families.GetByID(r.Context(), familyID)
@@ -79,7 +79,7 @@ func (h *FamilyHandler) get(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(family)
 }
 
-func (h *FamilyHandler) members(w http.ResponseWriter, r *http.Request) {
+func (h *HouseholdHandler) members(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 
 	members, err := h.families.GetMembers(r.Context(), familyID)
@@ -92,7 +92,7 @@ func (h *FamilyHandler) members(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(members)
 }
 
-func (h *FamilyHandler) createVirtual(w http.ResponseWriter, r *http.Request) {
+func (h *HouseholdHandler) createVirtual(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
 	if !ok || callerID == "" {
@@ -116,7 +116,7 @@ func (h *FamilyHandler) createVirtual(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(m)
 }
 
-func (h *FamilyHandler) deleteVirtual(w http.ResponseWriter, r *http.Request) {
+func (h *HouseholdHandler) deleteVirtual(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	memberID := chi.URLParam(r, "memberID")
 	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
@@ -131,7 +131,7 @@ func (h *FamilyHandler) deleteVirtual(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *FamilyHandler) updateRole(w http.ResponseWriter, r *http.Request) {
+func (h *HouseholdHandler) updateRole(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	memberID := chi.URLParam(r, "memberID")
 	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
@@ -153,7 +153,7 @@ func (h *FamilyHandler) updateRole(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *FamilyHandler) unlinkedVirtual(w http.ResponseWriter, r *http.Request) {
+func (h *HouseholdHandler) unlinkedVirtual(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	members, err := h.families.GetUnlinkedVirtualMembers(r.Context(), familyID)
 	if err != nil {
@@ -164,7 +164,7 @@ func (h *FamilyHandler) unlinkedVirtual(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(members)
 }
 
-func (h *FamilyHandler) removeMember(w http.ResponseWriter, r *http.Request) {
+func (h *HouseholdHandler) removeMember(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	memberID := chi.URLParam(r, "memberID")
 	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
@@ -179,7 +179,7 @@ func (h *FamilyHandler) removeMember(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *FamilyHandler) linkVirtual(w http.ResponseWriter, r *http.Request) {
+func (h *HouseholdHandler) linkVirtual(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	memberID := chi.URLParam(r, "memberID")
 	userID, ok := r.Context().Value(ContextKeyUserID).(string)

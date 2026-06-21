@@ -10,11 +10,11 @@ import (
 
 type CategoryHandler struct {
 	categories *service.CategoryService
-	families   *service.FamilyService
+	families   *service.HouseholdService
 	hub        *Hub
 }
 
-func NewCategoryHandler(categories *service.CategoryService, families *service.FamilyService, hub *Hub) *CategoryHandler {
+func NewCategoryHandler(categories *service.CategoryService, families *service.HouseholdService, hub *Hub) *CategoryHandler {
 	return &CategoryHandler{categories: categories, families: families, hub: hub}
 }
 
