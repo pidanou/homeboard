@@ -1,7 +1,7 @@
 include .env
 export
 
-.PHONY: dev backend web db prod
+.PHONY: dev backend web db prod ios-dev
 
 dev: db
 	npm --prefix web run dev &
@@ -19,3 +19,9 @@ db:
 
 prod:
 	docker compose --env-file .env up --build -d
+
+ios-dev:
+	@LOCAL_IP=$$(ipconfig getifaddr en0) && \
+	LIVE_RELOAD_URL="http://$$LOCAL_IP:5173" npx --prefix web cap sync ios && \
+	npm --prefix web run dev -- --host 0.0.0.0 &
+	npx --prefix web cap open ios
