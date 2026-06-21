@@ -1,4 +1,4 @@
-package com.familyboard.app;
+package com.noudapi.homeboard;
 
 import com.getcapacitor.BridgeActivity;
 
