@@ -13,7 +13,7 @@
 		loading = true;
 		try {
 			const family = await api.post<{ id: string }>('/api/v1/households', { name });
-			goto(`/families/${family.id}`);
+			goto(`/households/${family.id}`);
 		} catch { } finally {
 			loading = false;
 		}

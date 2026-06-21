@@ -44,16 +44,16 @@
 	});
 
 	const mobileTabNav = $derived(familyID ? [
-		{ label: 'Today',    href: `/families/${familyID}`,           icon: Sun },
-		{ label: 'Board',    href: `/families/${familyID}/board`,     icon: LayoutList },
-		{ label: 'Calendar', href: `/families/${familyID}/calendar`,  icon: CalendarDays },
-		{ label: 'Lists',    href: `/families/${familyID}/lists`,     icon: ListChecks },
-		{ label: 'Settings', href: `/families/${familyID}/settings`,  icon: Settings },
+		{ label: 'Today',    href: `/households/${familyID}`,           icon: Sun },
+		{ label: 'Board',    href: `/households/${familyID}/board`,     icon: LayoutList },
+		{ label: 'Calendar', href: `/households/${familyID}/calendar`,  icon: CalendarDays },
+		{ label: 'Lists',    href: `/households/${familyID}/lists`,     icon: ListChecks },
+		{ label: 'Settings', href: `/households/${familyID}/settings`,  icon: Settings },
 	] : []);
 
 	const currentSection = $derived(() => {
 		if (!familyID) return currentPath === '/profile' ? 'Profile' : 'Family Board';
-		if (currentPath === `/families/${familyID}`) return 'Today';
+		if (currentPath === `/households/${familyID}`) return 'Today';
 		if (currentPath.endsWith('/board')) return 'Board';
 		if (currentPath.endsWith('/calendar')) return 'Calendar';
 		if (currentPath.endsWith('/lists')) return 'Lists';
