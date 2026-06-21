@@ -1,7 +1,7 @@
 include .env
 export
 
-.PHONY: dev backend web db prod ios-dev android-dev
+.PHONY: dev backend web db prod ios-dev android-dev ios-open android-open
 
 dev: db
 	npm --prefix web run dev &
@@ -11,7 +11,7 @@ backend: db
 	cd backend && wgo run ./cmd/server
 
 web:
-	npm --prefix web run dev
+	npm --prefix web run dev -- --host 0.0.0.0
 
 db:
 	docker compose --env-file .env up db -d
@@ -21,13 +21,13 @@ prod:
 	docker compose --env-file .env up --build -d
 
 ios-dev:
-	@cd web && LOCAL_IP=$$(ipconfig getifaddr en0) && \
-	LIVE_RELOAD_URL="http://$$LOCAL_IP:5173" npm exec -- cap sync ios && \
-	npm run dev -- --host 0.0.0.0 & \
-	npm exec -- cap open ios
+	cd web && LIVE_RELOAD_URL="http://$$(ipconfig getifaddr en0):5173" npm exec -- cap sync ios
 
 android-dev:
-	@cd web && LOCAL_IP=$$(ipconfig getifaddr en0) && \
-	LIVE_RELOAD_URL="http://$$LOCAL_IP:5173" npm exec -- cap sync android && \
-	npm run dev -- --host 0.0.0.0 & \
-	npm exec -- cap open android
+	cd web && LIVE_RELOAD_URL="http://$$(ipconfig getifaddr en0):5173" npm exec -- cap sync android
+
+ios-open:
+	cd web && npm exec -- cap open ios
+
+android-open:
+	cd web && npm exec -- cap open android
