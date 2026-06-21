@@ -22,12 +22,12 @@ prod:
 
 ios-dev:
 	@cd web && LOCAL_IP=$$(ipconfig getifaddr en0) && \
-	LIVE_RELOAD_URL="http://$$LOCAL_IP:5173" npx cap sync ios && \
+	LIVE_RELOAD_URL="http://$$LOCAL_IP:5173" node_modules/.bin/cap sync ios && \
 	npm run dev -- --host 0.0.0.0 & \
-	npx cap open ios
+	node_modules/.bin/cap open ios
 
 android-dev:
 	@cd web && LOCAL_IP=$$(ipconfig getifaddr en0) && \
-	LIVE_RELOAD_URL="http://$$LOCAL_IP:5173" npx cap sync android && \
+	LIVE_RELOAD_URL="http://$$LOCAL_IP:5173" node_modules/.bin/cap sync android && \
 	npm run dev -- --host 0.0.0.0 & \
-	npx cap open android
+	node_modules/.bin/cap open android
