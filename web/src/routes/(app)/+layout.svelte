@@ -3,26 +3,31 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { isLoggedIn } from '$lib/auth';
+	import { api } from '$lib/api/client';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
 	import { currentUser, loadCurrentUser } from '$lib/stores/user';
-	import { Menu, Sun, LayoutList, CalendarDays, ListChecks, Settings } from 'lucide-svelte';
+	import { Sun, LayoutList, CalendarDays, ListChecks, Settings } from 'lucide-svelte';
 
 	let { children } = $props();
 	let ready = $state(false);
-	let mobileMenuOpen = $state(false);
 	let offline = $state(false);
+	let householdName = $state<string | null>(null);
 
 	const familyID = $derived($page.params.id);
 	const currentPath = $derived($page.url.pathname);
 
-	// Close mobile menu on navigation
-	$effect(() => {
-		currentPath;
-		mobileMenuOpen = false;
-	});
-
 	const user = $derived($currentUser);
+
+	$effect(() => {
+		if (familyID) {
+			api.get<{ id: string; name: string }>(`/api/v1/households/${familyID}`)
+				.then(h => { householdName = h?.name ?? null; })
+				.catch(() => { householdName = null; });
+		} else {
+			householdName = null;
+		}
+	});
 
 	onMount(() => {
 		if (!isLoggedIn()) {
@@ -69,37 +74,21 @@
 			<Sidebar />
 		</aside>
 
-		<!-- Mobile sidebar overlay -->
-		{#if mobileMenuOpen}
-			<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-			<div class="fixed inset-0 z-40 md:hidden" onclick={() => mobileMenuOpen = false}>
-				<div class="absolute inset-0 bg-black/40"></div>
-				<aside aria-label="Main navigation" class="absolute left-0 top-0 bottom-0 w-64 bg-sidebar flex flex-col z-50" onclick={(e) => e.stopPropagation()}>
-					<Sidebar onclose={() => mobileMenuOpen = false} />
-				</aside>
-			</div>
-		{/if}
-
 		<!-- Main area -->
 		<div class="flex-1 flex flex-col min-w-0 md:ml-56">
 			<!-- Mobile top bar -->
 			<header class="md:hidden sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-sm px-4 safe-area-top flex flex-col shrink-0">
 				<div class="h-14 flex items-center justify-between w-full">
-				<span class="font-semibold text-base">{currentSection()}</span>
-				<div class="flex items-center gap-1">
+					{#if householdName}
+						<a href="/" class="font-semibold text-base truncate max-w-[65%] hover:opacity-70 transition-opacity">{householdName}</a>
+					{:else}
+						<span class="font-semibold text-base">{currentSection()}</span>
+					{/if}
 					{#if user}
-						<a href="/profile" class="p-1 rounded-full hover:opacity-80 transition-opacity" aria-label="My profile">
+						<a href="/profile" class="p-1 rounded-full hover:opacity-80 transition-opacity shrink-0" aria-label="My profile">
 							<UserAvatar name={user.name} avatarUrl={user.avatar_url} userId={user.id} size={32} />
 						</a>
 					{/if}
-					<button
-						onclick={() => mobileMenuOpen = !mobileMenuOpen}
-						class="p-2 rounded-lg hover:bg-muted transition-colors"
-						aria-label="Open menu"
-					>
-						<Menu class="w-5 h-5" />
-					</button>
-				</div>
 				</div>
 			</header>
 

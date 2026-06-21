@@ -9,7 +9,6 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
 	import { Camera, ChevronLeft } from 'lucide-svelte';
-	import { goto } from '$app/navigation';
 
 	let user = $derived($currentUser);
 
@@ -110,7 +109,7 @@
 <div class="max-w-lg mx-auto px-4 py-6">
 	<!-- Header -->
 	<div class="flex items-center gap-3 mb-6">
-		<button onclick={() => goto(-1 as never)} class="p-1 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
+		<button onclick={() => history.back()} class="p-1 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
 			<ChevronLeft class="w-5 h-5" />
 		</button>
 		<h1 class="text-lg font-semibold">My Profile</h1>
