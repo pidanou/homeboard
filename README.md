@@ -73,6 +73,25 @@ APP_BASE_URL=https://yourdomain.com
 
 ---
 
+## Installing on your phone
+
+Homeboard works as a PWA — no app store needed. Open the app URL in your browser and install it to your home screen.
+
+**iOS (Safari)**
+1. Open the app in **Safari** (other browsers don't support PWA install on iOS)
+2. Tap the **Share** button (box with arrow at the bottom)
+3. Scroll down and tap **Add to Home Screen**
+4. Confirm — the app icon appears on your home screen
+
+**Android (Chrome)**
+1. Open the app in **Chrome**
+2. Tap the **⋮ menu** → **Add to Home Screen** (or look for the install prompt in the address bar)
+3. Tap **Install**
+
+The app will open full-screen with no browser chrome, just like a native app.
+
+---
+
 ## Architecture
 
 ```
