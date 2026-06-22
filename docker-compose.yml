@@ -34,6 +34,16 @@ services:
     ports:
       - "8080:8080"
 
+  web:
+    build: ./web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      PUBLIC_API_URL: ${API_BASE_URL:-http://localhost:8080}
+    ports:
+      - "3000:3000"
+
 volumes:
   db_data:
   uploads_data:
