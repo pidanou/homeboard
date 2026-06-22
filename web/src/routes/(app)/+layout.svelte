@@ -68,7 +68,7 @@
 </script>
 
 {#if ready}
-	<div class="h-screen flex bg-background overflow-hidden">
+	<div class="h-dvh flex bg-background overflow-hidden">
 		<!-- Desktop sidebar (always visible md+) -->
 		<aside aria-label="Main navigation" class="hidden md:flex w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar fixed top-0 left-0 bottom-0 z-30">
 			<Sidebar />
