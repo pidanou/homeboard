@@ -1,8 +1,23 @@
-# Family Board
+# Homeboard
 
 A self-hostable family wall — shared calendar, tasks, and shopping lists for your household.
 
 **Live, real-time sync** across all devices. Install as a PWA or run as a native iOS/Android app via Capacitor.
+
+---
+
+<!--
+  Screenshots: drop images into docs/screenshots/ and they will render here.
+-->
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/today.png" alt="Today view" width="220"/><br/><sub>Today</sub></td>
+    <td align="center"><img src="docs/screenshots/calendar.png" alt="Calendar" width="220"/><br/><sub>Calendar</sub></td>
+    <td align="center"><img src="docs/screenshots/board.png" alt="Board" width="220"/><br/><sub>Board</sub></td>
+    <td align="center"><img src="docs/screenshots/lists.png" alt="Shopping lists" width="220"/><br/><sub>Lists</sub></td>
+  </tr>
+</table>
 
 ---
 
@@ -25,8 +40,8 @@ A self-hostable family wall — shared calendar, tasks, and shopping lists for y
 **Requirements:** Docker and Docker Compose.
 
 ```bash
-git clone https://github.com/your-username/family-board.git
-cd family-board
+git clone https://github.com/your-username/homeboard.git
+cd homeboard
 cp .env.example .env
 # Edit .env — set POSTGRES_PASSWORD and JWT_SECRET at minimum
 docker compose up -d
@@ -44,7 +59,7 @@ The app is now running at `http://localhost:3000`. The API is at `http://localho
 | `PUBLIC_API_URL` | ✅ | Same value — used by the frontend at runtime |
 | `APP_BASE_URL` | | Frontend URL — added to CORS allowed origins |
 | `CORS_ALLOWED_ORIGINS` | | Extra CORS origins, comma-separated, or `*` |
-| `UPLOAD_DIR` | | Directory for avatar uploads (defaults to a temp dir) |
+| `UPLOAD_DIR` | | Directory for avatar uploads (defaults to `./uploads`) |
 
 ### Reverse proxy
 
@@ -61,7 +76,7 @@ APP_BASE_URL=https://yourdomain.com
 ## Architecture
 
 ```
-family-board/
+homeboard/
 ├── backend/    # Go REST API (Postgres, custom JWT auth)
 ├── web/        # SvelteKit PWA + Capacitor (iOS/Android)
 └── docker-compose.yml
