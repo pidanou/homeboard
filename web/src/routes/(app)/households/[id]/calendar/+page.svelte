@@ -11,6 +11,7 @@
 	import { fmtTime } from '$lib/dates';
 	import EditDialog from '$lib/components/EditDialog.svelte';
 	import CreateDialog from '$lib/components/CreateDialog.svelte';
+	import UserAvatar from '$lib/components/UserAvatar.svelte';
 
 	function categoryHex(categoryID: string | undefined): string | null {
 		if (!categoryID) return null;
@@ -237,11 +238,11 @@
 				};
 			}),
 			...filteredTasks.map(t => {
-				const hex = categoryHex(t.category_id) ?? '#94a3b8';
+				const hex = categoryHex(t.category_id);
 				return {
-					id: `task-${t.id}`, title: t.title, start: t.end_date, end: t.end_date, allDay: true,
+					id: `task-${t.id}`, title: t.icon ? `${t.icon} ${t.title}` : t.title, start: t.end_date, end: t.end_date, allDay: true,
 					startEditable: true, durationEditable: false,
-					backgroundColor: hex + '18', borderColor: hex, textColor: 'var(--foreground)',
+					...(hex ? { backgroundColor: hex, borderColor: hex, textColor: '#fff' } : {}),
 					classNames: ['ec-task'],
 					extendedProps: { type: 'task', data: t },
 				};
@@ -447,9 +448,9 @@
 	{#if members.length > 0}
 		<span class="text-border text-xs hidden sm:block">|</span>
 		{#each members as m (m.user_id)}
-			<button onclick={() => toggleMember(m.user_id)} title={m.name} class="hidden sm:flex w-6 h-6 rounded-full text-[10px] font-semibold items-center justify-center transition-all cursor-pointer shrink-0
-				{filterMemberIDs.includes(m.user_id) ? 'bg-primary text-primary-foreground ring-1 ring-foreground' : someFilterActive ? 'bg-muted text-muted-foreground opacity-30' : 'bg-muted text-muted-foreground opacity-70 hover:opacity-100'}">
-				{initials(m.name)}
+			<button onclick={() => toggleMember(m.user_id)} title={m.name} class="hidden sm:flex rounded-full transition-all cursor-pointer shrink-0
+				{filterMemberIDs.includes(m.user_id) ? 'ring-2 ring-primary ring-offset-1 opacity-100' : someFilterActive ? 'opacity-30' : 'opacity-80 hover:opacity-100'}">
+				<UserAvatar name={m.name} avatarUrl={m.avatar_url} userId={m.user_id} size={24} />
 			</button>
 		{/each}
 	{/if}
@@ -546,6 +547,9 @@
 								<span class="w-12 shrink-0 flex justify-end">
 									<span class="w-3.5 h-3.5 rounded-sm border-2 border-muted-foreground/30 shrink-0"></span>
 								</span>
+								{#if task.icon}
+									<span class="text-sm shrink-0">{task.icon}</span>
+								{/if}
 								<span class="text-sm flex-1 min-w-0 truncate {task.important ? 'font-medium' : ''}">{task.title}</span>
 								{#if cat}
 									<span class="flex items-center gap-1 shrink-0">
@@ -597,7 +601,6 @@
 
 	:global(.ec-event.ec-task) {
 		border-width: 1px !important;
-		border-left-width: 4px !important;
 	}
 	:global(.ec-day-grid .ec-body .ec-day),
 	:global(.ec-time-grid .ec-body .ec-time) {
@@ -613,7 +616,7 @@
 		--ec-bg-color: var(--background);
 		--ec-text-color: var(--foreground);
 		--ec-border-color: var(--border);
-		--ec-event-bg-color: oklch(0.52 0.14 245);
+		--ec-event-bg-color: oklch(0.65 0.01 80);
 		--ec-event-text-color: #fff;
 		--ec-today-bg-color: color-mix(in oklch, var(--primary) 10%, var(--background));
 		--ec-highlight-color: color-mix(in oklch, var(--primary) 6%, var(--background));
@@ -637,5 +640,7 @@
 		--ec-today-bg-color: color-mix(in oklch, var(--primary) 15%, var(--background));
 		--ec-highlight-color: color-mix(in oklch, var(--primary) 8%, var(--background));
 		--ec-popup-bg-color: var(--popover);
+		--ec-event-bg-color: oklch(0.45 0.01 80);
+		--ec-event-text-color: #fff;
 	}
 </style>

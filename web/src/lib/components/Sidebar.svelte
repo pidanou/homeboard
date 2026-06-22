@@ -33,11 +33,11 @@
 	}
 
 	const subNav = $derived(familyID ? [
-		{ label: 'Today',    href: `/households/${familyID}`,          icon: Sun },
-		{ label: 'Board',    href: `/households/${familyID}/board`,     icon: LayoutList },
-		{ label: 'Calendar', href: `/households/${familyID}/calendar`,  icon: CalendarDays },
-		{ label: 'Lists',    href: `/households/${familyID}/lists`,     icon: ListChecks },
-		{ label: 'Settings', href: `/households/${familyID}/settings`,  icon: Settings },
+		{ label: 'Today',    href: `/households/${familyID}`,          icon: Sun,          color: 'var(--color-today)',    bg: 'var(--color-today-bg)' },
+		{ label: 'Board',    href: `/households/${familyID}/board`,     icon: LayoutList,   color: 'var(--color-tasks)',    bg: 'var(--color-tasks-bg)' },
+		{ label: 'Calendar', href: `/households/${familyID}/calendar`,  icon: CalendarDays, color: 'var(--color-calendar)', bg: 'var(--color-calendar-bg)' },
+		{ label: 'Lists',    href: `/households/${familyID}/lists`,     icon: ListChecks,   color: 'var(--color-lists)',    bg: 'var(--color-lists-bg)' },
+		{ label: 'Settings', href: `/households/${familyID}/settings`,  icon: Settings,     color: null,                   bg: null },
 	] : []);
 </script>
 
@@ -99,16 +99,22 @@
 		{#if subNav.length > 0}
 			{#each subNav as item (item.href)}
 				{@const Icon = item.icon}
+				{@const active = isActive(item.href)}
 				<a
 					href={item.href}
 					onclick={onclose}
-					aria-current={isActive(item.href) ? 'page' : undefined}
+					aria-current={active ? 'page' : undefined}
 					class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-colors
-						{isActive(item.href)
-							? 'bg-sidebar-primary text-sidebar-primary-foreground font-medium'
+						{active
+							? 'bg-sidebar-accent/40 text-sidebar-foreground font-medium'
 							: 'text-sidebar-foreground hover:bg-sidebar-accent/60'}"
 				>
-					<Icon class="w-4 h-4 shrink-0" />
+					<span
+						class="flex items-center justify-center w-7 h-7 rounded-lg shrink-0 transition-colors"
+						style={item.color ? `background-color: ${active ? item.color : item.bg}; color: ${active ? 'white' : item.color};` : 'opacity: 0.6;'}
+					>
+						<Icon class="w-4 h-4" />
+					</span>
 					{item.label}
 				</a>
 			{/each}

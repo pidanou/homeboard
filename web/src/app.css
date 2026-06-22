@@ -75,7 +75,7 @@
 	--chart-3: oklch(0.398 0.07 227.392);
 	--chart-4: oklch(0.828 0.189 84.429);
 	--chart-5: oklch(0.769 0.188 70.08);
-	--radius: 0.5rem;
+	--radius: 0.65rem;
 	--sidebar: oklch(0.95 0.008 80);
 	--sidebar-foreground: oklch(0.15 0.01 60);
 	--sidebar-primary: oklch(0.58 0.14 52);
@@ -84,6 +84,15 @@
 	--sidebar-accent-foreground: oklch(0.20 0.01 60);
 	--sidebar-border: oklch(0.88 0.008 80);
 	--sidebar-ring: oklch(0.58 0.14 52);
+	/* feature-area accent colors */
+	--color-today: oklch(0.58 0.14 52);
+	--color-today-bg: oklch(0.96 0.06 75);
+	--color-calendar: oklch(0.52 0.19 280);
+	--color-calendar-bg: oklch(0.95 0.05 290);
+	--color-tasks: oklch(0.50 0.16 160);
+	--color-tasks-bg: oklch(0.95 0.05 158);
+	--color-lists: oklch(0.56 0.22 15);
+	--color-lists-bg: oklch(0.96 0.05 14);
 }
 
 .dark {
@@ -118,6 +127,15 @@
 	--sidebar-accent-foreground: oklch(0.96 0.005 80);
 	--sidebar-border: oklch(1 0 0 / 10%);
 	--sidebar-ring: oklch(0.76 0.14 58);
+	/* feature-area accent colors */
+	--color-today: oklch(0.76 0.14 58);
+	--color-today-bg: oklch(0.28 0.07 65);
+	--color-calendar: oklch(0.72 0.16 280);
+	--color-calendar-bg: oklch(0.25 0.06 285);
+	--color-tasks: oklch(0.70 0.14 160);
+	--color-tasks-bg: oklch(0.25 0.06 158);
+	--color-lists: oklch(0.74 0.18 15);
+	--color-lists-bg: oklch(0.25 0.06 14);
 }
 
 @layer base {
