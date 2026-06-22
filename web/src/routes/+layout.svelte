@@ -4,7 +4,7 @@
 	import { page } from '$app/stores';
 	import { env } from '$env/dynamic/public';
 
-	import favicon from '$lib/assets/favicon.svg';
+	const favicon = '/favicon.png';
 	import { Toaster } from 'svelte-sonner';
 	import '../app.css';
 
