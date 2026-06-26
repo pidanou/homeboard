@@ -157,7 +157,7 @@
 
 <!-- List tabs -->
 <div class="sticky top-0 z-10 bg-background px-4 md:px-6 pt-4 md:pt-6 pb-2">
-<div class="flex items-center gap-2 overflow-x-auto pb-1">
+<div class="flex items-center gap-2 overflow-x-auto py-1 -my-1 pb-2">
 	<div class="flex items-center gap-1.5 flex-1">
 		{#each lists as list (list.id)}
 			<div class="shrink-0">
@@ -214,7 +214,7 @@
 </div>
 </div>
 
-<div class="px-4 md:px-6 pb-8">
+<div class="px-4 md:px-6 pb-8 pt-3">
 <!-- Delete list confirmation -->
 {#if confirmDeleteList}
 	<div class="mb-4 p-3 rounded-lg border border-destructive/30 bg-destructive/5 flex items-center justify-between gap-3 text-sm">
