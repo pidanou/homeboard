@@ -8,6 +8,7 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import { Sun, Moon, LayoutList, CalendarDays, Settings, Plus, LogOut, ListChecks, Users, ChevronsUpDown, Check, UserRound } from 'lucide-svelte';
 	import { isDark, initTheme, toggleTheme } from '$lib/theme';
+	import Logo from '$lib/components/Logo.svelte';
 
 	let { onclose }: { onclose?: () => void } = $props();
 
@@ -49,7 +50,7 @@
 			class="flex items-center gap-2 font-bold text-base text-sidebar-foreground hover:opacity-80 transition-opacity"
 			onclick={onclose}
 		>
-			<span class="text-xl">🏠</span>
+			<Logo size={24} class="text-primary shrink-0" />
 			Homeboard
 		</a>
 	</div>
