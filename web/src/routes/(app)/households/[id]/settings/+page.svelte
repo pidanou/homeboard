@@ -147,6 +147,8 @@
 
 <div class="flex flex-col gap-8 pt-4 md:pt-6 px-4 md:px-6 pb-8">
 
+	<h1 class="text-2xl font-bold">Settings</h1>
+
 	<!-- Members -->
 	<div class="flex flex-col gap-3">
 		<div class="flex items-start justify-between gap-3">
@@ -335,19 +337,21 @@
 
 		{#if invite}
 			{@const daysLeft = Math.ceil((new Date(invite.expires_at).getTime() - Date.now()) / 86400000)}
-			<div class="flex flex-col gap-1">
+			<div class="flex flex-col gap-2">
+				<div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted text-xs text-muted-foreground font-mono truncate">
+					<span class="flex-1 truncate">{location.origin}/invite/{invite.token}</span>
+					<span class="inline-flex items-center gap-1 shrink-0 font-sans font-medium
+						{daysLeft <= 1 ? 'text-destructive' : daysLeft <= 3 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}">
+						<Clock class="w-3 h-3" />
+						{daysLeft <= 0 ? 'Today' : `${daysLeft}d`}
+					</span>
+				</div>
 				<div class="flex gap-2">
-					<Input readonly value="{location.origin}/invite/{invite.token}" class="flex-1 text-xs" />
-					<Button variant="outline" size="sm" onclick={() => copyLink(invite!.token)}>
-						{copied === invite.token ? 'Copied!' : 'Copy'}
+					<Button variant="outline" size="sm" class="flex-1" onclick={() => copyLink(invite!.token)}>
+						{copied === invite.token ? 'Copied!' : 'Copy link'}
 					</Button>
 					<Button variant="destructive" size="sm" onclick={revokeInvite}>Revoke</Button>
 				</div>
-				<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
-					{daysLeft <= 1 ? 'bg-destructive/10 text-destructive' : daysLeft <= 3 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'bg-muted text-muted-foreground'}">
-					<Clock class="w-3 h-3" />
-					{daysLeft <= 0 ? 'Expires today' : `${daysLeft}d left`}
-				</span>
 			</div>
 		{:else}
 			<p class="text-sm text-muted-foreground">No active link. Generate one to invite someone.</p>
