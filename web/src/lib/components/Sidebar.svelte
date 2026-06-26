@@ -50,7 +50,7 @@
 			onclick={onclose}
 		>
 			<span class="text-xl">🏠</span>
-			Household
+			Homeboard
 		</a>
 	</div>
 
