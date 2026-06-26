@@ -25,7 +25,7 @@
 	} = $props();
 
 	let isOpen = $state(false);
-	let createType = $state<'task' | 'event'>('task');
+	let createType = $state<'task' | 'event' | 'birthday'>('task');
 	let cf = $state({
 		title: '', description: '', important: false,
 		allDay: false, location: '', assignedTo: '', attendeeIDs: [] as string[],
@@ -81,6 +81,8 @@
 	}
 
 	async function submit() {
+		const isBirthday = createType === 'birthday';
+		if (isBirthday) cf.title = cfBirthdayOf.trim() + "'s Birthday";
 		if (!cf.title.trim()) return;
 		try {
 			if (createType === 'task') {
@@ -94,15 +96,14 @@
 					icon: cfIcon,
 				});
 			} else {
-				if (!cfEventRange.start) return;
+				if (!isBirthday && !cfEventRange.start) return;
 				const cfEnd = cfEventRange.end ?? cfEventRange.start;
-				const isBirthday = cfBirthdayOf.trim() !== '';
 				await api.post(`/api/v1/households/${familyID}/events`, {
 					title: cf.title.trim(),
 					description: cf.description,
 					location: cf.location,
-					start_at: calDateTimeToISO(cfEventRange.start, cfStartTime, cf.allDay || isBirthday),
-					end_at: calDateTimeToISO(cfEnd, cfEndTime, cf.allDay || isBirthday),
+					start_at: calDateTimeToISO(isBirthday ? cfDueDate! : cfEventRange.start, cfStartTime, true),
+					end_at: calDateTimeToISO(isBirthday ? cfDueDate! : cfEnd, cfEndTime, true),
 					all_day: cf.allDay || isBirthday,
 					attendee_ids: cf.attendeeIDs,
 					category_id: cfCategoryID,
@@ -125,7 +126,8 @@
 				<Dialog.Title>New ticket</Dialog.Title>
 			</Dialog.Header>
 
-			<div class="flex flex-col gap-3 py-2 overflow-y-auto flex-1 min-h-0 px-1">
+			<div class="flex flex-col gap-3 py-2 overflow-y-auto flex-1 min-h-0 px-1"
+				onkeydown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); submit(); } }}>
 				<!-- Type switcher: compact pills -->
 				<div class="flex gap-1.5">
 					<button
@@ -138,13 +140,22 @@
 							{createType === 'event' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}"
 						onclick={() => { createType = 'event'; cf.allDay = false; }}
 					>Event</button>
+				<button
+					class="px-3 py-1 rounded-full text-sm font-medium transition-colors cursor-pointer
+						{createType === 'birthday' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}"
+					onclick={() => { createType = 'birthday'; cfBirthdayOf = ''; cfDueDate = undefined; }}
+					>Birthday</button>
 				</div>
 
 				<!-- Title -->
-				<div class="flex gap-2">
-					<IconPicker bind:value={cfIcon} />
-					<Input bind:value={cf.title} placeholder={createType === 'task' ? 'Buy groceries…' : 'Team dinner…'} class="flex-1" />
-				</div>
+				{#if createType === 'birthday'}
+					<Input bind:value={cfBirthdayOf} placeholder="Person's name…" class="flex-1" />
+				{:else}
+					<div class="flex gap-2">
+						<IconPicker bind:value={cfIcon} />
+						<Input bind:value={cf.title} placeholder={createType === 'task' ? 'Buy groceries…' : 'Team dinner…'} class="flex-1" />
+					</div>
+				{/if}
 
 				{#if createType === 'task'}
 					<!-- Task primary: important + due date -->
@@ -182,6 +193,19 @@
 						<Textarea bind:value={cf.description} placeholder="Notes…" rows={2} />
 						<CategoryPicker {familyID} {categories} bind:selectedID={cfCategoryID} />
 					{/if}
+				{:else if createType === 'birthday'}
+					<!-- Birthday: single date picker -->
+					<Popover.Root bind:open={cfDueOpen}>
+						<Popover.Trigger class="flex-1">
+							<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
+								<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
+								{cfDueDate ? fmtCalDate(cfDueDate) : 'Birthday date…'}
+							</Button>
+						</Popover.Trigger>
+						<Popover.Content class="w-auto p-0" align="start">
+							<Calendar type="single" bind:value={cfDueDate} onValueChange={() => (cfDueOpen = false)} />
+						</Popover.Content>
+					</Popover.Root>
 				{:else}
 					<!-- Event primary: dates, all day, times -->
 					<Popover.Root bind:open={cfEventPickerOpen}>
@@ -222,7 +246,6 @@
 							</Select.Content>
 						</Select.Root>
 						<Input bind:value={cf.location} placeholder="Location…" />
-						<Input bind:value={cfBirthdayOf} placeholder="Birthday of (name)…" />
 						{#if members.length > 0}
 							<div class="flex flex-col gap-1.5">
 								{#each members as m}
@@ -249,7 +272,11 @@
 
 			<Dialog.Footer class="gap-2">
 				<Button variant="outline" onclick={() => (isOpen = false)}>Cancel</Button>
-				<Button onclick={submit} disabled={!cf.title.trim() || (createType === 'event' && !cfEventRange.start)}>
+				<Button onclick={submit} disabled={
+						(createType === 'birthday' && (!cfBirthdayOf.trim() || !cfDueDate)) ||
+						(createType === 'event' && (!cf.title.trim() || !cfEventRange.start)) ||
+						(createType === 'task' && !cf.title.trim())
+					}>
 					Create
 				</Button>
 			</Dialog.Footer>

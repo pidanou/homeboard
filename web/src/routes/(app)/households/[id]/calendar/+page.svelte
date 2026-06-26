@@ -44,9 +44,11 @@
 
 	// ── Filters ───────────────────────────────────────────────────────────────
 	let filterTypes = $state(new Set<'task' | 'event'>());
+	let showBirthdays = $state(true);
+	let showCompleted = $state(false);
 	let filterMemberIDs = $state<string[]>([]);
 	let filterCategoryID = $state<string | null>(null);
-	const someFilterActive = $derived(filterTypes.size > 0 || filterMemberIDs.length > 0 || filterCategoryID !== null);
+	const someFilterActive = $derived(filterTypes.size > 0 || filterMemberIDs.length > 0 || filterCategoryID !== null || !showBirthdays);
 
 	function toggleType(t: 'task' | 'event') {
 		const next = new Set(filterTypes);
@@ -59,7 +61,7 @@
 	function toggleCategory(id: string) {
 		filterCategoryID = filterCategoryID === id ? null : id;
 	}
-	function clearFilters() { filterTypes = new Set(); filterMemberIDs = []; filterCategoryID = null; }
+	function clearFilters() { filterTypes = new Set(); filterMemberIDs = []; filterCategoryID = null; showBirthdays = true; showCompleted = false; }
 	function chipCls(active: boolean) {
 		if (active) return 'ring-1 ring-foreground opacity-100';
 		return someFilterActive ? 'opacity-30' : 'opacity-70 hover:opacity-100';
@@ -94,7 +96,7 @@
 				api.get<CalEvent[]>(`/api/v1/households/${familyID}/events?from=${agendaStart.toISOString()}&to=${agendaEnd.toISOString()}`).then(r => r ?? []),
 				api.get<Task[]>(`/api/v1/households/${familyID}/tasks`).then(r => r ?? []),
 				members.length ? Promise.resolve(members) : api.get<Member[]>(`/api/v1/households/${familyID}/members`).then(r => r ?? []),
-				categories.length ? Promise.resolve(categories) : api.get<AppCategory[]>(`/api/v1/households/${familyID}/categories`).then(r => r ?? []),
+				api.get<AppCategory[]>(`/api/v1/households/${familyID}/categories`).then(r => r ?? []),
 			]);
 			agendaEvents = evs; tasks = tsks; members = mems; categories = cats;
 			agendaReady = true;
@@ -169,6 +171,7 @@
 		if (showEvents) {
 			for (const ev of agendaEvents) {
 				if (!byMemberEv(ev) || !byCat(ev.category_id)) continue;
+				if (!showBirthdays && ev.birthday_of) continue;
 				const d = new Date(ev.start_at);
 				const dayMs = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 				dayMap.get(dayMs)?.evs.push(ev);
@@ -176,7 +179,8 @@
 		}
 		if (showTasks) {
 			for (const t of tasks) {
-				if (t.status === 'done' || !t.end_date) continue;
+				if (!t.end_date) continue;
+				if (t.status === 'done' && !showCompleted) continue;
 				if (!byMember(t.assigned_to) || !byCat(t.category_id)) continue;
 				const d = new Date(t.end_date);
 				const dayMs = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -215,12 +219,14 @@
 	// ── EC computed events ────────────────────────────────────────────────────
 	const ecEvents = $derived((() => {
 		const filteredEvents = filterTypes.size > 0 && !filterTypes.has('event') ? [] : events.filter(ev => {
+			if (!showBirthdays && ev.birthday_of) return false;
 			if (filterMemberIDs.length > 0 && !filterMemberIDs.some(id => ev.attendee_ids?.includes(id))) return false;
 			if (filterCategoryID !== null && ev.category_id !== filterCategoryID) return false;
 			return true;
 		});
 		const filteredTasks = filterTypes.size > 0 && !filterTypes.has('task') ? [] : tasks.filter(t => {
-			if (t.status === 'done' || !t.end_date) return false;
+			if (!t.end_date) return false;
+			if (t.status === 'done' && !showCompleted) return false;
 			if (filterMemberIDs.length > 0 && !filterMemberIDs.includes(t.assigned_to ?? '')) return false;
 			if (filterCategoryID !== null && t.category_id !== filterCategoryID) return false;
 			return true;
@@ -228,8 +234,8 @@
 		return [
 			...filteredEvents.map(ev => {
 				const hex = ev.birthday_of ? '#ec4899' : categoryHex(ev.category_id);
-				const prefix = ev.birthday_of ? '🎂' : (ev.icon ?? '');
-				const title = prefix ? prefix + ' ' + ev.title : ev.title;
+				const prefix = ev.birthday_of ? '🎂' : (ev.icon ?? '📅');
+				const title = prefix + ' ' + ev.title;
 				return {
 					id: ev.id, title, start: ev.start_at, end: ev.end_at, allDay: ev.all_day,
 					editable: true,
@@ -238,12 +244,13 @@
 				};
 			}),
 			...filteredTasks.map(t => {
-				const hex = categoryHex(t.category_id);
+				const done = t.status === 'done';
+				const hex = done ? null : categoryHex(t.category_id);
 				return {
-					id: `task-${t.id}`, title: t.icon ? `${t.icon} ${t.title}` : t.title, start: t.end_date, end: t.end_date, allDay: true,
-					startEditable: true, durationEditable: false,
+					id: `task-${t.id}`, title: `${t.icon ?? '☑️'} ${t.title}`, start: t.end_date, end: t.end_date, allDay: true,
+					startEditable: !done, durationEditable: false,
 					...(hex ? { backgroundColor: hex, borderColor: hex, textColor: '#fff' } : {}),
-					classNames: ['ec-task'],
+					classNames: done ? ['ec-task', 'ec-task-done'] : ['ec-task'],
 					extendedProps: { type: 'task', data: t },
 				};
 			}),
@@ -326,7 +333,7 @@
 				api.get<CalEvent[]>(`/api/v1/households/${familyID}/events?from=${from.toISOString()}&to=${to.toISOString()}`).then(r => r ?? []),
 				api.get<Task[]>(`/api/v1/households/${familyID}/tasks`).then(r => r ?? []),
 				members.length ? Promise.resolve(members) : api.get<Member[]>(`/api/v1/households/${familyID}/members`).then(r => r ?? []),
-				categories.length ? Promise.resolve(categories) : api.get<AppCategory[]>(`/api/v1/households/${familyID}/categories`).then(r => r ?? []),
+				api.get<AppCategory[]>(`/api/v1/households/${familyID}/categories`).then(r => r ?? []),
 			]);
 			events = evs; tasks = tsks; members = mems; categories = cats;
 		} catch { }
@@ -429,14 +436,15 @@
 <!-- Legend / filter bar -->
 <div class="flex items-center gap-2 mb-2 flex-wrap">
 	<button onclick={() => toggleType('task')} class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs transition-all cursor-pointer {chipCls(filterTypes.has('task'))}">
-		<span class="inline-flex items-center justify-center w-3 h-3 rounded-sm border-2 border-current shrink-0"></span>
-		Tasks
+		☑️ Tasks
 	</button>
 	<button onclick={() => toggleType('event')} class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs transition-all cursor-pointer {chipCls(filterTypes.has('event'))}">
-		<span class="inline-block w-3 h-3 rounded-sm bg-current shrink-0"></span>
-		Events
+		📅 Events
 	</button>
-	{#if categories.length > 0}
+	<button onclick={() => (showBirthdays = !showBirthdays)} class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs transition-all cursor-pointer {chipCls(!showBirthdays)}">
+		🎂 Birthdays
+	</button>
+{#if categories.length > 0}
 		<span class="text-border text-xs hidden sm:block">|</span>
 		{#each categories as cat (cat.id)}
 			<button onclick={() => toggleCategory(cat.id)} class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs transition-all cursor-pointer {chipCls(filterCategoryID === cat.id)}">
@@ -463,6 +471,12 @@
 		<span class="text-xs text-muted-foreground/40 ml-auto hidden sm:block select-none">Click or drag to add</span>
 	{/if}
 </div>
+<button
+	onclick={() => (showCompleted = !showCompleted)}
+	class="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer pb-1"
+>
+	{showCompleted ? '− Hide completed tasks' : '+ Show completed tasks'}
+</button>
 </div>
 
 {#if appView === 'agenda'}
@@ -509,11 +523,7 @@
 								<span class="text-xs text-muted-foreground tabular-nums w-12 shrink-0 text-right">
 									{ev.all_day ? 'All day' : fmtTime(ev.start_at)}
 								</span>
-								{#if ev.birthday_of}
-									<span class="text-sm shrink-0">🎂</span>
-								{:else if ev.icon}
-									<span class="text-sm shrink-0">{ev.icon}</span>
-								{/if}
+								<span class="text-sm shrink-0">{ev.birthday_of ? '🎂' : (ev.icon ?? '📅')}</span>
 								<span class="text-sm font-medium flex-1 min-w-0 truncate">{ev.title}</span>
 								{#if ev.location}
 									<span class="text-xs text-muted-foreground truncate hidden sm:block max-w-32">{ev.location}</span>
@@ -550,7 +560,7 @@
 								{#if task.icon}
 									<span class="text-sm shrink-0">{task.icon}</span>
 								{/if}
-								<span class="text-sm flex-1 min-w-0 truncate {task.important ? 'font-medium' : ''}">{task.title}</span>
+								<span class="text-sm flex-1 min-w-0 truncate {task.important ? 'font-medium' : ''} {task.status === 'done' ? 'line-through text-muted-foreground' : ''}">{task.title}</span>
 								{#if cat}
 									<span class="flex items-center gap-1 shrink-0">
 										<span class="w-1.5 h-1.5 rounded-full {dotClass(cat.color)}"></span>
@@ -601,6 +611,14 @@
 
 	:global(.ec-event.ec-task) {
 		border-width: 1px !important;
+	}
+	:global(.ec-event.ec-task-done) {
+		opacity: 0.5;
+		--ec-event-bg-color: var(--muted);
+		--ec-event-text-color: var(--muted-foreground);
+	}
+	:global(.ec-event.ec-task-done .ec-event-title) {
+		text-decoration: line-through;
 	}
 	:global(.ec-day-grid .ec-body .ec-day),
 	:global(.ec-time-grid .ec-body .ec-time) {
