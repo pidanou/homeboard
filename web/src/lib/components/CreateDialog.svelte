@@ -136,7 +136,7 @@
 					<button
 						class="px-3 py-1 rounded-full text-sm font-medium transition-colors cursor-pointer
 							{createType === 'event' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}"
-						onclick={() => (createType = 'event')}
+						onclick={() => { createType = 'event'; cf.allDay = false; }}
 					>Event</button>
 				</div>
 
