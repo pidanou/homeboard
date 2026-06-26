@@ -101,7 +101,7 @@
 		<div class="flex items-center gap-3 mb-3">
 			<span class="text-xs font-semibold uppercase tracking-wide shrink-0 text-muted-foreground">Schedule</span>
 			<div class="flex-1 h-px bg-border"></div>
-			<Button size="sm" variant="ghost" class="h-6 px-2 text-xs text-muted-foreground" onclick={() => createDialog?.open('event')}>
+			<Button size="sm" variant="ghost" class="h-6 px-2 text-xs text-muted-foreground" onclick={() => createDialog?.open('event', new Date())}>
 				<Plus class="w-3 h-3 mr-0.5" />Event
 			</Button>
 		</div>
@@ -149,7 +149,7 @@
 		<div class="flex items-center gap-3 mb-2">
 			<span class="text-xs font-semibold uppercase tracking-wide shrink-0 text-foreground">Due today</span>
 			<div class="flex-1 h-px bg-border"></div>
-			<Button size="sm" variant="ghost" class="h-6 px-2 text-xs text-muted-foreground" onclick={() => createDialog?.open('task')}>
+			<Button size="sm" variant="ghost" class="h-6 px-2 text-xs text-muted-foreground" onclick={() => createDialog?.open('task', new Date())}>
 				<Plus class="w-3 h-3 mr-0.5" />Task
 			</Button>
 		</div>
