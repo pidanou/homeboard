@@ -5,7 +5,13 @@
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
     import { CheckSquare, CalendarDays } from "lucide-svelte";
-    import type { Task, CalEvent, Member, AppCategory, Filter } from "$lib/types";
+    import type {
+        Task,
+        CalEvent,
+        Member,
+        AppCategory,
+        Filter,
+    } from "$lib/types";
     import { localDayMs } from "$lib/dates";
     import BoardToolbar from "$lib/components/BoardToolbar.svelte";
     import TaskCard from "$lib/components/TaskCard.svelte";
@@ -35,7 +41,11 @@
 
     async function loadData() {
         const today = new Date();
-        const from = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const from = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate(),
+        );
         const to = new Date();
         to.setDate(to.getDate() + 90);
         const [membersRes, tasksRes, eventsRes, labelsRes] =
@@ -45,12 +55,15 @@
                 api.get<CalEvent[]>(
                     `/api/v1/households/${familyID}/events?from=${from.toISOString()}&to=${to.toISOString()}`,
                 ),
-                api.get<AppCategory[]>(`/api/v1/households/${familyID}/categories`),
+                api.get<AppCategory[]>(
+                    `/api/v1/households/${familyID}/categories`,
+                ),
             ]);
         if (membersRes.status === "fulfilled") members = membersRes.value ?? [];
         if (tasksRes.status === "fulfilled") tasks = tasksRes.value ?? [];
         if (eventsRes.status === "fulfilled") events = eventsRes.value ?? [];
-        if (labelsRes.status === "fulfilled") categories = labelsRes.value ?? [];
+        if (labelsRes.status === "fulfilled")
+            categories = labelsRes.value ?? [];
     }
 
     onMount(() => {
@@ -83,7 +96,7 @@
             tasks = tasks.map((t) =>
                 t.id === task.id ? { ...t, status: newStatus } : t,
             );
-        } catch { }
+        } catch {}
     }
 
     async function quickAdd(e: SubmitEvent) {
@@ -95,7 +108,7 @@
             });
             quickTitle = "";
             loadData();
-        } catch { }
+        } catch {}
     }
 
     type ListItem =
@@ -128,14 +141,19 @@
                     items.push({ kind: "task", data: t, sortKey });
                 }
             }
-            if (filter === "birthdays") {
-                for (const ev of events.filter(ev => ev.birthday_of)) {
-                    items.push({ kind: "event", data: ev, sortKey: new Date(ev.start_at).getTime() });
+            if (filter !== "done") {
+                for (const ev of events.filter((ev) => ev.birthday_of)) {
+                    items.push({
+                        kind: "event",
+                        data: ev,
+                        sortKey: new Date(ev.start_at).getTime(),
+                    });
                 }
             }
             if (filter === "all" || filter === "events") {
                 for (const ev of events.filter(
                     (ev) =>
+                        !ev.birthday_of &&
                         new Date(ev.end_at) >= now &&
                         matchesMemberEv(ev) &&
                         matchesCategory(ev.category_id),
@@ -212,15 +230,23 @@
         <form onsubmit={quickAdd} class="flex-1">
             <Input
                 bind:value={quickTitle}
-                placeholder="Add a task… (press Enter)"
+                placeholder="Add a task"
                 class="bg-muted/20 border-dashed focus-visible:border-solid"
             />
         </form>
         <div class="flex gap-1.5 shrink-0">
-            <Button variant="outline" size="sm" onclick={() => createDialog?.open("task")}>
+            <Button
+                variant="outline"
+                size="sm"
+                onclick={() => createDialog?.open("task")}
+            >
                 <CheckSquare class="w-3.5 h-3.5 mr-1" />Task
             </Button>
-            <Button variant="outline" size="sm" onclick={() => createDialog?.open("event")}>
+            <Button
+                variant="outline"
+                size="sm"
+                onclick={() => createDialog?.open("event")}
+            >
                 <CalendarDays class="w-3.5 h-3.5 mr-1" />Event
             </Button>
         </div>
@@ -237,7 +263,7 @@
 </div>
 
 <div class="px-4 md:px-6 pb-8">
-{#if visibleItems.length === 0}
+    {#if visibleItems.length === 0}
         <div
             class="flex flex-col items-center gap-2 py-16 text-muted-foreground"
         >

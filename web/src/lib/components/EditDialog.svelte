@@ -69,6 +69,7 @@
 		efDueDate = t.end_date ? isoToCalDate(t.end_date) : undefined;
 		efCategoryID = t.category_id;
 		efIcon = t.icon;
+		efBirthdayOf = undefined;
 		efShowMore = !!(t.description || t.category_id);
 		isOpen = true;
 	}
@@ -101,6 +102,7 @@
 	}
 
 	function save() {
+		if (efBirthdayOf?.trim()) ef.title = efBirthdayOf.trim() + "'s Birthday";
 		if (!ef.title.trim()) return;
 		if (editKind === 'event' && efIsRecurring) { efScopePrompt = 'save'; return; }
 		doSave(editID);
@@ -165,16 +167,20 @@
 				<Dialog.Title>Edit {editKind}</Dialog.Title>
 			</Dialog.Header>
 
-			<div class="flex flex-col gap-3 py-2 overflow-y-auto flex-1 min-h-0 px-1">
+			<div class="flex flex-col gap-3 py-2 overflow-y-auto flex-1 min-h-0 px-1"
+				onkeydown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); save(); } }}>
 				<!-- Title -->
+				{#if efBirthdayOf !== undefined}
+					<Input bind:value={efBirthdayOf} placeholder="Person's name…" class="flex-1" />
+				{:else}
 				<div class="flex gap-2">
 					<IconPicker bind:value={efIcon} />
 					<Input
 						bind:value={ef.title}
 						class="flex-1"
-						onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
-					/>
+						/>
 				</div>
+				{/if}
 
 				{#if editKind === 'task'}
 					<!-- Task primary: important + due date -->
@@ -252,7 +258,6 @@
 							</Select.Content>
 						</Select.Root>
 						<Input bind:value={ef.location} placeholder="Location…" />
-						<Input bind:value={efBirthdayOf} placeholder="Birthday of (name)…" />
 						{#if members.length > 0}
 							<div class="flex flex-col gap-1.5">
 								{#each members as m}

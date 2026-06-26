@@ -38,7 +38,7 @@
 		<p class="text-sm font-medium truncate {task.status === 'done' ? 'line-through text-muted-foreground' : ''}">
 			{#if task.important && task.status !== 'done'}
 				<Star class="inline w-3 h-3 fill-amber-400 text-amber-400 mr-1 -mt-0.5" />
-			{/if}{#if task.icon}<span class="mr-1">{task.icon}</span>{/if}{task.title}
+			{/if}<span class="mr-1">{task.icon ?? '☑️'}</span>{task.title}
 		</p>
 		{#if task.description && task.status !== 'done'}
 			<p class="text-xs text-muted-foreground truncate mt-0.5">{task.description}</p>
