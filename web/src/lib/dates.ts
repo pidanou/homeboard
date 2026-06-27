@@ -59,6 +59,16 @@ export function fmtTime(iso: string): string {
 	return new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
 
+export function taskHasTime(iso: string): boolean {
+	const d = new Date(iso);
+	return d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0;
+}
+
+export function isoToTimeInput(iso: string): string {
+	const d = new Date(iso);
+	return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 export function fmtDateTime(iso: string): string {
 	return new Date(iso).toLocaleString(undefined, {
 		month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',

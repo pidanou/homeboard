@@ -32,6 +32,7 @@
 	});
 	let cfDueDate = $state<CalendarDate | undefined>(undefined);
 	let cfDueOpen = $state(false);
+	let cfDueTime = $state('');
 	let cfEventRange = $state<DateRange>({ start: undefined, end: undefined });
 	let cfStartTime = $state('09:00');
 	let cfEndTime = $state('10:00');
@@ -91,24 +92,30 @@
 					description: cf.description,
 					important: cf.important,
 					assigned_to: cf.assignedTo || undefined,
-					end_date: cfDueDate ? calDateToISO(cfDueDate) : undefined,
+					end_date: cfDueDate ? (cfDueTime ? calDateTimeToISO(cfDueDate, cfDueTime, false) : calDateToISO(cfDueDate)) : undefined,
 					category_id: cfCategoryID,
 					icon: cfIcon,
 				});
 			} else {
 				if (!isBirthday && !cfEventRange.start) return;
+				const isAllDay = cf.allDay || isBirthday;
 				const cfEnd = cfEventRange.end ?? cfEventRange.start;
+				const startCal = isBirthday ? cfDueDate! : cfEventRange.start!;
+				const endCal = isBirthday ? cfDueDate! : (cfEnd ?? cfEventRange.start!);
+				// All-day end is exclusive (iCal convention) — add 1 day so a single-day event has duration
+				const savedEnd = isAllDay ? endCal.add({ days: 1 }) : endCal;
 				await api.post(`/api/v1/households/${familyID}/events`, {
 					title: cf.title.trim(),
 					description: cf.description,
 					location: cf.location,
-					start_at: calDateTimeToISO(isBirthday ? cfDueDate! : cfEventRange.start, cfStartTime, true),
-					end_at: calDateTimeToISO(isBirthday ? cfDueDate! : cfEnd, cfEndTime, true),
-					all_day: cf.allDay || isBirthday,
+					start_at: calDateTimeToISO(startCal, cfStartTime, isAllDay),
+					end_at: calDateTimeToISO(savedEnd, cfEndTime, isAllDay),
+					all_day: isAllDay,
 					attendee_ids: cf.attendeeIDs,
 					category_id: cfCategoryID,
 					recurrence_rule: isBirthday ? RRULE['yearly'] : (cfRepeat !== 'none' ? RRULE[cfRepeat] : undefined),
 					icon: cfIcon,
+					important: cf.important,
 					birthday_of: isBirthday ? cfBirthdayOf.trim() : undefined,
 				});
 			}
@@ -175,6 +182,9 @@
 								<Calendar type="single" bind:value={cfDueDate} onValueChange={() => (cfDueOpen = false)} />
 							</Popover.Content>
 						</Popover.Root>
+						{#if cfDueDate}
+							<Input type="time" bind:value={cfDueTime} class="w-32 shrink-0" />
+						{/if}
 					</div>
 
 					<!-- Task secondary -->
@@ -222,10 +232,16 @@
 							/>
 						</Popover.Content>
 					</Popover.Root>
-					<label class="flex items-center gap-2 text-sm cursor-pointer">
-						<Checkbox bind:checked={cf.allDay} />
-						All day
-					</label>
+					<div class="flex items-center gap-4">
+						<label class="flex items-center gap-2 text-sm cursor-pointer">
+							<Checkbox bind:checked={cf.allDay} />
+							All day
+						</label>
+						<label class="flex items-center gap-2 text-sm cursor-pointer">
+							<Checkbox bind:checked={cf.important} />
+							Important
+						</label>
+					</div>
 					{#if !cf.allDay}
 						<div class="flex gap-2">
 							<Input type="time" bind:value={cfStartTime} class="flex-1" />

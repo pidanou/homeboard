@@ -17,6 +17,7 @@ type Event struct {
 	RecurrenceDate     *time.Time `json:"recurrence_date,omitempty"`
 	Cancelled          bool       `json:"cancelled,omitempty"`
 	IsRecurring        bool       `json:"is_recurring,omitempty"`
+	Important          bool       `json:"important,omitempty"`
 	Icon               *string    `json:"icon,omitempty"`
 	BirthdayOf         *string    `json:"birthday_of,omitempty"`
 	Type               string     `json:"type"`
