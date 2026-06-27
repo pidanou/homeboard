@@ -47,6 +47,7 @@ export type CalEvent = {
 	is_recurring?: boolean;
 	occurrence_date?: string;
 	type?: string;
+	important?: boolean;
 	icon?: string;
 	birthday_of?: string | null;
 };

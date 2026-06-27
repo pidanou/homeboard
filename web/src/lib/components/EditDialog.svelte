@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Task, CalEvent, Member, AppCategory } from '$lib/types';
-	import { calDateToISO, isoToCalDate, fmtCalDate, calDateTimeToISO, rangeLabelFor } from '$lib/dates';
+	import { calDateToISO, isoToCalDate, fmtCalDate, calDateTimeToISO, rangeLabelFor, taskHasTime, isoToTimeInput } from '$lib/dates';
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -34,6 +34,7 @@
 	});
 	let efDueDate = $state<CalendarDate | undefined>(undefined);
 	let efDueOpen = $state(false);
+	let efDueTime = $state('');
 	let efEventRange = $state<DateRange>({ start: undefined, end: undefined });
 	let efStartTime = $state('09:00');
 	let efEndTime = $state('10:00');
@@ -67,6 +68,7 @@
 			allDay: false, location: '', assignedTo: t.assigned_to ?? '', attendeeIDs: [],
 		};
 		efDueDate = t.end_date ? isoToCalDate(t.end_date) : undefined;
+		efDueTime = t.end_date && taskHasTime(t.end_date) ? isoToTimeInput(t.end_date) : '';
 		efCategoryID = t.category_id;
 		efIcon = t.icon;
 		efBirthdayOf = undefined;
@@ -79,7 +81,7 @@
 		editID = e.id;
 		ef = {
 			title: e.title, description: e.description ?? '', location: e.location ?? '',
-			allDay: e.all_day, important: false, status: '',
+			allDay: e.all_day, important: e.important ?? false, status: '',
 			assignedTo: '', attendeeIDs: e.attendee_ids ?? [],
 		};
 		efEventRange = { start: isoToCalDate(e.start_at), end: isoToCalDate(e.end_at) };
@@ -116,7 +118,7 @@
 					title: ef.title.trim(), description: ef.description,
 					important: ef.important, status: ef.status,
 					assigned_to: ef.assignedTo || undefined,
-					end_date: efDueDate ? calDateToISO(efDueDate) : undefined,
+					end_date: efDueDate ? (efDueTime ? calDateTimeToISO(efDueDate, efDueTime, false) : calDateToISO(efDueDate)) : undefined,
 					category_id: efCategoryID,
 					icon: efIcon ?? null,
 					birthday_of: efBirthdayOf ?? null,
@@ -129,6 +131,7 @@
 					start_at: calDateTimeToISO(efEventRange.start, efStartTime, ef.allDay),
 					end_at: calDateTimeToISO(efEnd, efEndTime, ef.allDay),
 					all_day: ef.allDay, attendee_ids: ef.attendeeIDs, category_id: efCategoryID,
+					important: ef.important,
 					recurrence_rule: efBirthdayOf?.trim() ? RRULE['yearly'] : (efRepeat !== 'none' ? RRULE[efRepeat] : null),
 					icon: efIcon ?? null,
 					birthday_of: efBirthdayOf?.trim() || null,
@@ -200,6 +203,9 @@
 								<Calendar type="single" bind:value={efDueDate} onValueChange={() => (efDueOpen = false)} />
 							</Popover.Content>
 						</Popover.Root>
+						{#if efDueDate}
+							<Input type="time" bind:value={efDueTime} class="w-32 shrink-0" />
+						{/if}
 					</div>
 
 					<!-- Task secondary -->
@@ -237,6 +243,10 @@
 					<label class="flex items-center gap-2 text-sm cursor-pointer">
 						<Checkbox bind:checked={ef.allDay} />
 						All day
+					</label>
+					<label class="flex items-center gap-2 text-sm cursor-pointer">
+						<Checkbox bind:checked={ef.important} />
+						Important
 					</label>
 					{#if !ef.allDay}
 						<div class="flex gap-2">
