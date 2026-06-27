@@ -1,41 +1,60 @@
-# Homeboard
+<div align="center">
 
-A self-hostable family wall — shared calendar, tasks, and shopping lists for your household.
+# 🏠 Homeboard
 
-**Live, real-time sync** across all devices. Install as a PWA or run as a native iOS/Android app via Capacitor.
+**A self-hostable family wall — calendar, tasks, and shopping lists in one place.**
 
----
+Real-time sync across every device. Install as a PWA or native iOS/Android app.
 
-<img src="docs/screenshots/demo.gif" alt="Homeboard demo" width="100%"/>
+<br/>
+
+<img src="docs/screenshots/demo.gif" alt="Homeboard in action" width="80%" style="border-radius:12px"/>
+
+<br/><br/>
 
 <table>
   <tr>
-    <td align="center"><img src="docs/screenshots/today.png" alt="Today view" width="220"/><br/><sub>Today</sub></td>
-    <td align="center"><img src="docs/screenshots/calendar.png" alt="Calendar" width="220"/><br/><sub>Calendar</sub></td>
-    <td align="center"><img src="docs/screenshots/board.png" alt="Board" width="220"/><br/><sub>Board</sub></td>
-    <td align="center"><img src="docs/screenshots/lists.png" alt="Shopping lists" width="220"/><br/><sub>Lists</sub></td>
+    <td align="center">
+      <img src="docs/screenshots/today.png" alt="Today view" width="200"/><br/>
+      <sub><b>Today</b></sub>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/calendar.png" alt="Calendar" width="200"/><br/>
+      <sub><b>Calendar</b></sub>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/board.png" alt="Board" width="200"/><br/>
+      <sub><b>Board</b></sub>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/lists.png" alt="Lists" width="200"/><br/>
+      <sub><b>Lists</b></sub>
+    </td>
   </tr>
 </table>
 
----
-
-## Features
-
-- **Calendar** — month, week, day, and agenda views; recurring events; birthday events; drag-and-drop rescheduling
-- **Tasks** — due dates, assignees, priority, labels, drag-to-reorder
-- **Shopping lists** — multiple lists, checked/unchecked sections, bulk clear
-- **Today view** — overdue items, today's events and tasks in one place
-- **Real-time sync** — all changes pushed to every family member via SSE
-- **Virtual members** — add kids or non-app members; link to a real account later
-- **Roles** — admin and member roles with access control
-- **PWA** — installable on iOS, Android, and desktop from the browser
-- **Native apps** — iOS and Android via Capacitor
+</div>
 
 ---
 
-## Self-hosting
+## ✨ Features
 
-**Requirements:** Docker and Docker Compose.
+| | |
+|---|---|
+| 📅 **Calendar** | Month, week, day, and agenda views; recurring events; birthdays; drag-and-drop |
+| ✅ **Tasks** | Due dates, assignees, priority, labels, drag-to-reorder |
+| 🛒 **Shopping lists** | Multiple lists, check items off, bulk clear completed |
+| ☀️ **Today view** | Overdue items, today's events and tasks in one place |
+| ⚡ **Real-time sync** | All changes pushed instantly to every family member via SSE |
+| 👶 **Virtual members** | Add kids or non-app members; link to a real account later |
+| 🔐 **Roles** | Admin and member roles with access control |
+| 📱 **PWA** | Installable on iOS, Android, and desktop — no app store needed |
+
+---
+
+## 🚀 Self-hosting
+
+**Requirements:** Docker and Docker Compose — nothing else.
 
 ```bash
 git clone https://github.com/your-username/homeboard.git
@@ -61,7 +80,7 @@ The app is now running at `http://localhost:3000`. The API is at `http://localho
 
 ### Reverse proxy
 
-To expose the app on a domain, proxy `yourdomain.com` → port `3000` and `api.yourdomain.com` → port `8080`, then set:
+Proxy `yourdomain.com` → port `3000` and `api.yourdomain.com` → port `8080`, then set:
 
 ```env
 API_BASE_URL=https://api.yourdomain.com
@@ -71,40 +90,38 @@ APP_BASE_URL=https://yourdomain.com
 
 ---
 
-## Installing on your phone
+## 📱 Installing on your phone
 
-Homeboard works as a PWA — no app store needed. Open the app URL in your browser and install it to your home screen.
+No app store needed — Homeboard works as a PWA.
 
 **iOS (Safari)**
-1. Open the app in **Safari** (other browsers don't support PWA install on iOS)
-2. Tap the **Share** button (box with arrow at the bottom)
-3. Scroll down and tap **Add to Home Screen**
-4. Confirm — the app icon appears on your home screen
+1. Open the app URL in **Safari**
+2. Tap **Share** → **Add to Home Screen**
+3. Confirm — the icon appears on your home screen
 
 **Android (Chrome)**
-1. Open the app in **Chrome**
-2. Tap the **⋮ menu** → **Add to Home Screen** (or look for the install prompt in the address bar)
-3. Tap **Install**
+1. Open the app URL in **Chrome**
+2. Tap **⋮** → **Add to Home Screen** (or tap the install prompt in the address bar)
 
-The app will open full-screen with no browser chrome, just like a native app.
+The app opens full-screen with no browser chrome, just like a native app.
 
 ---
 
-## Architecture
+## 🏗 Architecture
 
 ```
 homeboard/
-├── backend/    # Go REST API (Postgres, custom JWT auth)
+├── backend/    # Go REST API (Postgres, custom JWT auth, SSE)
 ├── web/        # SvelteKit PWA + Capacitor (iOS/Android)
 └── docker-compose.yml
 ```
 
-- **Backend:** Go, PostgreSQL, `golang-migrate` for schema migrations, SSE for real-time push
-- **Frontend:** SvelteKit, Tailwind CSS, shadcn-svelte, Capacitor
+- **Backend:** Go · PostgreSQL · `golang-migrate` · Server-Sent Events
+- **Frontend:** SvelteKit · Tailwind CSS · shadcn-svelte · Capacitor
 
 ---
 
-## Development
+## 🛠 Development
 
 ```bash
 # Backend (requires a running Postgres)
