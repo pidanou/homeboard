@@ -21,6 +21,7 @@ func (h *HouseholdHandler) Routes() http.Handler {
 	r.Get("/", h.list)
 	r.Post("/", h.create)
 	r.Get("/{familyID}", h.get)
+	r.Patch("/{familyID}", h.updateName)
 	r.Get("/{familyID}/members", h.members)
 	r.Post("/{familyID}/members/virtual", h.createVirtual)
 	r.Delete("/{familyID}/members/{memberID}", h.removeMember)
@@ -173,6 +174,27 @@ func (h *HouseholdHandler) removeMember(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if err := h.families.RemoveMember(r.Context(), memberID, familyID, callerID); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *HouseholdHandler) updateName(w http.ResponseWriter, r *http.Request) {
+	familyID := chi.URLParam(r, "familyID")
+	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
+	if !ok || callerID == "" {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	var body struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
+		http.Error(w, "name required", http.StatusBadRequest)
+		return
+	}
+	if err := h.families.UpdateName(r.Context(), familyID, body.Name, callerID); err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}

@@ -4,6 +4,7 @@
 	import { api } from '$lib/api/client';
 	import { logout } from '$lib/auth';
 	import { currentUser } from '$lib/stores/user';
+	import { households } from '$lib/stores/households';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
 	import * as Popover from '$lib/components/ui/popover';
 	import { Sun, Moon, LayoutList, CalendarDays, Settings, Plus, LogOut, ListChecks, Users, ChevronsUpDown, Check, UserRound } from 'lucide-svelte';
@@ -14,8 +15,6 @@
 
 	const user = $derived($currentUser);
 
-	type Family = { id: string; name: string };
-	let families = $state<Family[]>([]);
 	let switcherOpen = $state(false);
 	let userMenuOpen = $state(false);
 
@@ -24,10 +23,11 @@
 
 	onMount(async () => {
 		initTheme();
-		families = (await api.get<Family[]>('/api/v1/households')) ?? [];
+		const fetched = await api.get<{ id: string; name: string }[]>('/api/v1/households');
+		if (fetched) households.set(fetched);
 	});
 
-	const currentFamily = $derived(families.find(f => f.id === familyID));
+	const currentFamily = $derived($households.find(f => f.id === familyID));
 
 	function isActive(href: string) {
 		return currentPath === href;
@@ -70,7 +70,7 @@
 				<ChevronsUpDown class="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
 			</Popover.Trigger>
 			<Popover.Content class="w-56 p-1 gap-0" align="start">
-				{#each families as family (family.id)}
+				{#each $households as family (family.id)}
 					<a
 						href="/households/{family.id}"
 						onclick={() => { switcherOpen = false; onclose?.(); }}
@@ -80,7 +80,7 @@
 						<span class="truncate">{family.name}</span>
 					</a>
 				{/each}
-				{#if families.length > 0}
+				{#if $households.length > 0}
 					<div class="my-1 h-px bg-border"></div>
 				{/if}
 				<a

@@ -140,3 +140,11 @@ func (s *HouseholdService) RemoveMember(ctx context.Context, userID, familyID, c
 	}
 	return s.families.RemoveMember(ctx, userID, familyID)
 }
+
+func (s *HouseholdService) UpdateName(ctx context.Context, familyID, name, callerID string) error {
+	role, err := s.families.GetMemberRole(ctx, callerID, familyID)
+	if err != nil || role != "admin" {
+		return fmt.Errorf("only admins can rename the household")
+	}
+	return s.families.UpdateName(ctx, familyID, name)
+}
