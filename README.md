@@ -6,9 +6,7 @@ A self-hostable family wall — shared calendar, tasks, and shopping lists for y
 
 ---
 
-<!--
-  Screenshots: drop images into docs/screenshots/ and they will render here.
--->
+<img src="docs/screenshots/demo.gif" alt="Homeboard demo" width="100%"/>
 
 <table>
   <tr>
