@@ -234,8 +234,9 @@
 		return [
 			...filteredEvents.map(ev => {
 				const hex = ev.birthday_of ? '#ec4899' : categoryHex(ev.category_id);
-				const prefix = ev.birthday_of ? '🎂' : (ev.icon ?? '📅');
-				const title = prefix + ' ' + ev.title;
+				const prefix = ev.birthday_of ? '🎂' : ev.icon;
+				const star = ev.important ? '★ ' : '';
+				const title = star + (prefix ? prefix + ' ' + ev.title : ev.title);
 				return {
 					id: ev.id, title, start: ev.start_at, end: ev.end_at, allDay: ev.all_day,
 					editable: true,
@@ -247,7 +248,7 @@
 				const done = t.status === 'done';
 				const hex = done ? null : categoryHex(t.category_id);
 				return {
-					id: `task-${t.id}`, title: `${t.icon ?? '☑️'} ${t.title}`, start: t.end_date, end: t.end_date, allDay: true,
+					id: `task-${t.id}`, title: (t.important ? '★ ' : '') + (t.icon ? `${t.icon} ` : '') + t.title, start: t.end_date, end: t.end_date, allDay: true,
 					startEditable: !done, durationEditable: false,
 					...(hex ? { backgroundColor: hex, borderColor: hex, textColor: '#fff' } : {}),
 					classNames: done ? ['ec-task', 'ec-task-done'] : ['ec-task'],
@@ -436,13 +437,19 @@
 <!-- Legend / filter bar -->
 <div class="flex items-center gap-2 mb-2 flex-wrap">
 	<button onclick={() => toggleType('task')} class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs transition-all cursor-pointer {chipCls(filterTypes.has('task'))}">
-		☑️ Tasks
+		<span class="w-2.5 h-2.5 rounded-full border border-dashed border-current shrink-0"></span>
+		Tasks
 	</button>
 	<button onclick={() => toggleType('event')} class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs transition-all cursor-pointer {chipCls(filterTypes.has('event'))}">
-		📅 Events
+		<span class="w-2.5 h-2.5 rounded-full bg-current shrink-0"></span>
+		Events
 	</button>
 	<button onclick={() => (showBirthdays = !showBirthdays)} class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs transition-all cursor-pointer {chipCls(!showBirthdays)}">
 		🎂 Birthdays
+	</button>
+	<span class="text-border text-xs">|</span>
+	<button onclick={() => (showCompleted = !showCompleted)} class="text-xs cursor-pointer transition-colors {showCompleted ? 'text-foreground' : 'text-muted-foreground/50 hover:text-muted-foreground'}">
+		{showCompleted ? 'Hide completed' : 'Show completed'}
 	</button>
 {#if categories.length > 0}
 		<span class="text-border text-xs hidden sm:block">|</span>
@@ -471,12 +478,7 @@
 		<span class="text-xs text-muted-foreground/40 ml-auto hidden sm:block select-none">Click or drag to add</span>
 	{/if}
 </div>
-<button
-	onclick={() => (showCompleted = !showCompleted)}
-	class="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer pb-1"
->
-	{showCompleted ? '− Hide completed tasks' : '+ Show completed tasks'}
-</button>
+
 </div>
 
 {#if appView === 'agenda'}
@@ -603,62 +605,3 @@
 />
 
 
-<style>
-	/* Remove EC's empty toolbar — we use our own header */
-	:global(.ec-toolbar) {
-		display: none;
-	}
-
-	:global(.ec-event.ec-task) {
-		border-width: 1px !important;
-	}
-	:global(.ec-event.ec-task-done) {
-		opacity: 0.5;
-		--ec-event-bg-color: var(--muted);
-		--ec-event-text-color: var(--muted-foreground);
-	}
-	:global(.ec-event.ec-task-done .ec-event-title) {
-		text-decoration: line-through;
-	}
-	:global(.ec-day-grid .ec-body .ec-day),
-	:global(.ec-time-grid .ec-body .ec-time) {
-		cursor: pointer;
-	}
-	:global(.ec-time-grid .ec-today) {
-		--ec-day-bg-color: var(--ec-bg-color);
-		--ec-today-bg-color: var(--ec-bg-color);
-	}
-
-	/* Light mode EC theme mapped to our design system */
-	:global(.ec) {
-		--ec-bg-color: var(--background);
-		--ec-text-color: var(--foreground);
-		--ec-border-color: var(--border);
-		--ec-event-bg-color: oklch(0.65 0.01 80);
-		--ec-event-text-color: #fff;
-		--ec-today-bg-color: color-mix(in oklch, var(--primary) 10%, var(--background));
-		--ec-highlight-color: color-mix(in oklch, var(--primary) 6%, var(--background));
-		--ec-now-indicator-color: oklch(0.63 0.24 25);
-		--ec-popup-bg-color: var(--popover);
-		font-family: inherit;
-		font-size: 0.875rem;
-		height: 100%;
-	}
-
-	/* Dark mode — EC doesn't know about our .dark class */
-	:global(.dark .ec) {
-		color-scheme: dark;
-		--ec-color-400: oklch(43.9% 0 0);
-		--ec-color-300: oklch(37.1% 0 0);
-		--ec-color-200: oklch(26.9% 0 0);
-		--ec-color-100: oklch(20.5% 0 0);
-		--ec-color-50: oklch(14.5% 0 0);
-		--ec-bg-color: var(--background);
-		--ec-border-color: var(--border);
-		--ec-today-bg-color: color-mix(in oklch, var(--primary) 15%, var(--background));
-		--ec-highlight-color: color-mix(in oklch, var(--primary) 8%, var(--background));
-		--ec-popup-bg-color: var(--popover);
-		--ec-event-bg-color: oklch(0.45 0.01 80);
-		--ec-event-text-color: #fff;
-	}
-</style>
