@@ -83,6 +83,6 @@
 	$effect(() => { ecOptions.events = ecEvents; });
 </script>
 
-<div class="h-full min-h-[300px] border border-border rounded-xl overflow-hidden">
+<div class="ec-auto-dark h-full min-h-[300px] border border-border rounded-xl overflow-hidden">
 	<Calendar plugins={[TimeGrid, Interaction]} options={ecOptions} />
 </div>

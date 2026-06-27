@@ -153,6 +153,72 @@
 	}
 }
 
+/* ── Event Calendar (EC) global theme ───────────────────────────────────── */
+.ec {
+	--ec-bg-color: var(--background);
+	--ec-text-color: var(--foreground);
+	--ec-border-color: var(--border);
+	--ec-event-bg-color: oklch(0.65 0.01 80);
+	--ec-event-text-color: #fff;
+	--ec-today-bg-color: color-mix(in oklch, var(--primary) 10%, var(--background));
+	--ec-highlight-color: color-mix(in oklch, var(--primary) 6%, var(--background));
+	--ec-now-indicator-color: oklch(0.63 0.24 25);
+	--ec-popup-bg-color: var(--popover);
+	font-family: inherit;
+	font-size: 0.875rem;
+	height: 100%;
+	border-radius: var(--radius-lg);
+	overflow: hidden;
+}
+
+.dark .ec {
+	color-scheme: dark;
+	--ec-color-400: oklch(43.9% 0 0);
+	--ec-color-300: oklch(37.1% 0 0);
+	--ec-color-200: oklch(26.9% 0 0);
+	--ec-color-100: oklch(20.5% 0 0);
+	--ec-color-50: oklch(14.5% 0 0);
+	--ec-bg-color: var(--background);
+	--ec-border-color: var(--border);
+	--ec-today-bg-color: color-mix(in oklch, var(--primary) 15%, var(--background));
+	--ec-highlight-color: color-mix(in oklch, var(--primary) 8%, var(--background));
+	--ec-popup-bg-color: var(--popover);
+	--ec-event-bg-color: oklch(0.45 0.01 80);
+	--ec-event-text-color: #fff;
+}
+
+.ec-toolbar { display: none; }
+
+.ec-event.ec-task {
+	border-width: 2px !important;
+	border-style: dashed !important;
+	border-color: rgba(0, 0, 0, 0.35) !important;
+}
+
+.dark .ec-event.ec-task {
+	border-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+	.ec-event.ec-task {
+		border-color: rgba(255, 255, 255, 0.7) !important;
+	}
+}
+.ec-event.ec-task-done {
+	opacity: 0.5;
+	--ec-event-bg-color: var(--muted);
+	--ec-event-text-color: var(--muted-foreground);
+}
+.ec-event.ec-task-done .ec-event-title { text-decoration: line-through; }
+
+.ec-day-grid .ec-body .ec-day,
+.ec-time-grid .ec-body .ec-time { cursor: pointer; }
+
+.ec-time-grid .ec-today {
+	--ec-day-bg-color: var(--ec-bg-color);
+	--ec-today-bg-color: var(--ec-bg-color);
+}
+
 .safe-area-top {
 	padding-top: env(safe-area-inset-top);
 }
