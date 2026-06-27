@@ -288,9 +288,9 @@
 	</div>
 
 	<!-- Kanban board -->
-	<div class="relative">
-		<div class="overflow-x-auto px-6 pb-8 pt-3">
-		<div class="flex gap-4 items-start" style="min-width: max-content">
+	<div class="relative flex flex-col" style="min-height: calc(100dvh - 8rem)">
+		<div class="overflow-x-auto px-6 pb-8 pt-3 flex-1 flex flex-col">
+		<div class="flex gap-4 items-stretch flex-1" style="min-width: max-content">
 
 			<!-- Ghost "New list" column -->
 			{#if addingList}
@@ -318,7 +318,7 @@
 			{:else}
 				<button
 					onclick={() => (addingList = true)}
-					class="w-72 shrink-0 flex flex-col items-center justify-center gap-1.5 h-32 rounded-xl border-2 border-dashed border-border text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+					class="w-72 shrink-0 flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-border text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
 				>
 					<Plus class="w-5 h-5" />
 					<span class="text-sm font-medium">New list</span>
@@ -387,6 +387,7 @@
 					</div>
 
 					<!-- Items -->
+					<div class="flex-1">
 					{#if uncheckedItems.length === 0 && checkedItems.length === 0}
 						<p class="text-xs text-muted-foreground text-center py-8 italic">Empty</p>
 					{:else}
@@ -433,6 +434,7 @@
 							{/if}
 						</div>
 					{/if}
+					</div>
 				</div>
 			{/each}
 		</div>
