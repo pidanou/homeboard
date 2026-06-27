@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Task, Member, AppCategory } from '$lib/types';
 	import { chipClass, dotClass } from '$lib/categories';
-	import { relativeDate } from '$lib/dates';
+	import { relativeDate, taskHasTime, fmtTime, localDayMs } from '$lib/dates';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { User, Star } from 'lucide-svelte';
 
@@ -22,7 +22,8 @@
 	const category = $derived(categories.find((c) => c.id === task.category_id));
 
 	function isOverdue(t: Task): boolean {
-		return !!(t.end_date && t.status !== 'done' && new Date(t.end_date) < new Date());
+		const today = new Date(); today.setHours(0, 0, 0, 0);
+		return !!(t.end_date && t.status !== 'done' && localDayMs(t.end_date) < today.getTime());
 	}
 </script>
 
@@ -38,7 +39,7 @@
 		<p class="text-sm font-medium truncate {task.status === 'done' ? 'line-through text-muted-foreground' : ''}">
 			{#if task.important && task.status !== 'done'}
 				<Star class="inline w-3 h-3 fill-amber-400 text-amber-400 mr-1 -mt-0.5" />
-			{/if}<span class="mr-1">{task.icon ?? '☑️'}</span>{task.title}
+			{/if}{#if task.icon}<span class="mr-1">{task.icon}</span>{/if}{task.title}
 		</p>
 		{#if task.description && task.status !== 'done'}
 			<p class="text-xs text-muted-foreground truncate mt-0.5">{task.description}</p>
@@ -47,7 +48,7 @@
 			<div class="flex items-center gap-2 mt-1 flex-wrap">
 				{#if task.end_date}
 					<p class="text-xs {isOverdue(task) ? 'text-destructive font-medium' : 'text-muted-foreground'}">
-						Due {relativeDate(task.end_date)}
+						Due {relativeDate(task.end_date)}{taskHasTime(task.end_date) ? ` at ${fmtTime(task.end_date)}` : ''}
 					</p>
 				{/if}
 				{#if task.assigned_to}
