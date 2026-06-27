@@ -161,6 +161,11 @@ func (r *HouseholdRepository) CountAdmins(ctx context.Context, familyID string) 
 	return count, err
 }
 
+func (r *HouseholdRepository) UpdateName(ctx context.Context, id, name string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE households SET name = $1 WHERE id = $2`, name, id)
+	return err
+}
+
 func (r *HouseholdRepository) RemoveMember(ctx context.Context, userID, familyID string) error {
 	_, err := r.pool.Exec(ctx,
 		`DELETE FROM household_members WHERE user_id = $1 AND family_id = $2`,

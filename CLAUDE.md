@@ -162,6 +162,9 @@ cd web && npm run build
 - Colors must work in both light and dark mode — use CSS variables via shadcn-svelte's theming convention
 - Warm neutrals for backgrounds (avoid pure white/black); a soft accent color for primary actions
 
+### Interaction Patterns
+- **Never hide edit/delete actions behind hover.** Action buttons (edit, delete, rename) must always be visible — not revealed on `hover` or `group-hover`. Hover-reveal breaks touch devices and creates inconsistent discoverability. Use `text-muted-foreground` at rest and `hover:text-foreground` / `hover:text-destructive` for color feedback only.
+
 ### Component Conventions
 - **Always use a shadcn-svelte component if one exists for the UI element.** Check https://www.shadcn-svelte.com/docs/components before writing custom markup for buttons, inputs, labels, cards, dialogs, selects, etc.
 - Add new shadcn components via the CLI: `npx shadcn-svelte@latest add <component>` — never hand-edit files in `ui/`

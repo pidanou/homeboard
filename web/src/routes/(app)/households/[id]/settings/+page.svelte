@@ -7,6 +7,7 @@
 	import { X, Pencil, Clock } from 'lucide-svelte';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
 	import { currentUser } from '$lib/stores/user';
+	import { households, updateHouseholdName } from '$lib/stores/households';
 
 	type Invite = { token: string; expires_at: string };
 	type Member = { user_id: string; name: string; email: string; avatar_url?: string | null; role: string; joined_at: string; virtual?: boolean };
@@ -21,16 +22,18 @@
 	};
 
 	const familyID = $derived($page.params.id);
+	const householdName = $derived($households.find(h => h.id === familyID)?.name ?? '');
 
 	let invite = $state<Invite | null>(null);
 	let members = $state<Member[]>([]);
-
-	const myRole = $derived(members.find((m) => m.user_id === $currentUser?.id)?.role ?? 'member');
-	const isAdmin = $derived(myRole === 'admin');
-	const realCount = $derived(members.filter((m) => !m.virtual).length);
-	const virtualCount = $derived(members.filter((m) => m.virtual).length);
 	let categories = $state<AppCategory[]>([]);
 	let copied = $state<string | null>(null);
+
+	// name editing
+	let editingName = $state(false);
+	let editNameValue = $state('');
+
+	// category state
 	let newCategoryName = $state('');
 	let newCategoryColor = $state<CategoryColor>('blue');
 	let addingVirtual = $state(false);
@@ -38,6 +41,11 @@
 	let editingCatID = $state<string | null>(null);
 	let editingCatName = $state('');
 	let editingCatColor = $state<CategoryColor>('blue');
+
+	const myRole = $derived(members.find((m) => m.user_id === $currentUser?.id)?.role ?? 'member');
+	const isAdmin = $derived(myRole === 'admin');
+	const realCount = $derived(members.filter((m) => !m.virtual).length);
+	const virtualCount = $derived(members.filter((m) => m.virtual).length);
 
 	onMount(async () => {
 		const [membersResult, invitesResult, categoriesResult] = await Promise.allSettled([
@@ -50,6 +58,21 @@
 		if (categoriesResult.status === 'fulfilled') categories = categoriesResult.value ?? [];
 	});
 
+	async function saveName() {
+		const trimmed = editNameValue.trim();
+		if (!trimmed || trimmed === householdName || !familyID) { editingName = false; return; }
+		try {
+			await api.patch(`/api/v1/households/${familyID}`, { name: trimmed });
+			updateHouseholdName(familyID, trimmed);
+		} catch {}
+		editingName = false;
+	}
+
+	function startEditName() {
+		editNameValue = householdName;
+		editingName = true;
+	}
+
 	async function createCategory() {
 		if (!newCategoryName.trim()) return;
 		try {
@@ -59,14 +82,14 @@
 			});
 			categories = [...categories, cat];
 			newCategoryName = '';
-		} catch { }
+		} catch {}
 	}
 
 	async function deleteCategory(categoryID: string) {
 		try {
 			await api.delete(`/api/v1/households/${familyID}/categories/${categoryID}`);
 			categories = categories.filter((c) => c.id !== categoryID);
-		} catch { }
+		} catch {}
 	}
 
 	async function createVirtualMember() {
@@ -76,14 +99,14 @@
 			members = [...members, { user_id: vm.id, name: vm.name, email: '', role: '', joined_at: '', virtual: true }];
 			newVirtualName = '';
 			addingVirtual = false;
-		} catch { }
+		} catch {}
 	}
 
 	async function deleteVirtualMember(id: string) {
 		try {
 			await api.delete(`/api/v1/households/${familyID}/members/virtual/${id}`);
 			members = members.filter((m) => m.user_id !== id);
-		} catch { }
+		} catch {}
 	}
 
 	async function updateRole(userID: string, role: 'admin' | 'member') {
@@ -97,7 +120,7 @@
 		try {
 			await api.delete(`/api/v1/households/${familyID}/members/${userID}`);
 			members = members.filter((m) => m.user_id !== userID);
-		} catch { }
+		} catch {}
 	}
 
 	function startEditCat(cat: AppCategory) {
@@ -117,13 +140,13 @@
 				c.id === cat.id ? { ...c, name: editingCatName.trim(), color: editingCatColor } : c
 			);
 			editingCatID = null;
-		} catch { }
+		} catch {}
 	}
 
 	async function generateInvite() {
 		try {
 			invite = await api.post<Invite>(`/api/v1/households/${familyID}/invites`, {});
-		} catch { }
+		} catch {}
 	}
 
 	async function revokeInvite() {
@@ -131,7 +154,7 @@
 			if (!invite) return;
 			await api.delete(`/api/v1/households/${familyID}/invites/${invite.token}`);
 			invite = null;
-		} catch { }
+		} catch {}
 	}
 
 	function copyLink(token: string) {
@@ -145,21 +168,58 @@
 	}
 </script>
 
-<div class="flex flex-col gap-8 pt-4 md:pt-6 px-4 md:px-6 pb-8">
+<div class="px-4 md:px-6 pt-4 md:pt-6 pb-12">
+<div class="max-w-2xl mx-auto flex flex-col gap-0 divide-y divide-border">
 
-	<h1 class="text-2xl font-bold">Settings</h1>
+	<div class="pb-6">
+		<h1 class="text-2xl font-bold">Settings</h1>
+	</div>
+
+	<!-- General -->
+	<section class="py-6 flex flex-col gap-4">
+		<h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">General</h2>
+
+		<div class="rounded-xl border border-border bg-card overflow-hidden">
+			<div class="flex items-center gap-3 px-4 py-3.5">
+				<span class="text-sm text-muted-foreground w-20 shrink-0">Name</span>
+				{#if editingName}
+					<div class="flex flex-1 items-center gap-2">
+						<Input
+							bind:value={editNameValue}
+							class="flex-1 h-8 text-sm"
+							autofocus
+							onkeydown={(e) => {
+								if (e.key === 'Enter') { e.preventDefault(); saveName(); }
+								if (e.key === 'Escape') { editingName = false; }
+							}}
+						/>
+						<Button size="sm" onclick={saveName} disabled={!editNameValue.trim()} class="h-8">Save</Button>
+						<Button size="sm" variant="ghost" onclick={() => (editingName = false)} class="h-8">Cancel</Button>
+					</div>
+				{:else}
+					<span class="flex-1 text-sm font-medium">{householdName}</span>
+					{#if isAdmin}
+						<Button size="sm" variant="ghost" onclick={startEditName} class="h-8 gap-1.5 text-muted-foreground">
+							<Pencil class="w-3.5 h-3.5" />
+							Rename
+						</Button>
+					{/if}
+				{/if}
+			</div>
+		</div>
+	</section>
 
 	<!-- Members -->
-	<div class="flex flex-col gap-3">
-		<div class="flex items-start justify-between gap-3">
+	<section class="py-6 flex flex-col gap-4">
+		<div class="flex items-center justify-between gap-3">
 			<div>
-				<h3 class="text-sm font-semibold">Members</h3>
-				<p class="text-xs text-muted-foreground">
+				<h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Members</h2>
+				<p class="text-xs text-muted-foreground mt-0.5">
 					{realCount} with account{virtualCount > 0 ? ` · ${virtualCount} without` : ''}
 				</p>
 			</div>
 			{#if isAdmin}
-				<Button size="sm" variant="outline" class="shrink-0" onclick={() => (addingVirtual = !addingVirtual)}>
+				<Button size="sm" variant="outline" onclick={() => (addingVirtual = !addingVirtual)}>
 					Add without account
 				</Button>
 			{/if}
@@ -171,7 +231,10 @@
 					bind:value={newVirtualName}
 					placeholder="Name (e.g. Lucas)…"
 					class="flex-1"
-					onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); createVirtualMember(); } if (e.key === 'Escape') addingVirtual = false; }}
+					onkeydown={(e) => {
+						if (e.key === 'Enter') { e.preventDefault(); createVirtualMember(); }
+						if (e.key === 'Escape') addingVirtual = false;
+					}}
 				/>
 				<Button size="sm" onclick={createVirtualMember} disabled={!newVirtualName.trim()}>Add</Button>
 				<Button size="sm" variant="ghost" onclick={() => (addingVirtual = false)}>Cancel</Button>
@@ -181,33 +244,29 @@
 		{#if members.length === 0}
 			<p class="text-sm text-muted-foreground">No members yet.</p>
 		{:else}
-			<div class="flex flex-col gap-2">
+			<div class="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
 				{#each members as member (member.user_id)}
-					<div class="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
+					<div class="flex items-center gap-3 px-4 py-3">
 						<UserAvatar name={member.name} avatarUrl={member.virtual ? null : member.avatar_url} userId={member.user_id} size={32} />
 						<div class="flex-1 min-w-0">
 							<p class="text-sm font-medium truncate">{member.name}</p>
 							<p class="text-xs text-muted-foreground truncate">
-								{#if member.virtual}
-									No account
-								{:else}
-									{member.email}
-								{/if}
+								{#if member.virtual}No account{:else}{member.email}{/if}
 							</p>
 						</div>
 						{#if member.virtual}
 							{#if isAdmin}
 								<button
 									onclick={() => deleteVirtualMember(member.user_id)}
-									class="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+									class="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
 									aria-label="Remove"
 								>
-									<X class="w-3.5 h-3.5" />
+									<X class="w-4 h-4" />
 								</button>
 							{/if}
 						{:else}
-							<div class="flex flex-wrap items-center justify-end gap-1 shrink-0">
-								<span class="text-xs px-1.5 py-0.5 rounded-full font-medium
+							<div class="flex items-center gap-2 shrink-0">
+								<span class="text-xs px-2 py-0.5 rounded-full font-medium
 									{member.role === 'admin' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}">
 									{member.role === 'admin' ? 'Admin' : 'Member'}
 								</span>
@@ -216,16 +275,16 @@
 										size="sm"
 										variant="outline"
 										onclick={() => updateRole(member.user_id, member.role === 'admin' ? 'member' : 'admin')}
-										class="h-6 px-2 text-xs"
+										class="h-7 px-2 text-xs"
 									>
-										{member.role === 'admin' ? 'Make member' : 'Make admin'}
+										{member.role === 'admin' ? 'Demote' : 'Make admin'}
 									</Button>
 									<button
 										onclick={() => kickMember(member.user_id)}
-										class="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-										aria-label="Kick member"
+										class="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+										aria-label="Remove member"
 									>
-										<X class="w-3.5 h-3.5" />
+										<X class="w-4 h-4" />
 									</button>
 								{/if}
 							</div>
@@ -234,56 +293,60 @@
 				{/each}
 			</div>
 		{/if}
-	</div>
+	</section>
 
 	<!-- Categories -->
-	<div class="flex flex-col gap-3">
-		<h3 class="text-sm font-semibold">Categories</h3>
+	<section class="py-6 flex flex-col gap-4">
+		<h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Categories</h2>
+
 		{#if categories.length > 0}
-			<div class="flex flex-col gap-1.5">
+			<div class="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
 				{#each categories as cat (cat.id)}
-					<div class="flex flex-col gap-2 rounded-lg border border-border bg-card px-4 py-2.5">
+					<div class="px-4 py-3">
 						{#if editingCatID === cat.id}
-							<Input
-								bind:value={editingCatName}
-								class="h-7 text-sm"
-								onkeydown={(e) => {
-									if (e.key === 'Enter') { e.preventDefault(); saveEditCat(cat); }
-									if (e.key === 'Escape') { editingCatID = null; }
-								}}
-							/>
-							<div class="flex flex-wrap gap-1.5">
-								{#each CATEGORY_COLORS as c}
-									<button
-										type="button"
-										onclick={() => (editingCatColor = c)}
-										class="w-5 h-5 rounded-full {CATEGORY_DOT[c]} transition-all
-											{editingCatColor === c ? 'ring-2 ring-offset-1 ring-foreground' : 'opacity-60 hover:opacity-100'}"
-									></button>
-								{/each}
-							</div>
-							<div class="flex gap-2">
-								<Button size="sm" onclick={() => saveEditCat(cat)} disabled={!editingCatName.trim()} class="flex-1">Save</Button>
-								<Button size="sm" variant="ghost" onclick={() => (editingCatID = null)}>Cancel</Button>
+							<div class="flex flex-col gap-2.5">
+								<Input
+									bind:value={editingCatName}
+									class="h-8 text-sm"
+									onkeydown={(e) => {
+										if (e.key === 'Enter') { e.preventDefault(); saveEditCat(cat); }
+										if (e.key === 'Escape') { editingCatID = null; }
+									}}
+								/>
+								<div class="flex gap-1.5">
+									{#each CATEGORY_COLORS as c}
+										<button
+											type="button"
+											title={c}
+											onclick={() => (editingCatColor = c)}
+											class="w-5 h-5 rounded-full {CATEGORY_DOT[c]} transition-all
+												{editingCatColor === c ? 'ring-2 ring-offset-1 ring-foreground' : 'opacity-50 hover:opacity-90'}"
+										></button>
+									{/each}
+								</div>
+								<div class="flex gap-2">
+									<Button size="sm" onclick={() => saveEditCat(cat)} disabled={!editingCatName.trim()}>Save</Button>
+									<Button size="sm" variant="ghost" onclick={() => (editingCatID = null)}>Cancel</Button>
+								</div>
 							</div>
 						{:else}
-							<div class="group flex items-center justify-between gap-2">
-								<span class="flex items-center gap-2 text-sm">
-									<span class="w-3 h-3 rounded-full {CATEGORY_DOT[cat.color]} shrink-0"></span>
+							<div class="flex items-center justify-between gap-2">
+								<span class="flex items-center gap-2.5 text-sm">
+									<span class="w-2.5 h-2.5 rounded-full {CATEGORY_DOT[cat.color]} shrink-0"></span>
 									{cat.name}
 								</span>
 								{#if isAdmin}
-									<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+									<div class="flex items-center gap-1">
 										<button
 											onclick={() => startEditCat(cat)}
-											class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+											class="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
 											aria-label="Edit"
 										>
 											<Pencil class="w-3.5 h-3.5" />
 										</button>
 										<button
 											onclick={() => deleteCategory(cat.id)}
-											class="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+											class="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
 											aria-label="Delete"
 										>
 											<X class="w-3.5 h-3.5" />
@@ -300,36 +363,36 @@
 		{/if}
 
 		{#if isAdmin}
-		<div class="flex flex-col gap-2 rounded-lg border border-border bg-card p-4">
-			<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">New category</p>
-			<Input
-				bind:value={newCategoryName}
-				placeholder="Category name…"
-				onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); createCategory(); } }}
-			/>
-			<div class="flex flex-wrap gap-2">
-				{#each CATEGORY_COLORS as c}
-					<button
-						type="button"
-						onclick={() => (newCategoryColor = c)}
-						class="w-6 h-6 rounded-full {CATEGORY_DOT[c]} transition-all
-							{newCategoryColor === c ? 'ring-2 ring-offset-2 ring-foreground' : 'opacity-70 hover:opacity-100'}"
-						title={c}
-					></button>
-				{/each}
+			<div class="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
+				<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">New category</p>
+				<Input
+					bind:value={newCategoryName}
+					placeholder="Category name…"
+					onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); createCategory(); } }}
+				/>
+				<div class="flex gap-2">
+					{#each CATEGORY_COLORS as c}
+						<button
+							type="button"
+							onclick={() => (newCategoryColor = c)}
+							class="w-6 h-6 rounded-full {CATEGORY_DOT[c]} transition-all
+								{newCategoryColor === c ? 'ring-2 ring-offset-2 ring-foreground' : 'opacity-50 hover:opacity-90'}"
+							title={c}
+						></button>
+					{/each}
+				</div>
+				<Button onclick={createCategory} disabled={!newCategoryName.trim()} size="sm">
+					Add category
+				</Button>
 			</div>
-			<Button onclick={createCategory} disabled={!newCategoryName.trim()} size="sm" class="w-full">
-				Add category
-			</Button>
-		</div>
 		{/if}
-	</div>
+	</section>
 
-	<!-- Invite link — admin only -->
+	<!-- Invite link -->
 	{#if isAdmin}
-	<div class="flex flex-col gap-3">
-		<div class="flex items-center justify-between">
-			<h3 class="text-sm font-semibold">Invite link</h3>
+	<section class="py-6 flex flex-col gap-4">
+		<div class="flex items-center justify-between gap-3">
+			<h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Invite link</h2>
 			<Button size="sm" variant="outline" onclick={generateInvite}>
 				{invite ? 'Regenerate' : 'Generate link'}
 			</Button>
@@ -337,16 +400,16 @@
 
 		{#if invite}
 			{@const daysLeft = Math.ceil((new Date(invite.expires_at).getTime() - Date.now()) / 86400000)}
-			<div class="flex flex-col gap-2">
-				<div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted text-xs text-muted-foreground font-mono truncate">
+			<div class="rounded-xl border border-border bg-card overflow-hidden">
+				<div class="flex items-center gap-2 px-4 py-3 text-xs font-mono text-muted-foreground border-b border-border">
 					<span class="flex-1 truncate">{location.origin}/invite/{invite.token}</span>
 					<span class="inline-flex items-center gap-1 shrink-0 font-sans font-medium
 						{daysLeft <= 1 ? 'text-destructive' : daysLeft <= 3 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}">
 						<Clock class="w-3 h-3" />
-						{daysLeft <= 0 ? 'Today' : `${daysLeft}d`}
+						{daysLeft <= 0 ? 'Expires today' : `${daysLeft}d left`}
 					</span>
 				</div>
-				<div class="flex gap-2">
+				<div class="flex gap-2 px-4 py-3">
 					<Button variant="outline" size="sm" class="flex-1" onclick={() => copyLink(invite!.token)}>
 						{copied === invite.token ? 'Copied!' : 'Copy link'}
 					</Button>
@@ -356,7 +419,8 @@
 		{:else}
 			<p class="text-sm text-muted-foreground">No active link. Generate one to invite someone.</p>
 		{/if}
-	</div>
+	</section>
 	{/if}
 
+</div>
 </div>
