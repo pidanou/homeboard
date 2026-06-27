@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { onMount, onDestroy } from 'svelte';
 	import { api, sseUrl } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
 	import { GripVertical, Plus } from 'lucide-svelte';
@@ -41,13 +40,14 @@
 		if (catsRes.status === 'fulfilled') categories = catsRes.value ?? [];
 	}
 
-	onMount(() => {
+	$effect(() => {
 		loadData();
+		es?.close();
 		es = new EventSource(sseUrl(`/api/v1/households/${familyID}/stream`));
 		es.onmessage = (e) => { if (e.data === 'refresh') loadData(); };
 		es.onerror = () => { es?.close(); es = null; };
+		return () => es?.close();
 	});
-	onDestroy(() => es?.close());
 
 	async function toggleTask(task: Task, e: MouseEvent) {
 		e.stopPropagation();
