@@ -148,6 +148,9 @@
 	html {
 		@apply font-sans;
 	}
+	button:not(:disabled), label {
+		@apply cursor-pointer;
+	}
 }
 
 .safe-area-top {
