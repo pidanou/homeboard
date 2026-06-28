@@ -55,6 +55,7 @@ func main() {
 	eventRepo := postgres.NewEventRepository(pool)
 	labelRepo := postgres.NewCategoryRepository(pool)
 	listRepo := postgres.NewListRepository(pool)
+	pushRepo := postgres.NewPushRepository(pool)
 
 	// Services
 	authService := service.NewAuthService(userRepo, os.Getenv("JWT_SECRET"))
@@ -64,6 +65,7 @@ func main() {
 	eventService := service.NewEventService(eventRepo)
 	labelService := service.NewCategoryService(labelRepo)
 	listService := service.NewListService(listRepo)
+	pushService := service.NewPushService(pushRepo, os.Getenv("VAPID_PRIVATE_KEY"), os.Getenv("VAPID_PUBLIC_KEY"), os.Getenv("VAPID_SUBJECT"))
 
 	// SSE hub
 	hub := handler.NewHub()
@@ -77,11 +79,12 @@ func main() {
 	profileHandler := handler.NewProfileHandler(authService, uploadDir, os.Getenv("API_BASE_URL"))
 	householdHandler := handler.NewHouseholdHandler(householdService)
 	inviteHandler := handler.NewInviteHandler(inviteService, householdService, os.Getenv("JWT_SECRET"))
-	taskHandler := handler.NewTaskHandler(taskService, hub)
-	eventHandler := handler.NewEventHandler(eventService, hub)
+	taskHandler := handler.NewTaskHandler(taskService, hub, pushService)
+	eventHandler := handler.NewEventHandler(eventService, hub, pushService)
 	labelHandler := handler.NewCategoryHandler(labelService, householdService, hub)
 	listHandler := handler.NewListHandler(listService, hub)
 	sseHandler := handler.NewSSEHandler(hub, os.Getenv("JWT_SECRET"), householdService)
+	pushHandler := handler.NewPushHandler(pushService, householdService, os.Getenv("VAPID_PUBLIC_KEY"))
 
 	allowedOrigins := []string{"http://localhost:5173"}
 	if extra := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS")); extra == "*" {
@@ -113,6 +116,7 @@ func main() {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Mount("/auth", authHandler.Routes())
 		r.Mount("/invites", inviteHandler.PublicRoutes())
+		r.Mount("/push", pushHandler.PublicRoutes())
 		// SSE stream: does its own JWT auth via ?token= (EventSource can't set headers)
 		r.Route("/households/{familyID}/stream", func(r chi.Router) {
 			r.Mount("/", sseHandler.Routes())
@@ -141,6 +145,10 @@ func main() {
 			r.Route("/households/{familyID}/lists", func(r chi.Router) {
 				r.Use(handler.RequireFamilyMember(householdService))
 				r.Mount("/", listHandler.Routes())
+			})
+			r.Route("/households/{familyID}/push", func(r chi.Router) {
+				r.Use(handler.RequireFamilyMember(householdService))
+				r.Mount("/", pushHandler.Routes())
 			})
 		})
 	})

@@ -20,6 +20,9 @@ export default defineConfig({
 			adapter: adapter({ fallback: 'index.html' })
 		}),
 		VitePWA({
+			strategies: 'injectManifest',
+			srcDir: 'src',
+			filename: 'service-worker.ts',
 			registerType: 'autoUpdate',
 			manifest: {
 				name: 'Homeboard',
@@ -33,7 +36,7 @@ export default defineConfig({
 					{ src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
 				]
 			},
-			workbox: {
+			injectManifest: {
 				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}']
 			}
 		})

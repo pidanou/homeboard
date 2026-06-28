@@ -14,10 +14,11 @@ import (
 type EventHandler struct {
 	events *service.EventService
 	hub    *Hub
+	push   *service.PushService
 }
 
-func NewEventHandler(events *service.EventService, hub *Hub) *EventHandler {
-	return &EventHandler{events: events, hub: hub}
+func NewEventHandler(events *service.EventService, hub *Hub, push *service.PushService) *EventHandler {
+	return &EventHandler{events: events, hub: hub, push: push}
 }
 
 func (h *EventHandler) Routes() http.Handler {
@@ -101,6 +102,7 @@ func (h *EventHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.hub.Broadcast(familyID)
+	go h.push.SendToFamily(r.Context(), familyID, "New event", event.Title)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(event)
