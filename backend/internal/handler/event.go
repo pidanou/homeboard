@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -102,7 +103,7 @@ func (h *EventHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.hub.Broadcast(familyID)
-	go h.push.SendToFamily(r.Context(), familyID, "New event", event.Title)
+	go h.push.SendToFamily(context.WithoutCancel(r.Context()), familyID, "New event", event.Title)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(event)
