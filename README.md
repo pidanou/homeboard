@@ -51,6 +51,7 @@ Real-time sync across every device. Install as a PWA or native iOS/Android app.
 | 👶 **Virtual members** | Add kids or non-app members; link to a real account later |
 | 🔐 **Roles** | Admin and member roles with access control |
 | 📱 **PWA** | Installable on iOS, Android, and desktop — no app store needed |
+| 🔔 **Push notifications** | Get notified when events or tasks are added — Chrome, Firefox, Edge, Android |
 
 ---
 
@@ -79,6 +80,17 @@ The app is now running at `http://localhost:3000`. The API is at `http://localho
 | `APP_BASE_URL` | | Frontend URL — added to CORS allowed origins |
 | `CORS_ALLOWED_ORIGINS` | | Extra CORS origins, comma-separated, or `*` |
 | `UPLOAD_DIR` | | Directory for avatar uploads (defaults to `./uploads`) |
+| `VAPID_PUBLIC_KEY` | — | Web Push public key (generate below) |
+| `VAPID_PRIVATE_KEY` | — | Web Push private key |
+| `VAPID_SUBJECT` | `mailto:admin@example.com` | Contact URI sent with push requests |
+
+Generate VAPID keys once (requires Node):
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Paste the output into your `.env`. Leave the keys empty to run without push notifications.
 
 ### Reverse proxy
 
