@@ -116,7 +116,6 @@ func main() {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Mount("/auth", authHandler.Routes())
 		r.Mount("/invites", inviteHandler.PublicRoutes())
-		r.Mount("/push", pushHandler.PublicRoutes())
 		// SSE stream: does its own JWT auth via ?token= (EventSource can't set headers)
 		r.Route("/households/{familyID}/stream", func(r chi.Router) {
 			r.Mount("/", sseHandler.Routes())

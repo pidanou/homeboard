@@ -17,18 +17,11 @@ func NewPushHandler(push *service.PushService, vapidPublicKey string) *PushHandl
 	return &PushHandler{push: push, vapidPublicKey: vapidPublicKey}
 }
 
-// PublicRoutes returns the VAPID public key (no auth).
-func (h *PushHandler) PublicRoutes() http.Handler {
-	r := chi.NewRouter()
-	r.Get("/vapid-public-key", h.vapidKey)
-	return r
-}
-
-// Routes returns push routes that require auth but no family scope.
 func (h *PushHandler) Routes() http.Handler {
 	r := chi.NewRouter()
+	r.Get("/vapid-public-key", h.vapidKey)
 	r.Post("/subscribe", h.subscribe)
-	r.Delete("/subscribe", h.unsubscribe)
+	r.Post("/unsubscribe", h.unsubscribe)
 	return r
 }
 
