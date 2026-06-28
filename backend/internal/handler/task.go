@@ -65,7 +65,6 @@ func (h *TaskHandler) create(w http.ResponseWriter, r *http.Request) {
 		StartDate   *string `json:"start_date"`
 		EndDate     *string `json:"end_date"`
 		CategoryID  *string `json:"category_id"`
-		Icon        *string `json:"icon"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Title == "" {
 		http.Error(w, "title is required", http.StatusBadRequest)
@@ -83,7 +82,7 @@ func (h *TaskHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := h.tasks.Create(r.Context(), familyID, userID, body.Title, body.Description, body.Important, body.AssignedTo, startDate, endDate, body.CategoryID, body.Icon)
+	task, err := h.tasks.Create(r.Context(), familyID, userID, body.Title, body.Description, body.Important, body.AssignedTo, startDate, endDate, body.CategoryID)
 	if err != nil {
 		http.Error(w, "failed to create task", http.StatusInternalServerError)
 		return
@@ -114,7 +113,6 @@ func (h *TaskHandler) update(w http.ResponseWriter, r *http.Request) {
 		StartDate   *string `json:"start_date"`
 		EndDate     *string `json:"end_date"`
 		CategoryID  *string `json:"category_id"`
-		Icon        *string `json:"icon"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid request", http.StatusBadRequest)
@@ -154,9 +152,6 @@ func (h *TaskHandler) update(w http.ResponseWriter, r *http.Request) {
 	}
 	if body.CategoryID != nil {
 		task.CategoryID = body.CategoryID
-	}
-	if body.Icon != nil {
-		task.Icon = body.Icon
 	}
 
 	if err := h.tasks.Update(r.Context(), task); err != nil {

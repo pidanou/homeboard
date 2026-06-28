@@ -15,8 +15,6 @@
 	import { CalendarDate, type DateValue } from '@internationalized/date';
 	import { CalendarDays } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
-	import IconPicker from '$lib/components/IconPicker.svelte';
-
 	let { familyID, members, categories, onCreated }: {
 		familyID: string;
 		members: Member[];
@@ -45,7 +43,6 @@
 		none: 'Does not repeat', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly'
 	};
 	let cfRepeat = $state<'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'>('none');
-	let cfIcon = $state<string | undefined>(undefined);
 
 	const RRULE: Record<string, string> = {
 		daily: 'FREQ=DAILY',
@@ -72,7 +69,6 @@
 		cfCategoryID = undefined;
 		cfBirthdayOf = '';
 		cfRepeat = 'none';
-		cfIcon = undefined;
 		cfShowMore = false;
 		isOpen = true;
 	}
@@ -94,7 +90,6 @@
 					assigned_to: cf.assignedTo || undefined,
 					end_date: cfDueDate ? (cfDueTime ? calDateTimeToISO(cfDueDate, cfDueTime, false) : calDateToISO(cfDueDate)) : undefined,
 					category_id: cfCategoryID,
-					icon: cfIcon,
 				});
 			} else {
 				if (!isBirthday && !cfEventRange.start) return;
@@ -114,7 +109,6 @@
 					attendee_ids: cf.attendeeIDs,
 					category_id: cfCategoryID,
 					recurrence_rule: isBirthday ? RRULE['yearly'] : (cfRepeat !== 'none' ? RRULE[cfRepeat] : undefined),
-					icon: cfIcon,
 					important: cf.important,
 					birthday_of: isBirthday ? cfBirthdayOf.trim() : undefined,
 				});
@@ -158,10 +152,7 @@
 				{#if createType === 'birthday'}
 					<Input bind:value={cfBirthdayOf} placeholder="Person's name…" class="flex-1" />
 				{:else}
-					<div class="flex gap-2">
-						<IconPicker bind:value={cfIcon} />
-						<Input bind:value={cf.title} placeholder={createType === 'task' ? 'Buy groceries…' : 'Team dinner…'} class="flex-1" />
-					</div>
+					<Input bind:value={cf.title} placeholder={createType === 'task' ? 'Buy groceries…' : 'Team dinner…'} class="flex-1" />
 				{/if}
 
 				{#if createType === 'task'}

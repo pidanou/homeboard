@@ -234,9 +234,9 @@
 		return [
 			...filteredEvents.map(ev => {
 				const hex = ev.birthday_of ? '#ec4899' : categoryHex(ev.category_id);
-				const prefix = ev.birthday_of ? '🎂' : ev.icon;
+				const prefix = ev.birthday_of ? '🎂 ' : '';
 				const star = ev.important ? '★ ' : '';
-				const title = star + (prefix ? prefix + ' ' + ev.title : ev.title);
+				const title = star + prefix + ev.title;
 				return {
 					id: ev.id, title, start: ev.start_at, end: ev.end_at, allDay: ev.all_day,
 					editable: true,
@@ -248,7 +248,7 @@
 				const done = t.status === 'done';
 				const hex = done ? null : categoryHex(t.category_id);
 				return {
-					id: `task-${t.id}`, title: (t.important ? '★ ' : '') + (t.icon ? `${t.icon} ` : '') + t.title, start: t.end_date, end: t.end_date, allDay: true,
+					id: `task-${t.id}`, title: (t.important ? '★ ' : '') + t.title, start: t.end_date, end: t.end_date, allDay: true,
 					startEditable: !done, durationEditable: false,
 					...(hex ? { backgroundColor: hex, borderColor: hex, textColor: '#fff' } : {}),
 					classNames: done ? ['ec-task', 'ec-task-done'] : ['ec-task'],
@@ -525,7 +525,7 @@
 								<span class="text-xs text-muted-foreground tabular-nums w-12 shrink-0 text-right">
 									{ev.all_day ? 'All day' : fmtTime(ev.start_at)}
 								</span>
-								<span class="text-sm shrink-0">{ev.birthday_of ? '🎂' : (ev.icon ?? '📅')}</span>
+								{#if ev.birthday_of}<span class="text-sm shrink-0">🎂</span>{/if}
 								<span class="text-sm font-medium flex-1 min-w-0 truncate">{ev.title}</span>
 								{#if ev.location}
 									<span class="text-xs text-muted-foreground truncate hidden sm:block max-w-32">{ev.location}</span>
@@ -559,9 +559,6 @@
 								<span class="w-12 shrink-0 flex justify-end">
 									<span class="w-3.5 h-3.5 rounded-sm border-2 border-muted-foreground/30 shrink-0"></span>
 								</span>
-								{#if task.icon}
-									<span class="text-sm shrink-0">{task.icon}</span>
-								{/if}
 								<span class="text-sm flex-1 min-w-0 truncate {task.important ? 'font-medium' : ''} {task.status === 'done' ? 'line-through text-muted-foreground' : ''}">{task.title}</span>
 								{#if cat}
 									<span class="flex items-center gap-1 shrink-0">

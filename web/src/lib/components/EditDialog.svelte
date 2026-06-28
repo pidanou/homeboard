@@ -15,8 +15,6 @@
 	import { CalendarDate } from '@internationalized/date';
 	import { CalendarDays } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
-	import IconPicker from '$lib/components/IconPicker.svelte';
-
 	let { familyID, members, categories, onSaved, onDeleted }: {
 		familyID: string;
 		members: Member[];
@@ -44,7 +42,6 @@
 	let efRepeat = $state<RepeatVal>('none');
 	let efIsRecurring = $state(false);
 	let efScopePrompt = $state<'save' | 'delete' | null>(null);
-	let efIcon = $state<string | undefined>(undefined);
 	let efBirthdayOf = $state<string | undefined>(undefined);
 	let efShowMore = $state(false);
 
@@ -70,7 +67,6 @@
 		efDueDate = t.end_date ? isoToCalDate(t.end_date) : undefined;
 		efDueTime = t.end_date && taskHasTime(t.end_date) ? isoToTimeInput(t.end_date) : '';
 		efCategoryID = t.category_id;
-		efIcon = t.icon;
 		efBirthdayOf = undefined;
 		efShowMore = !!(t.description || t.category_id);
 		isOpen = true;
@@ -93,7 +89,6 @@
 		efRepeat = (e.recurrence_rule ? (RRULE_REVERSE[e.recurrence_rule] ?? 'none') : 'none') as RepeatVal;
 		efIsRecurring = !!e.is_recurring;
 		efScopePrompt = null;
-		efIcon = e.icon;
 		efBirthdayOf = e.birthday_of ?? undefined;
 		efShowMore = !!(e.description || e.recurrence_rule || e.location || e.birthday_of || e.category_id);
 		isOpen = true;
@@ -120,7 +115,6 @@
 					assigned_to: ef.assignedTo || undefined,
 					end_date: efDueDate ? (efDueTime ? calDateTimeToISO(efDueDate, efDueTime, false) : calDateToISO(efDueDate)) : undefined,
 					category_id: efCategoryID,
-					icon: efIcon ?? null,
 					birthday_of: efBirthdayOf ?? null,
 				});
 			} else {
@@ -133,7 +127,6 @@
 					all_day: ef.allDay, attendee_ids: ef.attendeeIDs, category_id: efCategoryID,
 					important: ef.important,
 					recurrence_rule: efBirthdayOf?.trim() ? RRULE['yearly'] : (efRepeat !== 'none' ? RRULE[efRepeat] : null),
-					icon: efIcon ?? null,
 					birthday_of: efBirthdayOf?.trim() || null,
 				});
 			}
@@ -176,13 +169,7 @@
 				{#if efBirthdayOf !== undefined}
 					<Input bind:value={efBirthdayOf} placeholder="Person's name…" class="flex-1" />
 				{:else}
-				<div class="flex gap-2">
-					<IconPicker bind:value={efIcon} />
-					<Input
-						bind:value={ef.title}
-						class="flex-1"
-						/>
-				</div>
+				<Input bind:value={ef.title} class="flex-1" />
 				{/if}
 
 				{#if editKind === 'task'}

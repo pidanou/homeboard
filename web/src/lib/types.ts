@@ -30,7 +30,6 @@ export type Task = {
 	end_date?: string;
 	start_date?: string;
 	category_id?: string;
-	icon?: string;
 };
 
 export type CalEvent = {
@@ -48,7 +47,6 @@ export type CalEvent = {
 	occurrence_date?: string;
 	type?: string;
 	important?: boolean;
-	icon?: string;
 	birthday_of?: string | null;
 };
 

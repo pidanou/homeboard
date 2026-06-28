@@ -19,10 +19,10 @@ func NewTaskRepository(pool *pgxpool.Pool) *TaskRepository {
 
 func (r *TaskRepository) Create(ctx context.Context, task *model.Task) error {
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO tasks (id, family_id, title, description, important, status, assigned_to, start_date, end_date, category_id, icon, created_by, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+		`INSERT INTO tasks (id, family_id, title, description, important, status, assigned_to, start_date, end_date, category_id, created_by, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
 		task.ID, task.FamilyID, task.Title, task.Description, task.Important, task.Status, task.AssignedTo,
-		task.StartDate, task.EndDate, task.CategoryID, task.Icon, task.CreatedBy, task.CreatedAt, task.UpdatedAt,
+		task.StartDate, task.EndDate, task.CategoryID, task.CreatedBy, task.CreatedAt, task.UpdatedAt,
 	)
 	return err
 }
@@ -31,18 +31,18 @@ func (r *TaskRepository) GetByID(ctx context.Context, taskID, familyID string) (
 	t := &model.Task{}
 	err := r.pool.QueryRow(ctx,
 		`SELECT id, family_id, title, COALESCE(description, ''), important, status, assigned_to,
-		        start_date, end_date, category_id, icon, manual_order, created_by, created_at, updated_at
+		        start_date, end_date, category_id, manual_order, created_by, created_at, updated_at
 		 FROM tasks WHERE id = $1 AND family_id = $2`,
 		taskID, familyID,
 	).Scan(&t.ID, &t.FamilyID, &t.Title, &t.Description, &t.Important, &t.Status, &t.AssignedTo,
-		&t.StartDate, &t.EndDate, &t.CategoryID, &t.Icon, &t.ManualOrder, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt)
+		&t.StartDate, &t.EndDate, &t.CategoryID, &t.ManualOrder, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt)
 	return t, err
 }
 
 func (r *TaskRepository) ListByFamilyID(ctx context.Context, familyID string) ([]*model.Task, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT id, family_id, title, COALESCE(description, ''), important, status, assigned_to,
-		        start_date, end_date, category_id, icon, manual_order, created_by, created_at, updated_at
+		        start_date, end_date, category_id, manual_order, created_by, created_at, updated_at
 		 FROM tasks
 		 WHERE family_id = $1
 		 ORDER BY manual_order ASC NULLS LAST, created_at DESC`,
@@ -57,7 +57,7 @@ func (r *TaskRepository) ListByFamilyID(ctx context.Context, familyID string) ([
 	for rows.Next() {
 		t := &model.Task{}
 		if err := rows.Scan(&t.ID, &t.FamilyID, &t.Title, &t.Description, &t.Important, &t.Status, &t.AssignedTo,
-			&t.StartDate, &t.EndDate, &t.CategoryID, &t.Icon, &t.ManualOrder, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt); err != nil {
+			&t.StartDate, &t.EndDate, &t.CategoryID, &t.ManualOrder, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt); err != nil {
 			return nil, err
 		}
 		tasks = append(tasks, t)
@@ -68,10 +68,10 @@ func (r *TaskRepository) ListByFamilyID(ctx context.Context, familyID string) ([
 func (r *TaskRepository) Update(ctx context.Context, task *model.Task) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE tasks SET title = $1, description = $2, important = $3, status = $4, assigned_to = $5,
-		  start_date = $6, end_date = $7, category_id = $8, icon = $9, manual_order = $10, updated_at = $11
-		 WHERE id = $12 AND family_id = $13`,
+		  start_date = $6, end_date = $7, category_id = $8, manual_order = $9, updated_at = $10
+		 WHERE id = $11 AND family_id = $12`,
 		task.Title, task.Description, task.Important, task.Status, task.AssignedTo,
-		task.StartDate, task.EndDate, task.CategoryID, task.Icon, task.ManualOrder, task.UpdatedAt, task.ID, task.FamilyID,
+		task.StartDate, task.EndDate, task.CategoryID, task.ManualOrder, task.UpdatedAt, task.ID, task.FamilyID,
 	)
 	return err
 }

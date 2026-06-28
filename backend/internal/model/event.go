@@ -18,7 +18,6 @@ type Event struct {
 	Cancelled          bool       `json:"cancelled,omitempty"`
 	IsRecurring        bool       `json:"is_recurring,omitempty"`
 	Important          bool       `json:"important,omitempty"`
-	Icon               *string    `json:"icon,omitempty"`
 	BirthdayOf         *string    `json:"birthday_of,omitempty"`
 	Type               string     `json:"type"`
 	CreatedBy          string     `json:"created_by"`

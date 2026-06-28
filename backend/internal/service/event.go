@@ -18,7 +18,7 @@ func NewEventService(events repository.EventRepository) *EventService {
 	return &EventService{events: events}
 }
 
-func (s *EventService) Create(ctx context.Context, familyID, userID, title, description, location string, startAt, endAt time.Time, allDay bool, attendeeIDs []string, categoryID *string, recurrenceRule *string, eventType string, icon *string, birthdayOf *string, important bool) (*model.Event, error) {
+func (s *EventService) Create(ctx context.Context, familyID, userID, title, description, location string, startAt, endAt time.Time, allDay bool, attendeeIDs []string, categoryID *string, recurrenceRule *string, eventType string, birthdayOf *string, important bool) (*model.Event, error) {
 	if eventType == "" {
 		eventType = "default"
 	}
@@ -36,7 +36,6 @@ func (s *EventService) Create(ctx context.Context, familyID, userID, title, desc
 		CategoryID:     categoryID,
 		RecurrenceRule: recurrenceRule,
 		Type:           eventType,
-		Icon:           icon,
 		BirthdayOf:     birthdayOf,
 		Important:      important,
 		CreatedBy:      userID,
