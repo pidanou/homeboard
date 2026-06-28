@@ -6,6 +6,8 @@
 
 Real-time sync across every device. Install as a PWA or native iOS/Android app.
 
+**[Try the hosted version → homeboard.noudapi.com](https://homeboard.noudapi.com)**
+
 <br/>
 
 <img src="docs/screenshots/demo.gif" alt="Homeboard in action" width="80%" style="border-radius:12px"/>
