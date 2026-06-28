@@ -46,6 +46,7 @@ func (s *PushService) SendToFamily(ctx context.Context, familyID, title, body st
 	payload, _ := json.Marshal(map[string]string{"title": title, "body": body})
 
 	for _, sub := range subs {
+		log.Printf("push: sending to endpoint=%s p256dh_len=%d auth_len=%d", sub.Endpoint[:30], len(sub.P256DH), len(sub.Auth))
 		resp, err := webpush.SendNotification(payload, &webpush.Subscription{
 			Endpoint: sub.Endpoint,
 			Keys: webpush.Keys{
