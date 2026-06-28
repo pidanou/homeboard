@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -90,7 +91,7 @@ func (h *TaskHandler) create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.hub.Broadcast(familyID)
-	go h.push.SendToFamily(r.Context(), familyID, "New task", task.Title)
+	go h.push.SendToFamily(context.WithoutCancel(r.Context()), familyID, "New task", task.Title)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(task)
