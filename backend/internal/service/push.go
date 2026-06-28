@@ -61,7 +61,7 @@ func (s *PushService) SendToFamily(ctx context.Context, familyID, title, body st
 			log.Printf("push: send error: %v", err)
 			continue
 		}
-		resp.Body.Close()
+resp.Body.Close()
 		if resp.StatusCode == http.StatusGone || resp.StatusCode == http.StatusNotFound {
 			_ = s.repo.DeleteByEndpoint(ctx, sub.Endpoint)
 		}
