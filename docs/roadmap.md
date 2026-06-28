@@ -122,6 +122,7 @@ OAuth and invite polish.
 ## M11 — Offline & PWA hardening 🚧
 - ✅ "Offline" banner when network is unavailable
 - ✅ Auto-reload data on reconnect (page reload when `online` event fires)
+- ✅ Web Push notifications via VAPID — new event/task fires push to all family members; toggle in household settings; auto-removes expired subscriptions; works on Chrome, Firefox, Edge, Android; iOS 16.4+ when added to home screen
 - ⬜ App shell cached via service worker (install prompt) — deferred; Capacitor covers native distribution
 - ⬜ iOS home screen icon + splash screen
 

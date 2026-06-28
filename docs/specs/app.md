@@ -161,6 +161,15 @@ App root
 - When offline: show a subtle "Offline — changes won't save" banner
 - On reconnect: reload data automatically
 
+## Push notifications
+
+- Web Push via VAPID — no Firebase, no third-party accounts
+- Backend sends notifications on event create and task create to all family members
+- Subscriptions stored per user per family in `push_subscriptions`; expired endpoints (410/404) auto-removed
+- Frontend: service worker handles `push` events and calls `showNotification`; toggle in household settings
+- Browser support: Chrome, Firefox, Edge, Android WebView; iOS 16.4+ when PWA is added to home screen
+- VAPID keys configured via `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` env vars
+
 ---
 
 ## Performance targets
@@ -207,10 +216,9 @@ These constraints must not be violated during any implementation:
 
 | Feature | Reason |
 |---|---|
-| Native mobile app (Capacitor) | PWA covers it now; Capacitor wrapper planned for M11b when push notifications are needed |
+| Native mobile app (Capacitor) | PWA covers it now; Capacitor wrapper planned for M11b |
 | Recurring events | Data model is non-trivial; deferred |
 | External calendar sync (iCal, Google) | High effort; deferred |
-| Push notifications | Requires service worker push subscription + server sender |
 | Search / full-text | High value; needs backend index; deferred |
 | Subtasks | Different data model; deferred |
 | Activity feed / audit log | Useful for larger households; deferred |
