@@ -69,6 +69,10 @@ func (h *HouseholdHandler) create(w http.ResponseWriter, r *http.Request) {
 
 func (h *HouseholdHandler) get(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
+	if err := requireMember(r, familyID, h.families); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
 	family, err := h.families.GetByID(r.Context(), familyID)
 	if err != nil {
@@ -82,6 +86,10 @@ func (h *HouseholdHandler) get(w http.ResponseWriter, r *http.Request) {
 
 func (h *HouseholdHandler) members(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
+	if err := requireMember(r, familyID, h.families); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
 	members, err := h.families.GetMembers(r.Context(), familyID)
 	if err != nil {
@@ -156,6 +164,10 @@ func (h *HouseholdHandler) updateRole(w http.ResponseWriter, r *http.Request) {
 
 func (h *HouseholdHandler) unlinkedVirtual(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
+	if err := requireMember(r, familyID, h.families); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 	members, err := h.families.GetUnlinkedVirtualMembers(r.Context(), familyID)
 	if err != nil {
 		http.Error(w, "failed to get virtual members", http.StatusInternalServerError)
