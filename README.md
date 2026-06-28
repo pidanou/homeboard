@@ -90,7 +90,25 @@ Generate VAPID keys once (requires Node):
 npx web-push generate-vapid-keys
 ```
 
-Paste the output into your `.env`. Leave the keys empty to run without push notifications.
+The command prints something like:
+
+```
+Public Key:
+BEy2...
+
+Private Key:
+abc1...
+```
+
+Copy the values into your `.env`:
+
+```env
+VAPID_PUBLIC_KEY=BEy2...
+VAPID_PRIVATE_KEY=abc1...
+VAPID_SUBJECT=mailto:you@yourdomain.com
+```
+
+Leave the keys empty to run without push notifications — everything else works normally.
 
 ### Reverse proxy
 
