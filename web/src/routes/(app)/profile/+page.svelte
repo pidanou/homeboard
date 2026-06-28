@@ -249,12 +249,16 @@
 				variant={pushSubscribed ? 'outline' : 'default'}
 				class="w-full"
 				onclick={async () => {
-					if (pushSubscribed) {
-						await unsubscribePush();
-						pushSubscribed = false;
-					} else {
-						await subscribePush();
-						pushSubscribed = await isPushSubscribed();
+					try {
+						if (pushSubscribed) {
+							await unsubscribePush();
+							pushSubscribed = false;
+						} else {
+							await subscribePush();
+							pushSubscribed = await isPushSubscribed();
+						}
+					} catch (e) {
+						console.error('push error:', e);
 					}
 				}}
 			>
