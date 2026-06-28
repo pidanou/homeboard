@@ -13,7 +13,6 @@ type Task struct {
 	StartDate   *time.Time `json:"start_date,omitempty"`
 	EndDate     *time.Time `json:"end_date,omitempty"`
 	CategoryID  *string    `json:"category_id,omitempty"`
-	Icon        *string    `json:"icon,omitempty"`
 	ManualOrder *int       `json:"manual_order,omitempty"`
 	CreatedBy   string     `json:"created_by"`
 	CreatedAt   time.Time  `json:"created_at"`

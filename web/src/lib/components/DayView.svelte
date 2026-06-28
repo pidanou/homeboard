@@ -28,10 +28,10 @@
 	const ecEvents = $derived([
 		...events.map(ev => {
 			const hex = ev.birthday_of ? '#ec4899' : categoryHex(ev.category_id);
-			const prefix = ev.birthday_of ? '🎂' : ev.icon;
+			const prefix = ev.birthday_of ? '🎂 ' : '';
 			const star = ev.important ? '★ ' : '';
 			return {
-				id: ev.id, title: star + (prefix ? prefix + ' ' + ev.title : ev.title),
+				id: ev.id, title: star + prefix + ev.title,
 				start: ev.start_at, end: ev.end_at, allDay: ev.all_day,
 				...(hex ? { backgroundColor: hex, borderColor: hex, textColor: '#fff' } : {}),
 				extendedProps: { type: 'event', data: ev },
@@ -43,7 +43,7 @@
 			const start = new Date(t.end_date!);
 			const end = new Date(start.getTime() + 60 * 60 * 1000);
 			return {
-				id: `task-${t.id}`, title: (t.important ? '★ ' : '') + (t.icon ? `${t.icon} ` : '') + t.title,
+				id: `task-${t.id}`, title: (t.important ? '★ ' : '') + t.title,
 				start, end, allDay: false,
 				...(hex ? { backgroundColor: hex, borderColor: hex, textColor: '#fff' } : {}),
 				classNames: done ? ['ec-task', 'ec-task-done'] : ['ec-task'],

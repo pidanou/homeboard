@@ -171,7 +171,7 @@
 								<span class="text-xs text-muted-foreground tabular-nums w-12 shrink-0 text-right">
 									{event.all_day ? 'All day' : fmtTime(event.start_at)}
 								</span>
-								<span class="text-sm font-medium">{#if event.icon}<span class="mr-1">{event.icon}</span>{/if}{event.title}</span>
+								<span class="text-sm font-medium">{event.title}</span>
 								{#if event.location}
 									<span class="text-xs text-muted-foreground truncate">{event.location}</span>
 								{/if}

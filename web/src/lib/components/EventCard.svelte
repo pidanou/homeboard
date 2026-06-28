@@ -30,7 +30,7 @@
 	{/if}
 	<div class="flex-1 min-w-0">
 		<div class="flex items-start justify-between gap-2">
-			<p class="text-sm font-medium truncate">{#if !event.birthday_of}<span class="mr-1">{event.icon ?? '📅'}</span>{/if}{event.title}</p>
+			<p class="text-sm font-medium truncate">{event.title}</p>
 			{#if new Date(event.start_at) <= now}
 				<span class="relative flex h-2 w-2 mt-1.5 shrink-0">
 					<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
