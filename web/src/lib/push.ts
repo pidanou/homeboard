@@ -24,12 +24,11 @@ export async function subscribePush(): Promise<void> {
 		applicationServerKey: urlBase64ToUint8Array(vapidKey)
 	});
 
-	const { endpoint, keys } = sub.toJSON() as {
-		endpoint: string;
-		keys: { auth: string; p256dh: string };
-	};
+	const endpoint = sub.endpoint;
+	const p256dh = arrayBufferToBase64Url(sub.getKey('p256dh')!);
+	const auth = arrayBufferToBase64Url(sub.getKey('auth')!);
 
-	await api.post('/api/v1/push/subscribe', { endpoint, auth: keys.auth, p256dh: keys.p256dh });
+	await api.post('/api/v1/push/subscribe', { endpoint, auth, p256dh });
 }
 
 export async function unsubscribePush(): Promise<void> {
@@ -47,6 +46,13 @@ export async function isPushSubscribed(): Promise<boolean> {
 	if (!('serviceWorker' in navigator)) return false;
 	const reg = await navigator.serviceWorker.ready;
 	return (await reg.pushManager.getSubscription()) !== null;
+}
+
+function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
+	return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+		.replace(/\+/g, '-')
+		.replace(/\//g, '_')
+		.replace(/=/g, '');
 }
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
