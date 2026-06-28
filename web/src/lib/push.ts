@@ -12,6 +12,11 @@ export async function subscribePush(): Promise<void> {
 	if (permission !== 'granted') return;
 
 	const reg = await navigator.serviceWorker.ready;
+
+	// Clear any existing subscription — resubscribe fresh with current VAPID key
+	const existing = await reg.pushManager.getSubscription();
+	if (existing) await existing.unsubscribe();
+
 	const vapidKey = await getVapidKey();
 
 	const sub = await reg.pushManager.subscribe({
