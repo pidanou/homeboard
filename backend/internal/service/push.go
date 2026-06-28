@@ -58,7 +58,7 @@ func (s *PushService) SendToFamily(ctx context.Context, familyID, title, body st
 			TTL:             86400,
 		})
 		if err != nil {
-			log.Printf("push: send to %s: %v", sub.Endpoint, err)
+			log.Printf("push: send error: %v", err)
 			continue
 		}
 		resp.Body.Close()
