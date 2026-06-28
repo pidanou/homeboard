@@ -1,9 +1,8 @@
-const BASE = '/api/v1';
+import { api } from '$lib/api/client';
 
 async function getVapidKey(): Promise<string> {
-	const res = await fetch(`${BASE}/push/vapid-public-key`);
-	const { public_key } = await res.json();
-	return public_key;
+	const result = await api.get<{ public_key: string }>('/api/v1/push/vapid-public-key');
+	return result?.public_key ?? '';
 }
 
 export async function subscribePush(): Promise<void> {
@@ -25,11 +24,7 @@ export async function subscribePush(): Promise<void> {
 		keys: { auth: string; p256dh: string };
 	};
 
-	await fetch(`${BASE}/push/subscribe`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ endpoint, auth: keys.auth, p256dh: keys.p256dh })
-	});
+	await api.post('/api/v1/push/subscribe', { endpoint, auth: keys.auth, p256dh: keys.p256dh });
 }
 
 export async function unsubscribePush(): Promise<void> {
@@ -39,11 +34,7 @@ export async function unsubscribePush(): Promise<void> {
 	const sub = await reg.pushManager.getSubscription();
 	if (!sub) return;
 
-	await fetch(`${BASE}/push/subscribe`, {
-		method: 'DELETE',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ endpoint: sub.endpoint })
-	});
+	await api.post('/api/v1/push/unsubscribe', { endpoint: sub.endpoint });
 	await sub.unsubscribe();
 }
 
