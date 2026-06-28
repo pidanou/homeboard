@@ -8,7 +8,6 @@
     import UserAvatar from "$lib/components/UserAvatar.svelte";
     import { currentUser } from "$lib/stores/user";
     import { households, updateHouseholdName } from "$lib/stores/households";
-    import { subscribePush, unsubscribePush, isPushSubscribed } from "$lib/push";
 
     type Invite = { token: string; expires_at: string };
     type Member = {
@@ -64,8 +63,6 @@
     let members = $state<Member[]>([]);
     let categories = $state<AppCategory[]>([]);
     let copied = $state<string | null>(null);
-    let pushSubscribed = $state(false);
-    let pushSupported = $state(false);
 
     // name editing
     let editingName = $state(false);
@@ -102,8 +99,6 @@
             invite = (invitesResult.value ?? [])[0] ?? null;
         if (categoriesResult.status === "fulfilled")
             categories = categoriesResult.value ?? [];
-        pushSupported = 'serviceWorker' in navigator && 'PushManager' in window;
-        if (pushSupported) pushSubscribed = await isPushSubscribed();
     });
 
     async function saveName() {
@@ -697,27 +692,5 @@
                 {/if}
             </section>
         {/if}
-    {#if pushSupported}
-        <section class="space-y-3">
-            <h2 class="text-lg font-semibold">Notifications</h2>
-            <p class="text-sm text-muted-foreground">
-                Get notified when new events or tasks are added to this family.
-            </p>
-            <Button
-                variant={pushSubscribed ? "outline" : "default"}
-                onclick={async () => {
-                    if (pushSubscribed) {
-                        await unsubscribePush(familyID);
-                        pushSubscribed = false;
-                    } else {
-                        await subscribePush(familyID);
-                        pushSubscribed = await isPushSubscribed();
-                    }
-                }}
-            >
-                {pushSubscribed ? "Disable notifications" : "Enable notifications"}
-            </Button>
-        </section>
-    {/if}
-    </div>
+</div>
 </div>

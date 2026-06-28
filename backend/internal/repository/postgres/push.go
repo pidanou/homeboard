@@ -17,11 +17,11 @@ func NewPushRepository(pool *pgxpool.Pool) *PushRepository {
 
 func (r *PushRepository) Save(ctx context.Context, sub *model.PushSubscription) error {
 	_, err := r.pool.Exec(ctx, `
-		INSERT INTO push_subscriptions (user_id, family_id, endpoint, auth, p256dh)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO push_subscriptions (user_id, endpoint, auth, p256dh)
+		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (user_id, endpoint) DO UPDATE
-		  SET auth = EXCLUDED.auth, p256dh = EXCLUDED.p256dh, family_id = EXCLUDED.family_id
-	`, sub.UserID, sub.FamilyID, sub.Endpoint, sub.Auth, sub.P256DH)
+		  SET auth = EXCLUDED.auth, p256dh = EXCLUDED.p256dh
+	`, sub.UserID, sub.Endpoint, sub.Auth, sub.P256DH)
 	return err
 }
 
@@ -33,9 +33,12 @@ func (r *PushRepository) Delete(ctx context.Context, userID, endpoint string) er
 }
 
 func (r *PushRepository) ListForFamily(ctx context.Context, familyID string) ([]*model.PushSubscription, error) {
-	rows, err := r.pool.Query(ctx,
-		`SELECT id, user_id, family_id, endpoint, auth, p256dh FROM push_subscriptions WHERE family_id = $1`,
-		familyID)
+	rows, err := r.pool.Query(ctx, `
+		SELECT ps.id, ps.user_id, ps.endpoint, ps.auth, ps.p256dh
+		FROM push_subscriptions ps
+		JOIN household_members hm ON hm.user_id = ps.user_id
+		WHERE hm.family_id = $1
+	`, familyID)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +47,7 @@ func (r *PushRepository) ListForFamily(ctx context.Context, familyID string) ([]
 	var subs []*model.PushSubscription
 	for rows.Next() {
 		s := &model.PushSubscription{}
-		if err := rows.Scan(&s.ID, &s.UserID, &s.FamilyID, &s.Endpoint, &s.Auth, &s.P256DH); err != nil {
+		if err := rows.Scan(&s.ID, &s.UserID, &s.Endpoint, &s.Auth, &s.P256DH); err != nil {
 			return nil, err
 		}
 		subs = append(subs, s)

@@ -5,28 +5,26 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/pidanou/homeboard/internal/model"
 	"github.com/pidanou/homeboard/internal/service"
 )
 
 type PushHandler struct {
-	push          *service.PushService
-	families      *service.HouseholdService
+	push           *service.PushService
 	vapidPublicKey string
 }
 
-func NewPushHandler(push *service.PushService, families *service.HouseholdService, vapidPublicKey string) *PushHandler {
-	return &PushHandler{push: push, families: families, vapidPublicKey: vapidPublicKey}
+func NewPushHandler(push *service.PushService, vapidPublicKey string) *PushHandler {
+	return &PushHandler{push: push, vapidPublicKey: vapidPublicKey}
 }
 
-// PublicRoutes returns routes that don't require auth (VAPID public key).
+// PublicRoutes returns the VAPID public key (no auth).
 func (h *PushHandler) PublicRoutes() http.Handler {
 	r := chi.NewRouter()
 	r.Get("/vapid-public-key", h.vapidKey)
 	return r
 }
 
-// Routes returns family-scoped push routes (require auth + membership via middleware).
+// Routes returns push routes that require auth but no family scope.
 func (h *PushHandler) Routes() http.Handler {
 	r := chi.NewRouter()
 	r.Post("/subscribe", h.subscribe)
@@ -40,7 +38,6 @@ func (h *PushHandler) vapidKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PushHandler) subscribe(w http.ResponseWriter, r *http.Request) {
-	familyID := chi.URLParam(r, "familyID")
 	userID := r.Context().Value(ContextKeyUserID).(string)
 
 	var body struct {
@@ -53,13 +50,7 @@ func (h *PushHandler) subscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.push.Subscribe(r.Context(), &model.PushSubscription{
-		UserID:   userID,
-		FamilyID: familyID,
-		Endpoint: body.Endpoint,
-		Auth:     body.Auth,
-		P256DH:   body.P256DH,
-	}); err != nil {
+	if err := h.push.Subscribe(r.Context(), userID, body.Endpoint, body.Auth, body.P256DH); err != nil {
 		http.Error(w, "failed to save subscription", http.StatusInternalServerError)
 		return
 	}

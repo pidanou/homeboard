@@ -9,7 +9,8 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
 	import { logout } from '$lib/auth';
-	import { Camera, ChevronLeft, LogOut } from 'lucide-svelte';
+	import { subscribePush, unsubscribePush, isPushSubscribed } from '$lib/push';
+	import { Camera, ChevronLeft, LogOut, Bell, BellOff } from 'lucide-svelte';
 
 	let user = $derived($currentUser);
 
@@ -34,9 +35,15 @@
 	let cropOpen = $state(false);
 	let cropComponent = $state<AvatarCrop>(null!);
 	let fileInput = $state<HTMLInputElement>(null!);
+	let pushSubscribed = $state(false);
+	let pushSupported = $state(false);
 	let avatarLoading = $state(false);
 
-	onMount(loadCurrentUser);
+	onMount(async () => {
+		loadCurrentUser();
+		pushSupported = 'serviceWorker' in navigator && 'PushManager' in window;
+		if (pushSupported) pushSubscribed = await isPushSubscribed();
+	});
 
 	$effect(() => {
 		if (panel === 'name' && user) nameValue = user.name;
@@ -232,6 +239,31 @@
 	{:else}
 		<div class="flex justify-center py-16">
 			<div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+		</div>
+	{/if}
+
+	{#if pushSupported}
+		<div class="px-4 md:px-6 pb-4 space-y-2">
+			<p class="text-sm font-medium">Notifications</p>
+			<Button
+				variant={pushSubscribed ? 'outline' : 'default'}
+				class="w-full"
+				onclick={async () => {
+					if (pushSubscribed) {
+						await unsubscribePush();
+						pushSubscribed = false;
+					} else {
+						await subscribePush();
+						pushSubscribed = await isPushSubscribed();
+					}
+				}}
+			>
+				{#if pushSubscribed}
+					<BellOff class="w-4 h-4 mr-2" /> Disable notifications
+				{:else}
+					<Bell class="w-4 h-4 mr-2" /> Enable notifications
+				{/if}
+			</Button>
 		</div>
 	{/if}
 

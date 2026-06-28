@@ -84,7 +84,7 @@ func main() {
 	labelHandler := handler.NewCategoryHandler(labelService, householdService, hub)
 	listHandler := handler.NewListHandler(listService, hub)
 	sseHandler := handler.NewSSEHandler(hub, os.Getenv("JWT_SECRET"), householdService)
-	pushHandler := handler.NewPushHandler(pushService, householdService, os.Getenv("VAPID_PUBLIC_KEY"))
+	pushHandler := handler.NewPushHandler(pushService, os.Getenv("VAPID_PUBLIC_KEY"))
 
 	allowedOrigins := []string{"http://localhost:5173"}
 	if extra := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS")); extra == "*" {
@@ -146,10 +146,7 @@ func main() {
 				r.Use(handler.RequireFamilyMember(householdService))
 				r.Mount("/", listHandler.Routes())
 			})
-			r.Route("/households/{familyID}/push", func(r chi.Router) {
-				r.Use(handler.RequireFamilyMember(householdService))
-				r.Mount("/", pushHandler.Routes())
-			})
+			r.Mount("/push", pushHandler.Routes())
 		})
 	})
 
