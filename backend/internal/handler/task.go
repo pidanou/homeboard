@@ -24,10 +24,11 @@ func parseOptionalTime(s *string) (*time.Time, error) {
 type TaskHandler struct {
 	tasks *service.TaskService
 	hub   *Hub
+	push  *service.PushService
 }
 
-func NewTaskHandler(tasks *service.TaskService, hub *Hub) *TaskHandler {
-	return &TaskHandler{tasks: tasks, hub: hub}
+func NewTaskHandler(tasks *service.TaskService, hub *Hub, push *service.PushService) *TaskHandler {
+	return &TaskHandler{tasks: tasks, hub: hub, push: push}
 }
 
 func (h *TaskHandler) Routes() http.Handler {
@@ -89,6 +90,7 @@ func (h *TaskHandler) create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.hub.Broadcast(familyID)
+	go h.push.SendToFamily(r.Context(), familyID, "New task", task.Title)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(task)
