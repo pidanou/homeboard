@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -46,7 +47,12 @@ func (s *PushService) SendToFamily(ctx context.Context, familyID, title, body st
 	payload, _ := json.Marshal(map[string]string{"title": title, "body": body})
 
 	for _, sub := range subs {
-		log.Printf("push: sending to endpoint=%s p256dh_len=%d auth_len=%d", sub.Endpoint[:30], len(sub.P256DH), len(sub.Auth))
+		dh, err := base64.RawURLEncoding.DecodeString(sub.P256DH)
+		if err != nil {
+			log.Printf("push: p256dh base64 decode error: %v (raw=%q)", err, sub.P256DH)
+			continue
+		}
+		log.Printf("push: p256dh decoded len=%d first=%02x last=%02x", len(dh), dh[0], dh[len(dh)-1])
 		resp, err := webpush.SendNotification(payload, &webpush.Subscription{
 			Endpoint: sub.Endpoint,
 			Keys: webpush.Keys{
