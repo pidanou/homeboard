@@ -81,7 +81,7 @@ func main() {
 	eventHandler := handler.NewEventHandler(eventService, hub)
 	labelHandler := handler.NewCategoryHandler(labelService, householdService, hub)
 	listHandler := handler.NewListHandler(listService, hub)
-	sseHandler := handler.NewSSEHandler(hub, os.Getenv("JWT_SECRET"))
+	sseHandler := handler.NewSSEHandler(hub, os.Getenv("JWT_SECRET"), householdService)
 
 	allowedOrigins := []string{"http://localhost:5173"}
 	if extra := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS")); extra == "*" {
@@ -108,6 +108,7 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(handler.SecurityHeaders)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Mount("/auth", authHandler.Routes())
@@ -122,18 +123,23 @@ func main() {
 			r.Mount("/profile", profileHandler.Routes())
 			r.Mount("/households", householdHandler.Routes())
 			r.Route("/households/{familyID}/invites", func(r chi.Router) {
+				r.Use(handler.RequireFamilyMember(householdService))
 				r.Mount("/", inviteHandler.Routes())
 			})
 			r.Route("/households/{familyID}/tasks", func(r chi.Router) {
+				r.Use(handler.RequireFamilyMember(householdService))
 				r.Mount("/", taskHandler.Routes())
 			})
 			r.Route("/households/{familyID}/events", func(r chi.Router) {
+				r.Use(handler.RequireFamilyMember(householdService))
 				r.Mount("/", eventHandler.Routes())
 			})
 			r.Route("/households/{familyID}/categories", func(r chi.Router) {
+				r.Use(handler.RequireFamilyMember(householdService))
 				r.Mount("/", labelHandler.Routes())
 			})
 			r.Route("/households/{familyID}/lists", func(r chi.Router) {
+				r.Use(handler.RequireFamilyMember(householdService))
 				r.Mount("/", listHandler.Routes())
 			})
 		})

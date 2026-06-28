@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -8,15 +9,17 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/pidanou/homeboard/internal/service"
 )
 
 type SSEHandler struct {
 	hub       *Hub
 	jwtSecret string
+	families  *service.HouseholdService
 }
 
-func NewSSEHandler(hub *Hub, jwtSecret string) *SSEHandler {
-	return &SSEHandler{hub: hub, jwtSecret: jwtSecret}
+func NewSSEHandler(hub *Hub, jwtSecret string, families *service.HouseholdService) *SSEHandler {
+	return &SSEHandler{hub: hub, jwtSecret: jwtSecret, families: families}
 }
 
 func (h *SSEHandler) Routes() http.Handler {
@@ -42,6 +45,22 @@ func (h *SSEHandler) stream(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil || !token.Valid {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	userID, _ := claims["sub"].(string)
+	if userID == "" {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	ctx := context.WithValue(r.Context(), ContextKeyUserID, userID)
+	if _, err := h.families.GetMemberRole(ctx, userID, familyID); err != nil {
+		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
 

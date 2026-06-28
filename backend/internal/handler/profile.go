@@ -94,14 +94,17 @@ func (h *ProfileHandler) uploadAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, header, err := r.FormFile("avatar")
+	file, _, err := r.FormFile("avatar")
 	if err != nil {
 		http.Error(w, "avatar file required", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
-	ct := header.Header.Get("Content-Type")
+	sniff := make([]byte, 512)
+	n, _ := file.Read(sniff)
+	ct := http.DetectContentType(sniff[:n])
+	file.Seek(0, io.SeekStart)
 	if ct != "image/jpeg" && ct != "image/png" && ct != "image/webp" {
 		http.Error(w, "unsupported image type", http.StatusBadRequest)
 		return

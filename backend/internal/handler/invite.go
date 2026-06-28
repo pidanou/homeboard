@@ -52,6 +52,10 @@ func (h *InviteHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 func (h *InviteHandler) list(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
+	if err := requireAdmin(r, familyID, h.families); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
 	invites, err := h.invites.ListForFamily(r.Context(), familyID)
 	if err != nil {
