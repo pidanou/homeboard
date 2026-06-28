@@ -22,8 +22,13 @@ func NewPushService(repo repository.PushRepository, vapidPriv, vapidPub, vapidEm
 	return &PushService{repo: repo, vapidPriv: vapidPriv, vapidPub: vapidPub, vapidEmail: vapidEmail}
 }
 
-func (s *PushService) Subscribe(ctx context.Context, sub *model.PushSubscription) error {
-	return s.repo.Save(ctx, sub)
+func (s *PushService) Subscribe(ctx context.Context, userID, endpoint, auth, p256dh string) error {
+	return s.repo.Save(ctx, &model.PushSubscription{
+		UserID:   userID,
+		Endpoint: endpoint,
+		Auth:     auth,
+		P256DH:   p256dh,
+	})
 }
 
 func (s *PushService) Unsubscribe(ctx context.Context, userID, endpoint string) error {

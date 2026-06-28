@@ -6,7 +6,7 @@ async function getVapidKey(): Promise<string> {
 	return public_key;
 }
 
-export async function subscribePush(familyId: string): Promise<void> {
+export async function subscribePush(): Promise<void> {
 	if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
 	const permission = await Notification.requestPermission();
@@ -25,21 +25,21 @@ export async function subscribePush(familyId: string): Promise<void> {
 		keys: { auth: string; p256dh: string };
 	};
 
-	await fetch(`${BASE}/households/${familyId}/push/subscribe`, {
+	await fetch(`${BASE}/push/subscribe`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ endpoint, auth: keys.auth, p256dh: keys.p256dh })
 	});
 }
 
-export async function unsubscribePush(familyId: string): Promise<void> {
+export async function unsubscribePush(): Promise<void> {
 	if (!('serviceWorker' in navigator)) return;
 
 	const reg = await navigator.serviceWorker.ready;
 	const sub = await reg.pushManager.getSubscription();
 	if (!sub) return;
 
-	await fetch(`${BASE}/households/${familyId}/push/subscribe`, {
+	await fetch(`${BASE}/push/subscribe`, {
 		method: 'DELETE',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ endpoint: sub.endpoint })
