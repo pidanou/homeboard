@@ -42,7 +42,11 @@
 	onMount(async () => {
 		loadCurrentUser();
 		pushSupported = 'serviceWorker' in navigator && 'PushManager' in window;
-		if (pushSupported) pushSubscribed = await isPushSubscribed();
+		console.log('[push] supported:', pushSupported, '| serviceWorker:', 'serviceWorker' in navigator, '| PushManager:', 'PushManager' in window);
+		if (pushSupported) {
+			pushSubscribed = await isPushSubscribed();
+			console.log('[push] already subscribed:', pushSubscribed);
+		}
 	});
 
 	$effect(() => {
@@ -251,14 +255,18 @@
 				onclick={async () => {
 					try {
 						if (pushSubscribed) {
+							console.log('[push] unsubscribing...');
 							await unsubscribePush();
 							pushSubscribed = false;
+							console.log('[push] unsubscribed');
 						} else {
+							console.log('[push] subscribing...');
 							await subscribePush();
 							pushSubscribed = await isPushSubscribed();
+							console.log('[push] subscribed:', pushSubscribed);
 						}
 					} catch (e) {
-						console.error('push error:', e);
+						console.error('[push] error:', e);
 					}
 				}}
 			>
