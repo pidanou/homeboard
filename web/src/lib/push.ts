@@ -8,16 +8,20 @@ async function getVapidKey(): Promise<string> {
 export async function subscribePush(): Promise<void> {
 	if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
+	console.log('[push] requesting permission...');
 	const permission = await Notification.requestPermission();
+	console.log('[push] permission:', permission);
 	if (permission !== 'granted') return;
 
 	const reg = await navigator.serviceWorker.ready;
+	console.log('[push] SW ready, scope:', reg.scope);
 
-	// Clear any existing subscription — resubscribe fresh with current VAPID key
 	const existing = await reg.pushManager.getSubscription();
+	console.log('[push] existing subscription:', existing?.endpoint ?? 'none');
 	if (existing) await existing.unsubscribe();
 
 	const vapidKey = await getVapidKey();
+	console.log('[push] vapid key length:', vapidKey.length);
 
 	const sub = await reg.pushManager.subscribe({
 		userVisibleOnly: true,
@@ -27,8 +31,11 @@ export async function subscribePush(): Promise<void> {
 	const endpoint = sub.endpoint;
 	const p256dh = arrayBufferToBase64Url(sub.getKey('p256dh')!);
 	const auth = arrayBufferToBase64Url(sub.getKey('auth')!);
+	console.log('[push] endpoint:', endpoint);
+	console.log('[push] p256dh length:', p256dh.length, 'auth length:', auth.length);
 
 	await api.post('/api/v1/push/subscribe', { endpoint, auth, p256dh });
+	console.log('[push] subscription saved to backend');
 }
 
 export async function unsubscribePush(): Promise<void> {

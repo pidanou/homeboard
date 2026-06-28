@@ -23,6 +23,7 @@ func NewPushService(repo repository.PushRepository, vapidPriv, vapidPub, vapidEm
 }
 
 func (s *PushService) Subscribe(ctx context.Context, userID, endpoint, auth, p256dh string) error {
+	log.Printf("push: subscribe p256dh=%s auth=%s", p256dh, auth)
 	return s.repo.Save(ctx, &model.PushSubscription{
 		UserID:   userID,
 		Endpoint: endpoint,
