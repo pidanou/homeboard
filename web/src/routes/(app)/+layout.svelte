@@ -13,6 +13,7 @@
 	let ready = $state(false);
 	let offline = $state(false);
 	let householdName = $state<string | null>(null);
+	let sidebarCollapsed = $state(false);
 
 	const familyID = $derived($page.params.id);
 	const currentPath = $derived($page.url.pathname);
@@ -30,6 +31,8 @@
 	});
 
 	onMount(() => {
+		sidebarCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+
 		if (!isLoggedIn()) {
 			goto('/login');
 		} else {
@@ -47,6 +50,11 @@
 			window.removeEventListener('online', goOnline);
 		};
 	});
+
+	function toggleSidebar() {
+		sidebarCollapsed = !sidebarCollapsed;
+		localStorage.setItem('sidebar-collapsed', String(sidebarCollapsed));
+	}
 
 	const mobileTabNav = $derived(familyID ? [
 		{ label: 'Today',    href: `/households/${familyID}`,           icon: Sun },
@@ -70,12 +78,16 @@
 {#if ready}
 	<div class="h-dvh flex bg-background overflow-hidden">
 		<!-- Desktop sidebar (always visible md+) -->
-		<aside aria-label="Main navigation" class="hidden md:flex w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar fixed top-0 left-0 bottom-0 z-30">
-			<Sidebar />
+		<aside
+			aria-label="Main navigation"
+			class="hidden md:flex shrink-0 flex-col border-r border-sidebar-border bg-sidebar fixed top-0 left-0 bottom-0 z-30 transition-[width] duration-200
+				{sidebarCollapsed ? 'w-14' : 'w-56'}"
+		>
+			<Sidebar collapsed={sidebarCollapsed} ontoggle={toggleSidebar} />
 		</aside>
 
 		<!-- Main area -->
-		<div class="flex-1 flex flex-col min-w-0 md:ml-56">
+		<div class="flex-1 flex flex-col min-w-0 transition-[margin] duration-200 {sidebarCollapsed ? 'md:ml-14' : 'md:ml-56'}">
 			<!-- Mobile top bar -->
 			<header class="md:hidden sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-sm px-4 safe-area-top flex flex-col shrink-0">
 				<div class="h-14 flex items-center justify-between w-full">
