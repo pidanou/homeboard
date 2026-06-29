@@ -1,4 +1,4 @@
-import { env } from '$env/dynamic/public';
+import { env } from '$env/static/public';
 
 // PUBLIC_ENV=local (default) or production
 const appEnv = env.PUBLIC_ENV ?? 'local';

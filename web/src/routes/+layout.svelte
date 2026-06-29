@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { env } from '$env/dynamic/public';
+	import { env } from '$env/static/public';
 	import { isLocal } from '$lib/env';
 
 	const favicon = '/favicon.png';
