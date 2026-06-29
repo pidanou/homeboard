@@ -37,7 +37,7 @@
 	<div>
 		<div class="flex items-center justify-between mb-4">
 			<h2 class="text-xl font-semibold">Your households</h2>
-			{#if isSaaS}<Button href="/households/new" size="sm">New household</Button>{/if}
+			{#if isSaaS || families.length === 0}<Button href="/households/new" size="sm">New household</Button>{/if}
 		</div>
 
 		{#if loading}
