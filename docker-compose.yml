@@ -34,10 +34,12 @@ services:
       - "8080:8080"
 
   web:
-    build: ./web
+    build:
+      context: ./web
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_APP_ENV: ${VITE_APP_ENV:-local}
     restart: unless-stopped
-    env_file:
-      - front.env
     depends_on:
       - backend
     ports:

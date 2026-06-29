@@ -1,7 +1,7 @@
 import { toast } from 'svelte-sonner';
 
 export function getBaseUrl(): string {
-	return (import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080').replace(/\/$/, '');
+	return (import.meta.env.VITE_API_URL ?? 'http://localhost:8080').replace(/\/$/, '');
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
