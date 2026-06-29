@@ -21,5 +21,9 @@ type HouseholdRepository interface {
 	UpdateMemberRole(ctx context.Context, userID, familyID, role string) error
 	CountAdmins(ctx context.Context, familyID string) (int, error)
 	UpdateName(ctx context.Context, id, name string) error
+	SetHouseholdPhoto(ctx context.Context, id string, url *string) error
+	SetHouseholdPhotoOriginal(ctx context.Context, id string, url *string) error
+	SetHouseholdWallpaper(ctx context.Context, id string, url *string) error
+	SetHouseholdWallpaperOriginal(ctx context.Context, id string, url *string) error
 	Exists(ctx context.Context) (bool, error)
 }

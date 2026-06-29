@@ -7,12 +7,13 @@
 		onconfirm
 	}: {
 		open: boolean;
-		onconfirm: (blob: Blob) => void;
+		onconfirm: (blob: Blob, originalFile?: File) => void;
 	} = $props();
 
 	let canvas: HTMLCanvasElement;
 	let img = new Image();
 	let imgLoaded = $state(false);
+	let loadedFile: File | undefined;
 
 	// Crop state: offset is the top-left corner of the crop square in image coords
 	let scale = $state(1);       // zoom: crop square covers (canvas.width / scale) px of image
@@ -25,6 +26,7 @@
 	let lastPinchDist = 0;
 
 	export function loadFile(file: File) {
+		loadedFile = file;
 		const reader = new FileReader();
 		reader.onload = (e) => {
 			img.onload = () => {
@@ -161,7 +163,7 @@
 		ctx.clip();
 		ctx.drawImage(img, offsetX, offsetY, canvas.width * scale, canvas.width * scale, 0, 0, 256, 256);
 		out.toBlob((blob) => {
-			if (blob) onconfirm(blob);
+			if (blob) onconfirm(blob, loadedFile);
 			open = false;
 		}, 'image/jpeg', 0.9);
 	}

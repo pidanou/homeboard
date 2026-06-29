@@ -27,9 +27,9 @@ func (r *HouseholdRepository) Create(ctx context.Context, family *model.Househol
 func (r *HouseholdRepository) GetByID(ctx context.Context, id string) (*model.Household, error) {
 	family := &model.Household{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, name, created_at FROM households WHERE id = $1`,
+		`SELECT id, name, photo_url, photo_original_url, wallpaper_url, wallpaper_original_url, created_at FROM households WHERE id = $1`,
 		id,
-	).Scan(&family.ID, &family.Name, &family.CreatedAt)
+	).Scan(&family.ID, &family.Name, &family.PhotoURL, &family.PhotoOriginalURL, &family.WallpaperURL, &family.WallpaperOriginalURL, &family.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("get family by id: %w", err)
 	}
@@ -166,6 +166,26 @@ func (r *HouseholdRepository) UpdateName(ctx context.Context, id, name string) e
 	return err
 }
 
+func (r *HouseholdRepository) SetHouseholdPhoto(ctx context.Context, id string, url *string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE households SET photo_url = $1 WHERE id = $2`, url, id)
+	return err
+}
+
+func (r *HouseholdRepository) SetHouseholdPhotoOriginal(ctx context.Context, id string, url *string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE households SET photo_original_url = $1 WHERE id = $2`, url, id)
+	return err
+}
+
+func (r *HouseholdRepository) SetHouseholdWallpaper(ctx context.Context, id string, url *string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE households SET wallpaper_url = $1 WHERE id = $2`, url, id)
+	return err
+}
+
+func (r *HouseholdRepository) SetHouseholdWallpaperOriginal(ctx context.Context, id string, url *string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE households SET wallpaper_original_url = $1 WHERE id = $2`, url, id)
+	return err
+}
+
 func (r *HouseholdRepository) RemoveMember(ctx context.Context, userID, familyID string) error {
 	_, err := r.pool.Exec(ctx,
 		`DELETE FROM household_members WHERE user_id = $1 AND family_id = $2`,
@@ -176,7 +196,7 @@ func (r *HouseholdRepository) RemoveMember(ctx context.Context, userID, familyID
 
 func (r *HouseholdRepository) GetHouseholdsByUserID(ctx context.Context, userID string) ([]*model.Household, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT f.id, f.name, f.created_at
+		`SELECT f.id, f.name, f.photo_url, f.photo_original_url, f.wallpaper_url, f.wallpaper_original_url, f.created_at
 		 FROM households f
 		 JOIN household_members fm ON fm.family_id = f.id
 		 WHERE fm.user_id = $1`,
@@ -190,7 +210,7 @@ func (r *HouseholdRepository) GetHouseholdsByUserID(ctx context.Context, userID 
 	families := make([]*model.Household, 0)
 	for rows.Next() {
 		f := &model.Household{}
-		if err := rows.Scan(&f.ID, &f.Name, &f.CreatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Name, &f.PhotoURL, &f.PhotoOriginalURL, &f.WallpaperURL, &f.WallpaperOriginalURL, &f.CreatedAt); err != nil {
 			return nil, err
 		}
 		families = append(families, f)

@@ -12,21 +12,22 @@
 	let { children } = $props();
 	let ready = $state(false);
 	let offline = $state(false);
-	let householdName = $state<string | null>(null);
+	let household = $state<{ id: string; name: string; wallpaper_url?: string | null } | null>(null);
 	let sidebarCollapsed = $state(false);
 
 	const familyID = $derived($page.params.id);
 	const currentPath = $derived($page.url.pathname);
+	const householdName = $derived(household?.name ?? null);
 
 	const user = $derived($currentUser);
 
 	$effect(() => {
 		if (familyID) {
-			api.get<{ id: string; name: string }>(`/api/v1/households/${familyID}`)
-				.then(h => { householdName = h?.name ?? null; })
-				.catch(() => { householdName = null; });
+			api.get<{ id: string; name: string; wallpaper_url?: string | null }>(`/api/v1/households/${familyID}`)
+				.then(h => { household = h ?? null; })
+				.catch(() => { household = null; });
 		} else {
-			householdName = null;
+			household = null;
 		}
 	});
 
@@ -87,9 +88,15 @@
 		</aside>
 
 		<!-- Main area -->
-		<div class="flex-1 flex flex-col min-w-0 transition-[margin] duration-200 {sidebarCollapsed ? 'md:ml-14' : 'md:ml-56'}">
+		<div class="flex-1 flex flex-col min-w-0 relative transition-[margin] duration-200 {sidebarCollapsed ? 'md:ml-14' : 'md:ml-56'}">
+			{#if household?.wallpaper_url}
+			<div
+				class="absolute inset-0 bg-cover bg-center pointer-events-none z-0"
+				style="background-image: url('{household.wallpaper_url}'); opacity: 0.15;"
+			></div>
+			{/if}
 			<!-- Mobile top bar -->
-			<header class="md:hidden sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-sm px-4 safe-area-top flex flex-col shrink-0">
+			<header class="md:hidden sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-sm px-4 safe-area-top flex flex-col shrink-0">
 				<div class="h-14 flex items-center justify-between w-full">
 					{#if householdName}
 						<a href="/" class="flex items-center gap-1 font-semibold text-base truncate max-w-[65%] hover:opacity-70 transition-opacity">
@@ -113,7 +120,7 @@
 				</div>
 			{/if}
 
-			<main class="flex-1 overflow-auto">
+			<main class="flex-1 overflow-hidden">
 				{@render children()}
 			</main>
 
