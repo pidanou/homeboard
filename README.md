@@ -100,8 +100,8 @@ Config is split into two files: `back.env` (backend + database) and `front.env` 
 
 | Variable | Required | Description |
 |---|---|---|
-| `PUBLIC_API_URL` | ✅ | Public URL of the backend — must be reachable from the user's browser |
-| `PUBLIC_ENV` | | `local` (default) or `production` — controls environment-specific UI features |
+| `VITE_API_URL` | ✅ | Public URL of the backend — must be reachable from the user's browser |
+| `VITE_APP_ENV` | | `local` (default) or `production` — controls environment-specific UI features |
 
 ---
 

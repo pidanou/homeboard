@@ -1,5 +1,5 @@
-// PUBLIC_ENV=local (default) or production
-const appEnv = import.meta.env.PUBLIC_ENV ?? 'local';
+// VITE_APP_ENV=local (default) or production
+const appEnv = import.meta.env.VITE_APP_ENV ?? 'local';
 
 export const isLocal = appEnv === 'local';
 export const isSaaS = appEnv === 'production';
