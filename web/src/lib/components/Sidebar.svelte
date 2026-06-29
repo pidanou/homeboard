@@ -81,7 +81,7 @@
 						<span class="truncate">{family.name}</span>
 					</a>
 				{/each}
-				{#if isSaaS}
+				{#if isSaaS || $households.length === 0}
 					{#if $households.length > 0}
 						<div class="my-1 h-px bg-border"></div>
 					{/if}
