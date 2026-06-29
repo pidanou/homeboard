@@ -1,6 +1,8 @@
 # Env
 .env
 .env.local
+back.env
+front.env
 
 # Go
 backend/bin/
