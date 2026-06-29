@@ -4,10 +4,13 @@
     import { api } from "$lib/api/client";
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
-    import { X, Pencil, Clock } from "lucide-svelte";
+    import { X, Pencil, Clock, Camera, Image } from "lucide-svelte";
     import UserAvatar from "$lib/components/UserAvatar.svelte";
+    import AvatarCrop from "$lib/components/AvatarCrop.svelte";
+    import WallpaperCrop from "$lib/components/WallpaperCrop.svelte";
+    import AuthImage from "$lib/components/AuthImage.svelte";
     import { currentUser } from "$lib/stores/user";
-    import { households, updateHouseholdName } from "$lib/stores/households";
+    import { households, updateHouseholdName, updateHouseholdPhoto, updateHouseholdWallpaper } from "$lib/stores/households";
 
     type Invite = { token: string; expires_at: string };
     type Member = {
@@ -67,6 +70,137 @@
     // name editing
     let editingName = $state(false);
     let editNameValue = $state("");
+
+    // image uploads
+    let photoCropOpen = $state(false);
+    let photoCropComponent = $state<AvatarCrop>(null!);
+    let photoFileInput = $state<HTMLInputElement>(null!);
+    let wallpaperFileInput = $state<HTMLInputElement>(null!);
+    let wallpaperCropOpen = $state(false);
+    let wallpaperCropComponent = $state<WallpaperCrop>(null!);
+    let photoLoading = $state(false);
+    let wallpaperLoading = $state(false);
+
+    const householdPhotoUrl = $derived(
+        $households.find((h) => h.id === familyID)?.photo_url ?? null,
+    );
+    const householdPhotoOriginalUrl = $derived(
+        $households.find((h) => h.id === familyID)?.photo_original_url ?? null,
+    );
+    const householdWallpaperUrl = $derived(
+        $households.find((h) => h.id === familyID)?.wallpaper_url ?? null,
+    );
+    const householdWallpaperOriginalUrl = $derived(
+        $households.find((h) => h.id === familyID)?.wallpaper_original_url ?? null,
+    );
+
+    // Fetch an auth-gated URL and return a File
+    async function fetchOriginalAsFile(url: string, filename: string): Promise<File | null> {
+        const token = localStorage.getItem("token");
+        const fullUrl = url.startsWith("/") ? `${location.origin}${url}` : url;
+        const res = await fetch(fullUrl, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+        if (!res.ok) return null;
+        const blob = await res.blob();
+        return new File([blob], filename, { type: blob.type });
+    }
+
+    async function openPhotoCrop() {
+        photoCropOpen = true;
+        if (householdPhotoOriginalUrl) {
+            const file = await fetchOriginalAsFile(householdPhotoOriginalUrl, "original.jpg");
+            if (file) { setTimeout(() => photoCropComponent.loadFile(file), 50); return; }
+        }
+        photoFileInput.click();
+        photoCropOpen = false;
+    }
+
+    function onPhotoFileSelected(e: Event) {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+        photoCropOpen = true;
+        setTimeout(() => photoCropComponent.loadFile(file), 50);
+        photoFileInput.value = "";
+    }
+
+    async function onPhotoCropConfirm(blob: Blob, originalFile?: File) {
+        photoLoading = true;
+        try {
+            const fd = new FormData();
+            fd.append("photo", blob, "photo.jpg");
+            if (originalFile) fd.append("photo_original", originalFile, originalFile.name);
+            const res = await api.upload<{ url: string; original_url?: string }>(
+                `/api/v1/households/${familyID}/photo`,
+                fd,
+            );
+            updateHouseholdPhoto(familyID, res.url);
+            const origUrl = res.original_url;
+            if (origUrl) {
+                households.update(hs => hs.map(h => h.id === familyID ? { ...h, photo_original_url: origUrl } : h));
+            }
+        } finally {
+            photoLoading = false;
+        }
+    }
+
+    async function removePhoto() {
+        photoLoading = true;
+        try {
+            await api.delete(`/api/v1/households/${familyID}/photo`);
+            updateHouseholdPhoto(familyID, null);
+            households.update(hs => hs.map(h => h.id === familyID ? { ...h, photo_original_url: null } : h));
+        } finally {
+            photoLoading = false;
+        }
+    }
+
+    async function openWallpaperCrop() {
+        wallpaperCropOpen = true;
+        if (householdWallpaperOriginalUrl) {
+            const file = await fetchOriginalAsFile(householdWallpaperOriginalUrl, "original.jpg");
+            if (file) { setTimeout(() => wallpaperCropComponent.loadFile(file), 50); return; }
+        }
+        wallpaperFileInput.click();
+        wallpaperCropOpen = false;
+    }
+
+    function onWallpaperSelected(e: Event) {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+        wallpaperCropOpen = true;
+        setTimeout(() => wallpaperCropComponent.loadFile(file), 50);
+        wallpaperFileInput.value = "";
+    }
+
+    async function onWallpaperCropConfirm(blob: Blob, originalFile?: File) {
+        wallpaperLoading = true;
+        try {
+            const fd = new FormData();
+            fd.append("wallpaper", blob, "wallpaper.jpg");
+            if (originalFile) fd.append("wallpaper_original", originalFile, originalFile.name);
+            const res = await api.upload<{ url: string; original_url?: string }>(
+                `/api/v1/households/${familyID}/wallpaper`,
+                fd,
+            );
+            updateHouseholdWallpaper(familyID, res.url);
+            const origUrl = res.original_url;
+            if (origUrl) {
+                households.update(hs => hs.map(h => h.id === familyID ? { ...h, wallpaper_original_url: origUrl } : h));
+            }
+        } finally {
+            wallpaperLoading = false;
+        }
+    }
+
+    async function removeWallpaper() {
+        wallpaperLoading = true;
+        try {
+            await api.delete(`/api/v1/households/${familyID}/wallpaper`);
+            updateHouseholdWallpaper(familyID, null);
+            households.update(hs => hs.map(h => h.id === familyID ? { ...h, wallpaper_original_url: null } : h));
+        } finally {
+            wallpaperLoading = false;
+        }
+    }
 
     // category state
     let newCategoryName = $state("");
@@ -263,13 +397,13 @@
 </script>
 
 <div class="px-4 md:px-6 pt-4 md:pt-6 pb-12">
-    <div class="max-w-2xl mx-auto flex flex-col gap-0 divide-y divide-border">
-        <div class="pb-6">
-            <h1 class="text-2xl font-bold">Settings</h1>
+    <div class="max-w-xl mx-auto flex flex-col gap-0 divide-y divide-border">
+        <div class="pb-4">
+            <h1 class="text-xl font-semibold">Settings</h1>
         </div>
 
         <!-- General -->
-        <section class="py-6 flex flex-col gap-4">
+        <section class="py-4 flex flex-col gap-4">
             <h2
                 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
             >
@@ -331,8 +465,83 @@
             </div>
         </section>
 
+        <!-- Appearance (admin only) -->
+        {#if isAdmin}
+            <section class="py-4 flex flex-col gap-4">
+                <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Appearance
+                </h2>
+
+                <div class="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
+                    <!-- Photo -->
+                    <div class="flex items-center gap-3 px-4 py-3.5">
+                        <span class="text-sm text-muted-foreground w-24 shrink-0">Photo</span>
+                        <div class="flex-1 flex items-center gap-3">
+                            {#if householdPhotoUrl}
+                                <div class="relative w-10 h-10 shrink-0">
+                                    <AuthImage src={householdPhotoUrl} alt="Household" class="w-10 h-10 rounded-full object-cover" />
+                                    {#if photoLoading}
+                                        <div class="absolute inset-0 rounded-full bg-black/30 flex items-center justify-center">
+                                            <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
+                                    {/if}
+                                </div>
+                            {:else}
+                                <div class="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                    <Camera class="w-4 h-4 text-muted-foreground" />
+                                </div>
+                            {/if}
+                            <div class="flex items-center gap-2">
+                                <Button variant="outline" size="sm" onclick={openPhotoCrop} disabled={photoLoading} class="h-8">
+                                    {householdPhotoUrl ? "Change" : "Upload"}
+                                </Button>
+                                {#if householdPhotoUrl}
+                                    <Button variant="ghost" size="sm" onclick={removePhoto} disabled={photoLoading} class="h-8 text-destructive hover:text-destructive">
+                                        Remove
+                                    </Button>
+                                {/if}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Wallpaper -->
+                    <div class="flex items-start gap-3 px-4 py-3.5">
+                        <span class="text-sm text-muted-foreground w-24 shrink-0 pt-1">Wallpaper</span>
+                        <div class="flex-1 flex flex-col gap-2">
+                            {#if householdWallpaperUrl}
+                                <div class="relative w-full h-20 rounded-lg overflow-hidden">
+                                    <AuthImage src={householdWallpaperUrl} alt="Wallpaper" class="w-full h-full object-cover" />
+                                    {#if wallpaperLoading}
+                                        <div class="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                            <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
+                                    {/if}
+                                </div>
+                            {/if}
+                            <div class="flex items-center gap-2">
+                                <Button variant="outline" size="sm" onclick={openWallpaperCrop} disabled={wallpaperLoading} class="h-8">
+                                    <Image class="w-3.5 h-3.5 mr-1.5" />
+                                    {householdWallpaperUrl ? "Change" : "Upload"}
+                                </Button>
+                                {#if householdWallpaperUrl}
+                                    <Button variant="ghost" size="sm" onclick={removeWallpaper} disabled={wallpaperLoading} class="h-8 text-destructive hover:text-destructive">
+                                        Remove
+                                    </Button>
+                                {/if}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        {/if}
+
+        <input bind:this={photoFileInput} type="file" accept="image/*" class="hidden" onchange={onPhotoFileSelected} />
+        <input bind:this={wallpaperFileInput} type="file" accept="image/*" class="hidden" onchange={onWallpaperSelected} />
+        <AvatarCrop bind:this={photoCropComponent} bind:open={photoCropOpen} onconfirm={onPhotoCropConfirm} />
+        <WallpaperCrop bind:this={wallpaperCropComponent} bind:open={wallpaperCropOpen} onconfirm={onWallpaperCropConfirm} />
+
         <!-- Members -->
-        <section class="py-6 flex flex-col gap-4">
+        <section class="py-4 flex flex-col gap-4">
             <div class="flex items-center justify-between gap-3">
                 <div>
                     <h2
@@ -473,17 +682,17 @@
         </section>
 
         <!-- Categories -->
-        <section class="py-6 flex flex-col gap-4">
+        <section class="py-4 flex flex-col gap-4">
             <h2
                 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
             >
                 Categories
             </h2>
 
-            {#if categories.length > 0}
-                <div
-                    class="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border"
-                >
+            <div class="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
+                {#if categories.length === 0 && !isAdmin}
+                    <div class="px-4 py-3 text-sm text-muted-foreground">No categories yet.</div>
+                {/if}
                     {#each categories as cat (cat.id)}
                         <div class="px-4 py-3">
                             {#if editingCatID === cat.id}
@@ -571,59 +780,36 @@
                             {/if}
                         </div>
                     {/each}
-                </div>
-            {:else}
-                <p class="text-sm text-muted-foreground">No categories yet.</p>
-            {/if}
 
-            {#if isAdmin}
-                <div
-                    class="rounded-xl border border-border bg-card p-4 flex flex-col gap-3"
-                >
-                    <p
-                        class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                    >
-                        New category
-                    </p>
-                    <Input
-                        bind:value={newCategoryName}
-                        placeholder="Category name…"
-                        onkeydown={(e) => {
-                            if (e.key === "Enter") {
-                                e.preventDefault();
-                                createCategory();
-                            }
-                        }}
-                    />
-                    <div class="flex gap-2">
-                        {#each CATEGORY_COLORS as c}
-                            <button
-                                type="button"
-                                onclick={() => (newCategoryColor = c)}
-                                class="w-6 h-6 rounded-full {CATEGORY_DOT[
-                                    c
-                                ]} transition-all
-								{newCategoryColor === c
-                                    ? 'ring-2 ring-offset-2 ring-foreground'
-                                    : 'opacity-50 hover:opacity-90'}"
-                                title={c}
-                            ></button>
-                        {/each}
+                {#if isAdmin}
+                    <div class="px-4 py-3 flex flex-col gap-2.5">
+                        <div class="flex items-center gap-2">
+                            <Input
+                                bind:value={newCategoryName}
+                                placeholder="New category…"
+                                class="flex-1 h-8 text-sm"
+                                onkeydown={(e) => {
+                                    if (e.key === "Enter") { e.preventDefault(); createCategory(); }
+                                }}
+                            />
+                            <Button size="sm" onclick={createCategory} disabled={!newCategoryName.trim()} class="h-8">Add</Button>
+                        </div>
+                        <div class="flex gap-1.5">
+                            {#each CATEGORY_COLORS as c}
+                                <button type="button" onclick={() => (newCategoryColor = c)}
+                                    class="w-5 h-5 rounded-full {CATEGORY_DOT[c]} transition-all {newCategoryColor === c ? 'ring-2 ring-offset-1 ring-foreground' : 'opacity-50 hover:opacity-90'}"
+                                    title={c}
+                                ></button>
+                            {/each}
+                        </div>
                     </div>
-                    <Button
-                        onclick={createCategory}
-                        disabled={!newCategoryName.trim()}
-                        size="sm"
-                    >
-                        Add category
-                    </Button>
-                </div>
-            {/if}
+                {/if}
+            </div>
         </section>
 
         <!-- Invite link -->
         {#if isAdmin}
-            <section class="py-6 flex flex-col gap-4">
+            <section class="py-4 flex flex-col gap-4">
                 <div class="flex items-center justify-between gap-3">
                     <h2
                         class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"

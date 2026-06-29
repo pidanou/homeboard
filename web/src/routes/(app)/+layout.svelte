@@ -3,32 +3,56 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { isLoggedIn } from '$lib/auth';
-	import { api } from '$lib/api/client';
+	import { api, getBaseUrl } from '$lib/api/client';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
 	import { currentUser, loadCurrentUser } from '$lib/stores/user';
-	import { Sun, LayoutList, CalendarDays, ListChecks, Settings, ChevronDown } from 'lucide-svelte';
+	import { households } from '$lib/stores/households';
+	import { Sun, LayoutList, CalendarDays, ListChecks, Settings, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-svelte';
 
 	let { children } = $props();
 	let ready = $state(false);
 	let offline = $state(false);
-	let household = $state<{ id: string; name: string; wallpaper_url?: string | null } | null>(null);
+	let household = $state<{ id: string; name: string; wallpaper_url?: string | null; wallpaper_original_url?: string | null } | null>(null);
+	let wallpaperBlobUrl = $state<string | null>(null);
 	let sidebarCollapsed = $state(false);
 
 	const familyID = $derived($page.params.id);
 	const currentPath = $derived($page.url.pathname);
 	const householdName = $derived(household?.name ?? null);
+	const wallpaperUrl = $derived($households.find(h => h.id === familyID)?.wallpaper_url ?? null);
 
 	const user = $derived($currentUser);
 
 	$effect(() => {
 		if (familyID) {
-			api.get<{ id: string; name: string; wallpaper_url?: string | null }>(`/api/v1/households/${familyID}`)
+			api.get<{ id: string; name: string; wallpaper_url?: string | null; wallpaper_original_url?: string | null }>(`/api/v1/households/${familyID}`)
 				.then(h => { household = h ?? null; })
 				.catch(() => { household = null; });
 		} else {
 			household = null;
 		}
+	});
+
+	$effect(() => {
+		const url = wallpaperUrl;
+		if (!url) { wallpaperBlobUrl = null; return; }
+		const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+		const fullUrl = url.startsWith('/') ? `${getBaseUrl()}${url}` : url;
+		let localBlob: string | null = null;
+		let active = true;
+		fetch(fullUrl, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+			.then(r => r.ok ? r.blob() : null)
+			.then(blob => {
+				if (!active) return;
+				localBlob = blob ? URL.createObjectURL(blob) : null;
+				wallpaperBlobUrl = localBlob;
+			})
+			.catch(() => { if (active) wallpaperBlobUrl = null; });
+		return () => {
+			active = false;
+			if (localBlob) URL.revokeObjectURL(localBlob);
+		};
 	});
 
 	onMount(() => {
@@ -85,14 +109,25 @@
 				{sidebarCollapsed ? 'w-14' : 'w-56'}"
 		>
 			<Sidebar collapsed={sidebarCollapsed} ontoggle={toggleSidebar} />
+			<button
+				onclick={toggleSidebar}
+				aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+				class="absolute right-0 top-6 translate-x-1/2 z-40 flex items-center justify-center w-6 h-6 rounded-full border border-sidebar-border bg-sidebar text-muted-foreground hover:text-foreground shadow-sm transition-colors"
+			>
+				{#if sidebarCollapsed}
+					<ChevronRight class="w-3 h-3" />
+				{:else}
+					<ChevronLeft class="w-3 h-3" />
+				{/if}
+			</button>
 		</aside>
 
 		<!-- Main area -->
 		<div class="flex-1 flex flex-col min-w-0 relative transition-[margin] duration-200 {sidebarCollapsed ? 'md:ml-14' : 'md:ml-56'}">
-			{#if household?.wallpaper_url}
+			{#if wallpaperBlobUrl}
 			<div
-				class="absolute inset-0 bg-cover bg-center pointer-events-none z-0"
-				style="background-image: url('{household.wallpaper_url}'); opacity: 0.15;"
+				class="absolute inset-0 bg-cover bg-center pointer-events-none z-0 opacity-35 mix-blend-multiply dark:mix-blend-screen dark:opacity-20"
+				style="background-image: url('{wallpaperBlobUrl}');"
 			></div>
 			{/if}
 			<!-- Mobile top bar -->
