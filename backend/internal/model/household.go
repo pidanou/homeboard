@@ -3,9 +3,13 @@ package model
 import "time"
 
 type Household struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	PhotoURL            *string   `json:"photo_url,omitempty"`
+	PhotoOriginalURL    *string   `json:"photo_original_url,omitempty"`
+	WallpaperURL        *string   `json:"wallpaper_url,omitempty"`
+	WallpaperOriginalURL *string  `json:"wallpaper_original_url,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 type HouseholdMember struct {

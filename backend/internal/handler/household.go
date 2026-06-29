@@ -2,19 +2,26 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/pidanou/homeboard/internal/service"
 )
 
 type HouseholdHandler struct {
-	families *service.HouseholdService
+	families  *service.HouseholdService
+	uploadDir string
+	baseURL   string
 }
 
-func NewHouseholdHandler(families *service.HouseholdService) *HouseholdHandler {
-	return &HouseholdHandler{families: families}
+func NewHouseholdHandler(families *service.HouseholdService, uploadDir, baseURL string) *HouseholdHandler {
+	return &HouseholdHandler{families: families, uploadDir: uploadDir, baseURL: baseURL}
 }
 
 func (h *HouseholdHandler) Routes() http.Handler {
@@ -30,6 +37,12 @@ func (h *HouseholdHandler) Routes() http.Handler {
 	r.Delete("/{familyID}/members/virtual/{memberID}", h.deleteVirtual)
 	r.Post("/{familyID}/members/virtual/{memberID}/link", h.linkVirtual)
 	r.Get("/{familyID}/members/virtual/unlinked", h.unlinkedVirtual)
+	r.Get("/{familyID}/photo", h.servePhoto)
+	r.Post("/{familyID}/photo", h.uploadPhoto)
+	r.Delete("/{familyID}/photo", h.deletePhoto)
+	r.Get("/{familyID}/wallpaper", h.serveWallpaper)
+	r.Post("/{familyID}/wallpaper", h.uploadWallpaper)
+	r.Delete("/{familyID}/wallpaper", h.deleteWallpaper)
 	return r
 }
 
@@ -239,4 +252,245 @@ func (h *HouseholdHandler) linkVirtual(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *HouseholdHandler) servePhoto(w http.ResponseWriter, r *http.Request) {
+	h.serveHouseholdImage(w, r, "photo")
+}
+
+func (h *HouseholdHandler) serveWallpaper(w http.ResponseWriter, r *http.Request) {
+	h.serveHouseholdImage(w, r, "wallpaper")
+}
+
+func (h *HouseholdHandler) serveHouseholdImage(w http.ResponseWriter, r *http.Request, kind string) {
+	familyID := chi.URLParam(r, "familyID")
+	if err := requireMember(r, familyID, h.families); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+	family, err := h.families.GetByID(r.Context(), familyID)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	var storedURL *string
+	if kind == "photo" {
+		storedURL = family.PhotoURL
+	} else {
+		storedURL = family.WallpaperURL
+	}
+	if storedURL == nil {
+		http.NotFound(w, r)
+		return
+	}
+	// Strip URL prefix to get path relative to uploadDir
+	prefix := "/api/v1/uploads/"
+	rel := strings.TrimPrefix(*storedURL, h.baseURL+prefix)
+	rel = strings.TrimPrefix(rel, prefix)
+	http.ServeFile(w, r, filepath.Join(h.uploadDir, rel))
+}
+
+func (h *HouseholdHandler) uploadPhoto(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "familyID")
+	h.uploadHouseholdImage(w, r, "photo", "household/"+id+"/photos")
+}
+
+func (h *HouseholdHandler) deletePhoto(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "familyID")
+	h.deleteHouseholdImage(w, r, "photo", "household/"+id+"/photos")
+}
+
+func (h *HouseholdHandler) uploadWallpaper(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "familyID")
+	h.uploadHouseholdImage(w, r, "wallpaper", "household/"+id+"/wallpapers")
+}
+
+func (h *HouseholdHandler) deleteWallpaper(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "familyID")
+	h.deleteHouseholdImage(w, r, "wallpaper", "household/"+id+"/wallpapers")
+}
+
+func (h *HouseholdHandler) uploadHouseholdImage(w http.ResponseWriter, r *http.Request, kind, subdir string) {
+	familyID := chi.URLParam(r, "familyID")
+	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
+	if !ok || callerID == "" {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, "file too large", http.StatusRequestEntityTooLarge)
+		return
+	}
+
+	file, _, err := r.FormFile(kind)
+	if err != nil {
+		http.Error(w, kind+" file required", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	sniff := make([]byte, 512)
+	n, _ := file.Read(sniff)
+	ct := http.DetectContentType(sniff[:n])
+	file.Seek(0, io.SeekStart)
+	extMap := map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
+	ext, ok := extMap[ct]
+	if !ok {
+		http.Error(w, "unsupported image type", http.StatusBadRequest)
+		return
+	}
+
+	if err := os.MkdirAll(filepath.Join(h.uploadDir, subdir), 0755); err != nil {
+		http.Error(w, "storage error", http.StatusInternalServerError)
+		return
+	}
+
+	filename := uuid.NewString() + ext
+	dst, err := os.Create(filepath.Join(h.uploadDir, subdir, filename))
+	if err != nil {
+		http.Error(w, "storage error", http.StatusInternalServerError)
+		return
+	}
+	defer dst.Close()
+	if _, err := io.Copy(dst, file); err != nil {
+		http.Error(w, "storage error", http.StatusInternalServerError)
+		return
+	}
+
+	relPath := fmt.Sprintf("/api/v1/uploads/%s/%s", subdir, filename)
+	var imageURL string
+	if h.baseURL != "" {
+		imageURL = h.baseURL + relPath
+	} else {
+		imageURL = relPath
+	}
+
+	// Delete old cropped file
+	old, _ := h.families.GetByID(r.Context(), familyID)
+	if old != nil {
+		var oldURL *string
+		if kind == "photo" {
+			oldURL = old.PhotoURL
+		} else {
+			oldURL = old.WallpaperURL
+		}
+		if oldURL != nil {
+			h.deleteLocalFile(*oldURL, subdir)
+		}
+	}
+
+	var setErr error
+	if kind == "photo" {
+		setErr = h.families.SetPhoto(r.Context(), familyID, callerID, &imageURL)
+	} else {
+		setErr = h.families.SetWallpaper(r.Context(), familyID, callerID, &imageURL)
+	}
+	if setErr != nil {
+		http.Error(w, setErr.Error(), http.StatusForbidden)
+		return
+	}
+
+	// Optionally save original if provided
+	originalKind := kind + "_original"
+	origFile, _, origErr := r.FormFile(originalKind)
+	originalURL := ""
+	if origErr == nil {
+		defer origFile.Close()
+
+		sniff2 := make([]byte, 512)
+		n2, _ := origFile.Read(sniff2)
+		ct2 := http.DetectContentType(sniff2[:n2])
+		origFile.Seek(0, io.SeekStart)
+		origExt, ok2 := extMap[ct2]
+		if ok2 {
+			origSubdir := subdir + "/originals"
+			if err := os.MkdirAll(filepath.Join(h.uploadDir, origSubdir), 0755); err == nil {
+				origFilename := uuid.NewString() + origExt
+				if dst2, err := os.Create(filepath.Join(h.uploadDir, origSubdir, origFilename)); err == nil {
+					io.Copy(dst2, origFile)
+					dst2.Close()
+					originalURL = fmt.Sprintf("/api/v1/uploads/%s/%s", origSubdir, origFilename)
+					if h.baseURL != "" {
+						originalURL = h.baseURL + fmt.Sprintf("/api/v1/uploads/%s/%s", origSubdir, origFilename)
+					}
+					// Delete old original
+					if old != nil {
+						var oldOrigURL *string
+						if kind == "photo" {
+							oldOrigURL = old.PhotoOriginalURL
+						} else {
+							oldOrigURL = old.WallpaperOriginalURL
+						}
+						if oldOrigURL != nil {
+							h.deleteLocalFile(*oldOrigURL, origSubdir)
+						}
+					}
+					if kind == "photo" {
+						h.families.SetPhotoOriginal(r.Context(), familyID, callerID, &originalURL)
+					} else {
+						h.families.SetWallpaperOriginal(r.Context(), familyID, callerID, &originalURL)
+					}
+				}
+			}
+		}
+	}
+
+	resp := map[string]string{"url": imageURL}
+	if originalURL != "" {
+		resp["original_url"] = originalURL
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *HouseholdHandler) deleteHouseholdImage(w http.ResponseWriter, r *http.Request, kind, subdir string) {
+	familyID := chi.URLParam(r, "familyID")
+	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
+	if !ok || callerID == "" {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	old, err := h.families.GetByID(r.Context(), familyID)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	var oldURL *string
+	if kind == "photo" {
+		oldURL = old.PhotoURL
+	} else {
+		oldURL = old.WallpaperURL
+	}
+	if oldURL != nil {
+		h.deleteLocalFile(*oldURL, subdir)
+	}
+
+	var setErr error
+	if kind == "photo" {
+		setErr = h.families.SetPhoto(r.Context(), familyID, callerID, nil)
+	} else {
+		setErr = h.families.SetWallpaper(r.Context(), familyID, callerID, nil)
+	}
+	if setErr != nil {
+		http.Error(w, setErr.Error(), http.StatusForbidden)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *HouseholdHandler) deleteLocalFile(url, subdir string) {
+	relPrefix := fmt.Sprintf("/api/v1/uploads/%s/", subdir)
+	var filename string
+	if strings.HasPrefix(url, relPrefix) {
+		filename = strings.TrimPrefix(url, relPrefix)
+	} else if h.baseURL != "" && strings.HasPrefix(url, h.baseURL+relPrefix) {
+		filename = strings.TrimPrefix(url, h.baseURL+relPrefix)
+	} else {
+		return
+	}
+	os.Remove(filepath.Join(h.uploadDir, subdir, filename)) //nolint:errcheck
 }

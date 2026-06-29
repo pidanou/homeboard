@@ -152,3 +152,35 @@ func (s *HouseholdService) UpdateName(ctx context.Context, familyID, name, calle
 func (s *HouseholdService) Exists(ctx context.Context) (bool, error) {
 	return s.families.Exists(ctx)
 }
+
+func (s *HouseholdService) SetPhoto(ctx context.Context, familyID, callerID string, url *string) error {
+	role, err := s.families.GetMemberRole(ctx, callerID, familyID)
+	if err != nil || role != "admin" {
+		return fmt.Errorf("only admins can change the household photo")
+	}
+	return s.families.SetHouseholdPhoto(ctx, familyID, url)
+}
+
+func (s *HouseholdService) SetPhotoOriginal(ctx context.Context, familyID, callerID string, url *string) error {
+	role, err := s.families.GetMemberRole(ctx, callerID, familyID)
+	if err != nil || role != "admin" {
+		return fmt.Errorf("only admins can change the household photo")
+	}
+	return s.families.SetHouseholdPhotoOriginal(ctx, familyID, url)
+}
+
+func (s *HouseholdService) SetWallpaper(ctx context.Context, familyID, callerID string, url *string) error {
+	role, err := s.families.GetMemberRole(ctx, callerID, familyID)
+	if err != nil || role != "admin" {
+		return fmt.Errorf("only admins can change the wallpaper")
+	}
+	return s.families.SetHouseholdWallpaper(ctx, familyID, url)
+}
+
+func (s *HouseholdService) SetWallpaperOriginal(ctx context.Context, familyID, callerID string, url *string) error {
+	role, err := s.families.GetMemberRole(ctx, callerID, familyID)
+	if err != nil || role != "admin" {
+		return fmt.Errorf("only admins can change the wallpaper")
+	}
+	return s.families.SetHouseholdWallpaperOriginal(ctx, familyID, url)
+}

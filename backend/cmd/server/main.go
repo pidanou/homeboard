@@ -85,7 +85,7 @@ func main() {
 	// Handlers
 	authHandler := handler.NewAuthHandler(authService)
 	profileHandler := handler.NewProfileHandler(authService, uploadDir, os.Getenv("API_BASE_URL"))
-	householdHandler := handler.NewHouseholdHandler(householdService)
+	householdHandler := handler.NewHouseholdHandler(householdService, uploadDir, os.Getenv("API_BASE_URL"))
 	inviteHandler := handler.NewInviteHandler(inviteService, householdService, authService, os.Getenv("JWT_SECRET"))
 	taskHandler := handler.NewTaskHandler(taskService, hub, pushService)
 	eventHandler := handler.NewEventHandler(eventService, hub, pushService)
@@ -131,6 +131,7 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(handler.AuthMiddleware(os.Getenv("JWT_SECRET")))
 			r.Handle("/uploads/avatars/*", http.StripPrefix("/api/v1/uploads/avatars/", http.FileServer(http.Dir(uploadDir+"/avatars"))))
+			r.Handle("/uploads/household/*", http.StripPrefix("/api/v1/uploads/household/", http.FileServer(http.Dir(uploadDir+"/household"))))
 			r.Mount("/profile", profileHandler.Routes())
 			r.Mount("/households", householdHandler.Routes())
 			r.Route("/households/{familyID}/invites", func(r chi.Router) {
