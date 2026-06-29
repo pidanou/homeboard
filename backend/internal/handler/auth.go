@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -36,6 +37,10 @@ func (h *AuthHandler) register(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.auth.Register(r.Context(), body.Email, body.Password, body.Name)
 	if err != nil {
+		if errors.Is(err, service.ErrRegistrationClosed) {
+			http.Error(w, "registration is closed", http.StatusForbidden)
+			return
+		}
 		http.Error(w, "registration failed", http.StatusInternalServerError)
 		return
 	}

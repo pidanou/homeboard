@@ -58,7 +58,15 @@ func main() {
 	pushRepo := postgres.NewPushRepository(pool)
 
 	// Services
-	authService := service.NewAuthService(userRepo, os.Getenv("JWT_SECRET"))
+	mailer := service.NewEmailService(
+		os.Getenv("SMTP_HOST"),
+		os.Getenv("SMTP_PORT"),
+		os.Getenv("SMTP_USER"),
+		os.Getenv("SMTP_PASS"),
+		os.Getenv("SMTP_FROM"),
+		os.Getenv("SMTP_TLS") == "true",
+	)
+	authService := service.NewAuthService(userRepo, os.Getenv("JWT_SECRET"), mailer)
 	householdService := service.NewHouseholdService(householdRepo)
 	inviteService := service.NewInviteService(inviteRepo, householdRepo)
 	taskService := service.NewTaskService(taskRepo)
@@ -78,7 +86,7 @@ func main() {
 	authHandler := handler.NewAuthHandler(authService)
 	profileHandler := handler.NewProfileHandler(authService, uploadDir, os.Getenv("API_BASE_URL"))
 	householdHandler := handler.NewHouseholdHandler(householdService)
-	inviteHandler := handler.NewInviteHandler(inviteService, householdService, os.Getenv("JWT_SECRET"))
+	inviteHandler := handler.NewInviteHandler(inviteService, householdService, authService, os.Getenv("JWT_SECRET"))
 	taskHandler := handler.NewTaskHandler(taskService, hub, pushService)
 	eventHandler := handler.NewEventHandler(eventService, hub, pushService)
 	labelHandler := handler.NewCategoryHandler(labelService, householdService, hub)

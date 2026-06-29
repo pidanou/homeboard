@@ -3,12 +3,15 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api/client';
-	import { isLoggedIn } from '$lib/auth';
+	import { isLoggedIn, setToken } from '$lib/auth';
 	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
 
 	type Invite = { token: string; family_id: string; family_name: string; expires_at: string };
 	type VirtualMember = { id: string; name: string };
 	type AcceptResult = { family_id: string; unlinked_virtual_members: VirtualMember[] | null };
+	type RegisterResult = AcceptResult & { token: string };
 
 	const token = $derived($page.params.token);
 
@@ -17,6 +20,12 @@
 	let loading = $state(false);
 	let unlinked = $state<VirtualMember[]>([]);
 	let familyID = $state('');
+
+	// Registration form (shown when not logged in)
+	let name = $state('');
+	let email = $state('');
+	let password = $state('');
+	let regError = $state('');
 
 	onMount(async () => {
 		try {
@@ -27,10 +36,6 @@
 	});
 
 	async function accept() {
-		if (!isLoggedIn()) {
-			goto(`/login?redirect=/invite/${token}`);
-			return;
-		}
 		loading = true;
 		try {
 			const result = await api.post<AcceptResult>(`/api/v1/invites/${token}/accept`, {});
@@ -42,6 +47,26 @@
 				goto('/');
 			}
 		} catch { } finally {
+			loading = false;
+		}
+	}
+
+	async function registerAndAccept() {
+		regError = '';
+		loading = true;
+		try {
+			const result = await api.post<RegisterResult>(`/api/v1/invites/${token}/register`, { name, email, password });
+			setToken(result.token);
+			familyID = result.family_id;
+			const members = result.unlinked_virtual_members ?? [];
+			if (members.length > 0) {
+				unlinked = members;
+			} else {
+				goto('/');
+			}
+		} catch {
+			regError = 'Registration failed. The email may already be taken.';
+		} finally {
 			loading = false;
 		}
 	}
@@ -86,11 +111,41 @@
 				</button>
 			</div>
 
-		{:else if invite}
+		{:else if invite && isLoggedIn()}
 			<p class="text-muted-foreground">You've been invited to join <span class="font-semibold text-foreground">{invite.family_name}</span>.</p>
 			<Button onclick={accept} disabled={loading} class="w-full">
 				{loading ? 'Accepting…' : 'Accept invite'}
 			</Button>
+
+		{:else if invite}
+			<p class="text-muted-foreground">You've been invited to join <span class="font-semibold text-foreground">{invite.family_name}</span>.</p>
+			<p class="text-sm text-muted-foreground">Create an account to continue.</p>
+
+			<form onsubmit={(e) => { e.preventDefault(); registerAndAccept(); }} class="flex flex-col gap-3 text-left">
+				<div class="flex flex-col gap-1">
+					<Label for="name">Name</Label>
+					<Input id="name" bind:value={name} placeholder="Your name" required />
+				</div>
+				<div class="flex flex-col gap-1">
+					<Label for="email">Email</Label>
+					<Input id="email" type="email" bind:value={email} placeholder="you@example.com" required />
+				</div>
+				<div class="flex flex-col gap-1">
+					<Label for="password">Password</Label>
+					<Input id="password" type="password" bind:value={password} placeholder="••••••••" required minlength={8} />
+				</div>
+				{#if regError}
+					<p class="text-destructive text-sm">{regError}</p>
+				{/if}
+				<Button type="submit" disabled={loading} class="w-full">
+					{loading ? 'Creating account…' : 'Create account & join'}
+				</Button>
+			</form>
+
+			<p class="text-sm text-muted-foreground">
+				Already have an account?
+				<a href="/login?redirect=/invite/{token}" class="underline">Sign in</a>
+			</p>
 
 		{:else}
 			<p class="text-sm text-muted-foreground">Loading…</p>

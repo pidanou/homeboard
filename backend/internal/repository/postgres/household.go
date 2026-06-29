@@ -197,3 +197,9 @@ func (r *HouseholdRepository) GetHouseholdsByUserID(ctx context.Context, userID 
 	}
 	return families, rows.Err()
 }
+
+func (r *HouseholdRepository) Exists(ctx context.Context) (bool, error) {
+	var exists bool
+	err := r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM households LIMIT 1)`).Scan(&exists)
+	return exists, err
+}

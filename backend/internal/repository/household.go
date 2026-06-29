@@ -21,4 +21,5 @@ type HouseholdRepository interface {
 	UpdateMemberRole(ctx context.Context, userID, familyID, role string) error
 	CountAdmins(ctx context.Context, familyID string) (int, error)
 	UpdateName(ctx context.Context, id, name string) error
+	Exists(ctx context.Context) (bool, error)
 }
