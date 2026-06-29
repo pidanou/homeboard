@@ -81,8 +81,17 @@
 	});
 
 	$effect(() => { ecOptions.events = ecEvents; });
+
+	let isDark = $state(false);
+	$effect(() => {
+		const update = () => { isDark = document.documentElement.classList.contains('dark'); };
+		update();
+		const obs = new MutationObserver(update);
+		obs.observe(document.documentElement, { attributeFilter: ['class'] });
+		return () => obs.disconnect();
+	});
 </script>
 
-<div class="ec-auto-dark h-full min-h-[300px] border border-border rounded-xl overflow-hidden">
+<div class="h-full min-h-[300px] ring-1 ring-border rounded-xl overflow-hidden" class:ec-dark={isDark}>
 	<Calendar plugins={[TimeGrid, Interaction]} options={ecOptions} />
 </div>

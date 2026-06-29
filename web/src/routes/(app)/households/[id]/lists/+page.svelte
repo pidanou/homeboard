@@ -147,10 +147,10 @@
 </script>
 
 <!-- ===================== MOBILE ===================== -->
-<div class="md:hidden flex flex-col">
+<div class="md:hidden flex flex-col h-full">
 
 	<!-- Sticky header + tabs -->
-	<div class="sticky top-0 z-10 bg-background px-4 pt-4 pb-2 flex flex-col gap-2">
+	<div class="shrink-0 px-4 pt-4 pb-2 flex flex-col gap-2">
 
 		<!-- Title row — always visible -->
 		<div class="flex items-center justify-between">
@@ -214,6 +214,7 @@
 		{/if}
 	</div>
 
+	<div class="flex-1 overflow-y-auto">
 	<!-- Active list content -->
 	{#if activeListID}
 		{@const lid = activeListID}
@@ -277,18 +278,19 @@
 			<p class="text-xs">Tap + to create one.</p>
 		</div>
 	{/if}
+	</div>
 </div>
 
 <!-- ===================== DESKTOP ===================== -->
-<div class="hidden md:block">
+<div class="hidden md:flex md:flex-col md:h-full">
 
 	<!-- Header -->
-	<div class="sticky top-0 z-10 bg-background px-6 pt-6 pb-3">
+	<div class="shrink-0 px-6 pt-6 pb-3">
 		<h1 class="text-xl font-semibold">Lists {#if lists.length > 0}<span class="text-base font-normal text-muted-foreground ml-1">{lists.length}</span>{/if}</h1>
 	</div>
 
 	<!-- Kanban board -->
-	<div class="relative flex flex-col" style="min-height: calc(100dvh - 8rem)">
+	<div class="flex-1 min-h-0 relative flex flex-col">
 		<div class="overflow-x-auto px-6 pb-8 pt-3 flex-1 flex flex-col">
 		<div class="flex gap-4 items-stretch flex-1" style="min-width: max-content">
 

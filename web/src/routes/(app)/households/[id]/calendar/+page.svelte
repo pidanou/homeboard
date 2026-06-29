@@ -127,7 +127,7 @@
 		const newStart = new Date(agendaStart);
 		newStart.setMonth(newStart.getMonth() - 1);
 		try {
-			const scrollEl = document.querySelector('main');
+			const scrollEl = contentEl;
 			const prevHeight = scrollEl?.scrollHeight ?? 0;
 			const prevTop    = scrollEl?.scrollTop ?? 0;
 			const evs = await api.get<CalEvent[]>(`/api/v1/households/${familyID}/events?from=${newStart.toISOString()}&to=${agendaStart.toISOString()}`).then(r => r ?? []);
@@ -142,9 +142,9 @@
 
 	function scrollToToday() {
 		const el = document.querySelector('[data-agenda-today]') as HTMLElement | null;
-		const scrollEl = document.querySelector('main');
+		const scrollEl = contentEl;
 		if (!el || !scrollEl) return;
-		scrollEl.scrollTo({ top: scrollEl.scrollTop + el.getBoundingClientRect().top - headerHeight - 16, behavior: 'smooth' });
+		scrollEl.scrollTo({ top: scrollEl.scrollTop + el.getBoundingClientRect().top - scrollEl.getBoundingClientRect().top - 16, behavior: 'smooth' });
 	}
 
 	type AgendaGroup = { dayMs: number; label: string; events: CalEvent[]; tasks: Task[] };
@@ -202,15 +202,7 @@
 	let editDialog: { openTask: (t: Task) => void; openEvent: (e: CalEvent) => void } | undefined = $state();
 	let createDialog: { open: (t?: 'task' | 'event', start?: Date, end?: Date, allDay?: boolean) => void } | undefined = $state();
 
-	// ── Header height (for dynamic calendar height) ───────────────────────────
-	let headerEl = $state<HTMLElement | null>(null);
-	let headerHeight = $state(160);
-	$effect(() => {
-		if (!headerEl) return;
-		const ro = new ResizeObserver(() => { headerHeight = headerEl!.offsetHeight; });
-		ro.observe(headerEl);
-		return () => ro.disconnect();
-	});
+	let contentEl = $state<HTMLElement | null>(null);
 
 	function toDateISO(d: Date): string {
 		return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())).toISOString();
@@ -272,7 +264,7 @@
 		view: 'dayGridMonth',
 		date: today,
 		height: '100%',
-		headerToolbar: { start: '', center: '', end: '' },
+		headerToolbar: false,
 		nowIndicator: true,
 		selectable: true,
 		editable: true,
@@ -318,7 +310,7 @@
 				await loadData(viewStart, viewEnd);
 			} catch { revert(); }
 		},
-		dateClick: ({ date, allDay }: any) => { createDialog?.open('task', date, date, allDay); },
+		dateClick: ({ date, allDay }: any) => { createDialog?.open('event', date, date, allDay); },
 		select: ({ start, end, allDay }: any) => {
 			const s = start as Date;
 			// allDay select: end is exclusive (next day), clamp back one ms
@@ -407,8 +399,10 @@
 	}
 </script>
 
+<div class="h-full flex flex-col">
+
 <!-- Header -->
-<div bind:this={headerEl} class="sticky top-0 z-10 bg-background px-4 md:px-6 pt-4 md:pt-6 pb-2">
+<div class="shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-2">
 <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
 	<div class="flex items-center gap-1.5 flex-wrap">
 		<div class="flex rounded-md border border-border overflow-hidden text-sm shrink-0">
@@ -481,6 +475,7 @@
 
 </div>
 
+<div bind:this={contentEl} class="flex-1 min-h-0 overflow-auto">
 {#if appView === 'agenda'}
 	<div class="px-4 md:px-6 pb-8">
 		{#if !agendaReady}
@@ -582,12 +577,15 @@
 	</div>
 {:else}
 	<!-- EC calendar for month / week / day -->
-	<div class="px-4 md:px-6" style="height: calc(100dvh - {headerHeight}px - 4rem)">
+	<div class="px-4 md:px-6 pb-4 md:pb-6 h-full">
 		<div class="rounded-lg overflow-hidden h-full border border-border">
 			<Calendar plugins={[DayGrid, TimeGrid, Interaction]} options={ecOptions} />
 		</div>
 	</div>
 {/if}
+</div>
+
+</div>
 
 <EditDialog
 	bind:this={editDialog}
