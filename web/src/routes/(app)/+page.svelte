@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
+	import { isSaaS } from '$lib/env';
 	import { Input } from '$lib/components/ui/input';
 	import { Card, CardHeader, CardTitle } from '$lib/components/ui/card';
 
@@ -36,7 +37,7 @@
 	<div>
 		<div class="flex items-center justify-between mb-4">
 			<h2 class="text-xl font-semibold">Your households</h2>
-			<Button href="/households/new" size="sm">New household</Button>
+			{#if isSaaS}<Button href="/households/new" size="sm">New household</Button>{/if}
 		</div>
 
 		{#if loading}

@@ -174,25 +174,27 @@
 
 				{#if editKind === 'task'}
 					<!-- Task primary: important + due date -->
-					<div class="flex items-center gap-2">
-						<label class="flex items-center gap-2 text-sm cursor-pointer shrink-0">
+					<div class="flex flex-col gap-2">
+						<label class="flex items-center gap-2 text-sm cursor-pointer">
 							<Checkbox bind:checked={ef.important} />
 							Important
 						</label>
-						<Popover.Root bind:open={efDueOpen}>
-							<Popover.Trigger class="flex-1">
-								<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
-									<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
-									{efDueDate ? fmtCalDate(efDueDate) : 'No due date'}
-								</Button>
-							</Popover.Trigger>
-							<Popover.Content class="w-auto p-0" align="start">
-								<Calendar type="single" bind:value={efDueDate} onValueChange={() => (efDueOpen = false)} />
-							</Popover.Content>
-						</Popover.Root>
-						{#if efDueDate}
-							<Input type="time" bind:value={efDueTime} class="w-32 shrink-0" />
-						{/if}
+						<div class="flex items-center gap-2">
+							<Popover.Root bind:open={efDueOpen}>
+								<Popover.Trigger class="flex-1">
+									<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
+										<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
+										{efDueDate ? fmtCalDate(efDueDate) : 'No due date'}
+									</Button>
+								</Popover.Trigger>
+								<Popover.Content class="w-auto p-0" align="start">
+									<Calendar type="single" bind:value={efDueDate} onValueChange={() => (efDueOpen = false)} />
+								</Popover.Content>
+							</Popover.Root>
+							{#if efDueDate}
+								<Input type="time" bind:value={efDueTime} class="w-32 shrink-0" />
+							{/if}
+						</div>
 					</div>
 
 					<!-- Task secondary -->

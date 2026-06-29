@@ -9,6 +9,7 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import { Sun, Moon, LayoutList, CalendarDays, Settings, Plus, LogOut, ListChecks, Users, ChevronsUpDown, Check, UserRound } from 'lucide-svelte';
 	import { isDark, initTheme, toggleTheme } from '$lib/theme';
+	import { isSaaS } from '$lib/env';
 	import Logo from '$lib/components/Logo.svelte';
 
 	let { onclose }: { onclose?: () => void } = $props();
@@ -80,17 +81,19 @@
 						<span class="truncate">{family.name}</span>
 					</a>
 				{/each}
-				{#if $households.length > 0}
-					<div class="my-1 h-px bg-border"></div>
+				{#if isSaaS}
+					{#if $households.length > 0}
+						<div class="my-1 h-px bg-border"></div>
+					{/if}
+					<a
+						href="/households/new"
+						onclick={() => { switcherOpen = false; onclose?.(); }}
+						class="flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-accent transition-colors w-full text-muted-foreground"
+					>
+						<Plus class="w-4 h-4 shrink-0" />
+						New household
+					</a>
 				{/if}
-				<a
-					href="/households/new"
-					onclick={() => { switcherOpen = false; onclose?.(); }}
-					class="flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-accent transition-colors w-full text-muted-foreground"
-				>
-					<Plus class="w-4 h-4 shrink-0" />
-					New household
-				</a>
 			</Popover.Content>
 		</Popover.Root>
 	</div>

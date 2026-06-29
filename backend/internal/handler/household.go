@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pidanou/homeboard/internal/service"
@@ -47,6 +48,18 @@ func (h *HouseholdHandler) list(w http.ResponseWriter, r *http.Request) {
 
 func (h *HouseholdHandler) create(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(ContextKeyUserID).(string)
+
+	if os.Getenv("ALLOW_MULTI_HOUSEHOLD") != "true" {
+		exists, err := h.families.Exists(r.Context())
+		if err != nil {
+			http.Error(w, "failed to check households", http.StatusInternalServerError)
+			return
+		}
+		if exists {
+			http.Error(w, "only one household allowed in single-family mode", http.StatusForbidden)
+			return
+		}
+	}
 
 	var body struct {
 		Name string `json:"name"`

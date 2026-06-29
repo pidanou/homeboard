@@ -19,14 +19,13 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
+    env_file:
+      - back.env
     depends_on:
       db:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://familyboard:${POSTGRES_PASSWORD}@db:5432/familyboard?sslmode=disable
-      JWT_SECRET: ${JWT_SECRET}
-      API_BASE_URL: ${API_BASE_URL}
-      APP_BASE_URL: ${APP_BASE_URL}
       UPLOAD_DIR: /app/uploads
       PORT: 8080
     volumes:
@@ -37,10 +36,10 @@ services:
   web:
     build: ./web
     restart: unless-stopped
+    env_file:
+      - front.env
     depends_on:
       - backend
-    environment:
-      PUBLIC_API_URL: ${API_BASE_URL:-http://localhost:8080}
     ports:
       - "3000:3000"
 

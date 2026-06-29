@@ -148,3 +148,7 @@ func (s *HouseholdService) UpdateName(ctx context.Context, familyID, name, calle
 	}
 	return s.families.UpdateName(ctx, familyID, name)
 }
+
+func (s *HouseholdService) Exists(ctx context.Context) (bool, error) {
+	return s.families.Exists(ctx)
+}

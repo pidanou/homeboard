@@ -62,8 +62,9 @@ Real-time sync across every device. Install as a PWA or native iOS/Android app.
 ```bash
 git clone https://github.com/your-username/homeboard.git
 cd homeboard
-cp .env.example .env
-# Edit .env — set POSTGRES_PASSWORD and JWT_SECRET at minimum
+cp back.env.example back.env   # backend + database config
+cp front.env.example front.env # frontend config
+# Edit both files — set POSTGRES_PASSWORD and JWT_SECRET at minimum
 docker compose up -d
 ```
 
@@ -71,18 +72,54 @@ The app is now running at `http://localhost:3000`. The API is at `http://localho
 
 ### Environment variables
 
+Config is split into two files: `back.env` (backend + database) and `front.env` (frontend).
+
+#### `back.env`
+
 | Variable | Required | Description |
 |---|---|---|
 | `POSTGRES_PASSWORD` | ✅ | PostgreSQL password |
 | `JWT_SECRET` | ✅ | Secret for signing JWTs — use a long random string |
 | `API_BASE_URL` | ✅ | Public URL of the backend (e.g. `https://api.yourdomain.com`) |
-| `PUBLIC_API_URL` | ✅ | Same value — used by the frontend at runtime |
 | `APP_BASE_URL` | | Frontend URL — added to CORS allowed origins |
 | `CORS_ALLOWED_ORIGINS` | | Extra CORS origins, comma-separated, or `*` |
 | `UPLOAD_DIR` | | Directory for avatar uploads (defaults to `./uploads`) |
-| `VAPID_PUBLIC_KEY` | — | Web Push public key (generate below) |
-| `VAPID_PRIVATE_KEY` | — | Web Push private key |
-| `VAPID_SUBJECT` | `mailto:admin@example.com` | Contact URI sent with push requests |
+| `ALLOW_REGISTRATION` | | Set to `true` to re-open registration after the first user exists |
+| `ALLOW_MULTI_HOUSEHOLD` | | Set to `true` to allow multiple households per user (SaaS mode) |
+| `SMTP_HOST` | | SMTP server hostname — leave empty to disable email notifications |
+| `SMTP_PORT` | | SMTP port (default: `587`) |
+| `SMTP_USER` | | SMTP username |
+| `SMTP_PASS` | | SMTP password |
+| `SMTP_FROM` | | Sender address (falls back to `SMTP_USER` if empty) |
+| `SMTP_TLS` | | Set to `true` for direct TLS (port 465); default uses STARTTLS |
+| `VAPID_PUBLIC_KEY` | | Web Push public key (generate below) |
+| `VAPID_PRIVATE_KEY` | | Web Push private key |
+| `VAPID_SUBJECT` | | Contact URI sent with push requests (e.g. `mailto:admin@example.com`) |
+
+#### `front.env`
+
+| Variable | Required | Description |
+|---|---|---|
+| `PUBLIC_API_URL` | ✅ | Public URL of the backend — must be reachable from the user's browser |
+| `PUBLIC_ENV` | | `local` (default) or `production` — controls environment-specific UI features |
+
+---
+
+### Feature flags
+
+| Flag | File | Default | Effect when enabled |
+|---|---|---|---|
+| `ALLOW_REGISTRATION` | `back.env` | `false` | Re-opens registration after the first user exists |
+| `ALLOW_MULTI_HOUSEHOLD` | `back.env` | `false` | Allows users to create more than one household |
+| `PUBLIC_ENV=production` | `front.env` | `local` | Switches to SaaS UI mode (see table below) |
+
+#### UI features by environment
+
+| Feature | `local` (default) | `production` |
+|---|---|---|
+| "New household" button | ❌ hidden | ✅ visible |
+| "Change server" button on login | ✅ visible | ❌ hidden |
+| `/setup` page (Capacitor server config) | ✅ active | ❌ disabled |
 
 Generate VAPID keys once (requires Node):
 
@@ -109,6 +146,27 @@ VAPID_SUBJECT=mailto:you@yourdomain.com
 ```
 
 Leave the keys empty to run without push notifications — everything else works normally.
+
+### Creating family accounts
+
+Registration works like Coolify's bootstrap flow:
+
+- **First launch** — the registration page is open. Create your first account; that's your admin.
+- **After the first user exists** — registration is automatically closed. Any further attempt returns 403.
+- **Need to add more accounts later?** Set `ALLOW_REGISTRATION=true` in your `.env`, restart, register the new accounts, then remove the variable and restart again.
+
+### Email notifications (optional)
+
+Set `SMTP_HOST` to enable transactional emails (login alerts, welcome message, password change notices). If `SMTP_HOST` is empty, emails are silently skipped — no other behaviour changes.
+
+```env
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587          # 587 = STARTTLS (default), 465 = use with SMTP_TLS=true
+SMTP_USER=you@example.com
+SMTP_PASS=yourpassword
+SMTP_FROM=noreply@example.com   # optional, falls back to SMTP_USER
+SMTP_TLS=false
+```
 
 ### Reverse proxy
 

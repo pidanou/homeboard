@@ -90,6 +90,20 @@ func (s *InviteService) GetByToken(ctx context.Context, token string) (*model.In
 	return s.invites.GetByToken(ctx, token)
 }
 
+func (s *InviteService) Validate(ctx context.Context, token string) error {
+	invite, err := s.invites.GetByToken(ctx, token)
+	if err != nil {
+		return errors.New("invite not found")
+	}
+	if invite.UsedAt != nil {
+		return errors.New("invite already used")
+	}
+	if time.Now().UTC().After(invite.ExpiresAt) {
+		return errors.New("invite expired")
+	}
+	return nil
+}
+
 func (s *InviteService) ListForFamily(ctx context.Context, familyID string) ([]*model.Invite, error) {
 	return s.invites.ListByFamilyID(ctx, familyID)
 }

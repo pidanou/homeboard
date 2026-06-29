@@ -56,3 +56,9 @@ func (r *UserRepository) Update(ctx context.Context, user *model.User) error {
 	)
 	return err
 }
+
+func (r *UserRepository) Exists(ctx context.Context) (bool, error) {
+	var exists bool
+	err := r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users LIMIT 1)`).Scan(&exists)
+	return exists, err
+}
