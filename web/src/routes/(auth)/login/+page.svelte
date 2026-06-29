@@ -3,7 +3,6 @@
 	import { page } from '$app/stores';
 	import { api } from '$lib/api/client';
 	import { setToken } from '$lib/auth';
-	import { isLocal } from '$lib/env';
 	import { Button } from '$lib/components/ui/button';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Input } from '$lib/components/ui/input';
@@ -46,9 +45,4 @@
 	<p class="text-sm text-center text-muted-foreground">
 		No account? <a href="/register" class="text-primary underline-offset-4 hover:underline">Register</a>
 	</p>
-	{#if isLocal}
-	<p class="text-sm text-center text-muted-foreground">
-		<a href="/setup" class="text-muted-foreground underline-offset-4 hover:underline">Change server</a>
-	</p>
-	{/if}
 </form>
