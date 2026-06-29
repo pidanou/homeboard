@@ -1,4 +1,4 @@
-import { env } from '$env/dynamic/public';
+import { env } from '$env/static/public';
 import { toast } from 'svelte-sonner';
 
 export function getBaseUrl(): string {
