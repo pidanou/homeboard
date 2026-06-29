@@ -8,10 +8,8 @@ export const isSaaS = appEnv === 'production';
  * Feature flags by environment:
  *
  * LOCAL only:
- *   - "Change server" button on the login page
- *   - /setup page (configure API URL for Capacitor native builds)
- *   - configurable API URL via localStorage
+ *   - (none remaining — setup page removed, API URL configured via PUBLIC_API_URL)
  *
  * SAAS only:
- *   - (none yet — add billing, plan management, etc. here)
+ *   - "New household" button (sidebar + home page)
  */

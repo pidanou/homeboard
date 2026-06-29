@@ -1,11 +1,7 @@
 import { toast } from 'svelte-sonner';
 
 export function getBaseUrl(): string {
-	if (typeof localStorage !== 'undefined') {
-		const stored = localStorage.getItem('api_url');
-		if (stored) return stored.replace(/\/$/, '');
-	}
-	return import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080';
+	return (import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080').replace(/\/$/, '');
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
