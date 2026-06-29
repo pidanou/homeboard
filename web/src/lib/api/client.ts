@@ -1,4 +1,3 @@
-import { env } from '$env/static/public';
 import { toast } from 'svelte-sonner';
 
 export function getBaseUrl(): string {
@@ -6,7 +5,7 @@ export function getBaseUrl(): string {
 		const stored = localStorage.getItem('api_url');
 		if (stored) return stored.replace(/\/$/, '');
 	}
-	return env.PUBLIC_API_URL ?? 'http://localhost:8080';
+	return import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080';
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {

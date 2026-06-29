@@ -1,7 +1,5 @@
-import { env } from '$env/static/public';
-
 // PUBLIC_ENV=local (default) or production
-const appEnv = env.PUBLIC_ENV ?? 'local';
+const appEnv = import.meta.env.PUBLIC_ENV ?? 'local';
 
 export const isLocal = appEnv === 'local';
 export const isSaaS = appEnv === 'production';
