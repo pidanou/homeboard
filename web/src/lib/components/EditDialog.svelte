@@ -119,14 +119,17 @@
 				});
 			} else {
 				if (!efEventRange.start) return;
-				const efEnd = efEventRange.end ?? efEventRange.start;
+				const isBirthday = !!efBirthdayOf?.trim();
+				const isAllDay = ef.allDay || isBirthday;
+				// Birthdays are always single-day; add 1 day for the iCal exclusive-end convention.
+				const efEnd = isBirthday ? efEventRange.start.add({ days: 1 }) : (efEventRange.end ?? efEventRange.start);
 				await api.patch(`/api/v1/households/${familyID}/events/${id}`, {
 					title: ef.title.trim(), description: ef.description, location: ef.location,
-					start_at: calDateTimeToISO(efEventRange.start, efStartTime, ef.allDay),
-					end_at: calDateTimeToISO(efEnd, efEndTime, ef.allDay),
-					all_day: ef.allDay, attendee_ids: ef.attendeeIDs, category_id: efCategoryID,
+					start_at: calDateTimeToISO(efEventRange.start, efStartTime, isAllDay),
+					end_at: calDateTimeToISO(efEnd, efEndTime, isAllDay),
+					all_day: isAllDay, attendee_ids: ef.attendeeIDs, category_id: efCategoryID,
 					important: ef.important,
-					recurrence_rule: efBirthdayOf?.trim() ? RRULE['yearly'] : (efRepeat !== 'none' ? RRULE[efRepeat] : null),
+					recurrence_rule: isBirthday ? RRULE['yearly'] : (efRepeat !== 'none' ? RRULE[efRepeat] : null),
 					birthday_of: efBirthdayOf?.trim() || null,
 				});
 			}
@@ -213,6 +216,23 @@
 						<Textarea bind:value={ef.description} placeholder="Notes…" rows={2} />
 						<CategoryPicker {familyID} {categories} bind:selectedID={efCategoryID} />
 					{/if}
+				{:else if efBirthdayOf !== undefined}
+					<!-- Birthday: single date picker, always all-day, always yearly -->
+					<Popover.Root bind:open={efEventPickerOpen}>
+						<Popover.Trigger>
+							<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
+								<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
+								{efEventRange.start ? fmtCalDate(efEventRange.start) : 'Birthday date…'}
+							</Button>
+						</Popover.Trigger>
+						<Popover.Content class="w-auto p-0" align="start">
+							<Calendar
+								type="single"
+								value={efEventRange.start}
+								onValueChange={(d) => { efEventRange = { start: d, end: d }; efEventPickerOpen = false; }}
+							/>
+						</Popover.Content>
+					</Popover.Root>
 				{:else}
 					<!-- Event primary: dates, all day, times -->
 					<Popover.Root bind:open={efEventPickerOpen}>

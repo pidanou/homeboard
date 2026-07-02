@@ -18,6 +18,20 @@ func NewEventService(events repository.EventRepository) *EventService {
 	return &EventService{events: events}
 }
 
+// normalizeBirthday forces birthday events to be single-day, all-day, yearly —
+// regardless of what the client sent — since a birthday can't span multiple days.
+func normalizeBirthday(e *model.Event) {
+	if e.BirthdayOf == nil || *e.BirthdayOf == "" {
+		return
+	}
+	e.AllDay = true
+	start := time.Date(e.StartAt.Year(), e.StartAt.Month(), e.StartAt.Day(), 0, 0, 0, 0, time.UTC)
+	e.StartAt = start
+	e.EndAt = start.AddDate(0, 0, 1)
+	yearly := "FREQ=YEARLY"
+	e.RecurrenceRule = &yearly
+}
+
 func (s *EventService) Create(ctx context.Context, familyID, userID, title, description, location string, startAt, endAt time.Time, allDay bool, attendeeIDs []string, categoryID *string, recurrenceRule *string, eventType string, birthdayOf *string, important bool) (*model.Event, error) {
 	if eventType == "" {
 		eventType = "default"
@@ -42,6 +56,7 @@ func (s *EventService) Create(ctx context.Context, familyID, userID, title, desc
 		CreatedAt:      now,
 		UpdatedAt:      now,
 	}
+	normalizeBirthday(event)
 	if err := s.events.Create(ctx, event); err != nil {
 		return nil, err
 	}
@@ -54,6 +69,7 @@ func (s *EventService) ListForRange(ctx context.Context, familyID string, from, 
 
 // Update updates the parent event (all occurrences).
 func (s *EventService) Update(ctx context.Context, event *model.Event) error {
+	normalizeBirthday(event)
 	event.UpdatedAt = time.Now().UTC()
 	return s.events.Update(ctx, event)
 }
