@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { base } from '$app/paths';
 	import { api } from '$lib/api/client';
 	import { setToken } from '$lib/auth';
 	import { Button } from '$lib/components/ui/button';
@@ -19,7 +20,7 @@
 		try {
 			const res = await api.post<{ token: string }>('/api/v1/auth/login', { email, password });
 			setToken(res.token, remember);
-			goto($page.url.searchParams.get('redirect') ?? '/');
+			goto($page.url.searchParams.get('redirect') ?? `${base}/`);
 		} catch { } finally {
 			loading = false;
 		}
@@ -43,6 +44,6 @@
 		{loading ? 'Signing in…' : 'Sign in'}
 	</Button>
 	<p class="text-sm text-center text-muted-foreground">
-		No account? <a href="/register" class="text-primary underline-offset-4 hover:underline">Register</a>
+		No account? <a href="{base}/register" class="text-primary underline-offset-4 hover:underline">Register</a>
 	</p>
 </form>

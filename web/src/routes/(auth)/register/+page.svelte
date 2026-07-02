@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { api } from '$lib/api/client';
 	import { setToken } from '$lib/auth';
 	import { Button } from '$lib/components/ui/button';
@@ -18,7 +19,7 @@
 			await api.post('/api/v1/auth/register', { name, email, password });
 			const res = await api.post<{ token: string }>('/api/v1/auth/login', { email, password });
 			setToken(res.token);
-			goto('/');
+			goto(`${base}/`);
 		} catch { } finally {
 			loading = false;
 		}
@@ -42,6 +43,6 @@
 		{loading ? 'Creating account…' : 'Create account'}
 	</Button>
 	<p class="text-sm text-center text-muted-foreground">
-		Already have an account? <a href="/login" class="text-primary underline-offset-4 hover:underline">Sign in</a>
+		Already have an account? <a href="{base}/login" class="text-primary underline-offset-4 hover:underline">Sign in</a>
 	</p>
 </form>

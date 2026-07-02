@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { isLoggedIn } from '$lib/auth';
 	import { api, getBaseUrl } from '$lib/api/client';
@@ -59,7 +60,7 @@
 		sidebarCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
 
 		if (!isLoggedIn()) {
-			goto('/login');
+			goto(`${base}/login`);
 		} else {
 			ready = true;
 			loadCurrentUser();
@@ -142,7 +143,7 @@
 						<span class="font-semibold text-base">{currentSection()}</span>
 					{/if}
 					{#if user}
-						<a href="/profile" class="p-1 rounded-full hover:opacity-80 transition-opacity shrink-0" aria-label="My profile">
+						<a href="{base}/profile" class="p-1 rounded-full hover:opacity-80 transition-opacity shrink-0" aria-label="My profile">
 							<UserAvatar name={user.name} avatarUrl={user.avatar_url} userId={user.id} size={32} />
 						</a>
 					{/if}

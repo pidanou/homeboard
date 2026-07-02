@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
 	import { isSaaS } from '$lib/env';
@@ -26,9 +27,9 @@
 		try {
 			const url = new URL(input);
 			const match = url.pathname.match(/\/invite\/([^/]+)/);
-			if (match) return goto(`/invite/${match[1]}`);
+			if (match) return goto(`${base}/invite/${match[1]}`);
 		} catch {}
-		if (input) goto(`/invite/${input}`);
+		if (input) goto(`${base}/invite/${input}`);
 	}
 </script>
 
@@ -37,7 +38,7 @@
 	<div>
 		<div class="flex items-center justify-between mb-4">
 			<h2 class="text-xl font-semibold">Your households</h2>
-			{#if isSaaS || families.length === 0}<Button href="/households/new" size="sm">New household</Button>{/if}
+			{#if isSaaS || families.length === 0}<Button href="{base}/households/new" size="sm">New household</Button>{/if}
 		</div>
 
 		{#if loading}
@@ -48,7 +49,7 @@
 			<ul class="flex flex-col gap-2">
 				{#each families as family (family.id)}
 					<li>
-						<a href="/households/{family.id}">
+						<a href="{base}/households/{family.id}">
 							<Card class="hover:bg-muted/50 transition-colors cursor-pointer">
 								<CardHeader>
 									<CardTitle class="text-base">{family.name}</CardTitle>

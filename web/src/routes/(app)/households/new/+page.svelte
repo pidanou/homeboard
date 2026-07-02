@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -13,7 +14,7 @@
 		loading = true;
 		try {
 			const family = await api.post<{ id: string }>('/api/v1/households', { name });
-			goto(`/households/${family.id}`);
+			goto(`${base}/households/${family.id}`);
 		} catch { } finally {
 			loading = false;
 		}
