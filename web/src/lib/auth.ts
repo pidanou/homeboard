@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
+import { base } from '$app/paths';
 
 export function getToken(): string | null {
 	if (!browser) return null;
@@ -21,7 +22,7 @@ export function clearToken(): void {
 
 export function logout(): void {
 	clearToken();
-	goto('/login');
+	goto(`${base}/login`);
 }
 
 export function isLoggedIn(): boolean {

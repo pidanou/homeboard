@@ -2,6 +2,7 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { api } from '$lib/api/client';
 	import { isLoggedIn, setToken } from '$lib/auth';
 	import { Button } from '$lib/components/ui/button';
@@ -44,7 +45,7 @@
 			if (members.length > 0) {
 				unlinked = members;
 			} else {
-				goto('/');
+				goto(`${base}/`);
 			}
 		} catch { } finally {
 			loading = false;
@@ -62,7 +63,7 @@
 			if (members.length > 0) {
 				unlinked = members;
 			} else {
-				goto('/');
+				goto(`${base}/`);
 			}
 		} catch {
 			regError = 'Registration failed. The email may already be taken.';
@@ -77,7 +78,7 @@
 		} catch {
 			// non-fatal — still redirect
 		}
-		goto('/');
+		goto(`${base}/`);
 	}
 </script>
 
@@ -104,7 +105,7 @@
 					</button>
 				{/each}
 				<button
-					onclick={() => goto('/')}
+					onclick={() => goto(`${base}/`)}
 					class="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
 				>
 					No, I'm someone new
@@ -144,7 +145,7 @@
 
 			<p class="text-sm text-muted-foreground">
 				Already have an account?
-				<a href="/login?redirect=/invite/{token}" class="underline">Sign in</a>
+				<a href="{base}/login?redirect={base}/invite/{token}" class="underline">Sign in</a>
 			</p>
 
 		{:else}

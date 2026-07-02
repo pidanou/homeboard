@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { base } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api/client';
 	import { logout } from '$lib/auth';
@@ -90,7 +91,7 @@
 			<Popover.Content class="w-56 p-1 gap-0" align="start" side={collapsed ? 'right' : 'bottom'}>
 				{#each $households as family (family.id)}
 					<a
-						href="/households/{family.id}"
+						href="{base}/households/{family.id}"
 						onclick={() => { switcherOpen = false; onclose?.(); }}
 						class="flex items-center gap-2 px-2 py-2 rounded-xl text-sm hover:bg-accent transition-colors w-full"
 					>
@@ -104,7 +105,7 @@
 						<div class="my-1 h-px bg-border"></div>
 					{/if}
 					<a
-						href="/households/new"
+						href="{base}/households/new"
 						onclick={() => { switcherOpen = false; onclose?.(); }}
 						class="flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-accent transition-colors w-full text-muted-foreground"
 					>
@@ -170,7 +171,7 @@
 				</Popover.Trigger>
 				<Popover.Content class="w-48 p-1 gap-0" align="start" side={collapsed ? 'right' : 'top'}>
 					<a
-						href="/profile"
+						href="{base}/profile"
 						onclick={() => { userMenuOpen = false; onclose?.(); }}
 						class="flex items-center gap-2 px-2 py-2 rounded-xl text-sm hover:bg-accent transition-colors w-full"
 					>
