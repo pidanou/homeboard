@@ -17,7 +17,8 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			adapter: adapter({ fallback: 'index.html' })
+			adapter: adapter({ fallback: 'index.html' }),
+			paths: { base: process.env.BASE_PATH || '' }
 		}),
 		VitePWA({
 			strategies: 'injectManifest',
