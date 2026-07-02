@@ -1,0 +1,1 @@
+-- No-op: original non-normalized timestamps are not recoverable.

@@ -144,7 +144,7 @@
 				<button
 					class="px-3 py-1 rounded-full text-sm font-medium transition-colors cursor-pointer
 						{createType === 'birthday' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}"
-					onclick={() => { createType = 'birthday'; cfBirthdayOf = ''; cfDueDate = undefined; }}
+					onclick={() => { createType = 'birthday'; cfBirthdayOf = ''; }}
 					>Birthday</button>
 				</div>
 
