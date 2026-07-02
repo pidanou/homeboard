@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: docker.io/library/postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: familyboard
@@ -39,6 +39,7 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL}
         VITE_APP_ENV: ${VITE_APP_ENV:-local}
+        BASE_PATH: ${BASE_PATH:-}
     restart: unless-stopped
     depends_on:
       - backend
