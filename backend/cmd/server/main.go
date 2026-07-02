@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -21,6 +22,12 @@ import (
 )
 
 func main() {
+	// pgx decodes timestamptz via time.Unix(), which Go always tags with the process's
+	// time.Local — regardless of DB session timezone. On a non-UTC host that leaks
+	// "+02:00"-style offsets into JSON responses instead of "Z", which breaks all-day
+	// event date math on the frontend calendar. CLAUDE.md: all dates are UTC ISO 8601.
+	time.Local = time.UTC
+
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 

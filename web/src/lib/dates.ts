@@ -3,12 +3,12 @@ import type { DateRange } from 'bits-ui';
 
 export function calDateToISO(d: DateValue): string {
 	const pad = (n: number) => String(n).padStart(2, '0');
-	return new Date(`${d.year}-${pad(d.month)}-${pad(d.day)}`).toISOString();
+	return `${d.year}-${pad(d.month)}-${pad(d.day)}T00:00:00.000Z`;
 }
 
 export function isoToCalDate(iso: string): CalendarDate {
-	const d = new Date(iso);
-	return new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
+	const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+	return new CalendarDate(y, m, d);
 }
 
 export function fmtCalDate(d: DateValue): string {
@@ -19,9 +19,8 @@ export function fmtCalDate(d: DateValue): string {
 
 export function calDateTimeToISO(d: DateValue, time: string, allDay: boolean): string {
 	const pad = (n: number) => String(n).padStart(2, '0');
-	return new Date(
-		`${d.year}-${pad(d.month)}-${pad(d.day)}T${allDay ? '00:00' : time}`,
-	).toISOString();
+	if (allDay) return calDateToISO(d);
+	return new Date(`${d.year}-${pad(d.month)}-${pad(d.day)}T${time}`).toISOString();
 }
 
 export function rangeLabelFor(range: DateRange): string {
@@ -33,7 +32,8 @@ export function rangeLabelFor(range: DateRange): string {
 }
 
 export function fmtDate(iso: string): string {
-	return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+	const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+	return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 export function relativeDate(iso: string): string {
