@@ -39,7 +39,12 @@
 		const url = wallpaperUrl;
 		if (!url) { wallpaperBlobUrl = null; return; }
 		const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
-		const fullUrl = url.startsWith('/') ? `${getBaseUrl()}${url}` : url;
+		let fullUrl: string;
+		try {
+			fullUrl = `${getBaseUrl()}${new URL(url).pathname}`;
+		} catch {
+			fullUrl = url.startsWith('/') ? `${getBaseUrl()}${url}` : url;
+		}
 		let localBlob: string | null = null;
 		let active = true;
 		fetch(fullUrl, { headers: token ? { Authorization: `Bearer ${token}` } : {} })

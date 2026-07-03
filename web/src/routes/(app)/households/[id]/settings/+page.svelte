@@ -97,7 +97,12 @@
     // Fetch an auth-gated URL and return a File
     async function fetchOriginalAsFile(url: string, filename: string): Promise<File | null> {
         const token = localStorage.getItem("token");
-        const fullUrl = url.startsWith("/") ? `${getBaseUrl()}${url}` : url;
+        let fullUrl: string;
+        try {
+            fullUrl = `${getBaseUrl()}${new URL(url).pathname}`;
+        } catch {
+            fullUrl = url.startsWith("/") ? `${getBaseUrl()}${url}` : url;
+        }
         const res = await fetch(fullUrl, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
         if (!res.ok) return null;
         const blob = await res.blob();
