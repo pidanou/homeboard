@@ -4,7 +4,7 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { isLoggedIn } from '$lib/auth';
-	import { api, getBaseUrl } from '$lib/api/client';
+	import { api, getBaseUrl, getBaseOrigin } from '$lib/api/client';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
 	import { currentUser, loadCurrentUser } from '$lib/stores/user';
@@ -41,7 +41,7 @@
 		const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
 		let fullUrl: string;
 		try {
-			fullUrl = `${getBaseUrl()}${new URL(url).pathname}`;
+			fullUrl = `${getBaseOrigin()}${new URL(url).pathname}`;
 		} catch {
 			fullUrl = url.startsWith('/') ? `${getBaseUrl()}${url}` : url;
 		}
