@@ -135,7 +135,7 @@
 			<header class="md:hidden sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-sm px-4 safe-area-top flex flex-col shrink-0">
 				<div class="h-14 flex items-center justify-between w-full">
 					{#if householdName}
-						<a href="/" class="flex items-center gap-1 font-semibold text-base truncate max-w-[65%] hover:opacity-70 transition-opacity">
+						<a href={base || '/'} class="flex items-center gap-1 font-semibold text-base truncate max-w-[65%] hover:opacity-70 transition-opacity">
 						<span class="truncate">{householdName}</span>
 						<ChevronDown class="w-4 h-4 shrink-0 text-muted-foreground" />
 					</a>
