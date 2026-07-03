@@ -42,11 +42,11 @@
 	}
 
 	const subNav = $derived(familyID ? [
-		{ label: 'Today',    href: `/households/${familyID}`,          icon: Sun,          color: 'var(--color-today)',    bg: 'var(--color-today-bg)' },
-		{ label: 'Board',    href: `/households/${familyID}/board`,     icon: LayoutList,   color: 'var(--color-tasks)',    bg: 'var(--color-tasks-bg)' },
-		{ label: 'Calendar', href: `/households/${familyID}/calendar`,  icon: CalendarDays, color: 'var(--color-calendar)', bg: 'var(--color-calendar-bg)' },
-		{ label: 'Lists',    href: `/households/${familyID}/lists`,     icon: ListChecks,   color: 'var(--color-lists)',    bg: 'var(--color-lists-bg)' },
-		{ label: 'Settings', href: `/households/${familyID}/settings`,  icon: Settings,     color: null,                   bg: null },
+		{ label: 'Today',    href: `${base}/households/${familyID}`,          icon: Sun,          color: 'var(--color-today)',    bg: 'var(--color-today-bg)' },
+		{ label: 'Board',    href: `${base}/households/${familyID}/board`,     icon: LayoutList,   color: 'var(--color-tasks)',    bg: 'var(--color-tasks-bg)' },
+		{ label: 'Calendar', href: `${base}/households/${familyID}/calendar`,  icon: CalendarDays, color: 'var(--color-calendar)', bg: 'var(--color-calendar-bg)' },
+		{ label: 'Lists',    href: `${base}/households/${familyID}/lists`,     icon: ListChecks,   color: 'var(--color-lists)',    bg: 'var(--color-lists-bg)' },
+		{ label: 'Settings', href: `${base}/households/${familyID}/settings`,  icon: Settings,     color: null,                   bg: null },
 	] : []);
 
 	const textStyle = $derived(collapsed ? 'max-width:0;opacity:0;overflow:hidden' : 'max-width:200px;opacity:1');
@@ -59,7 +59,7 @@
 	<!-- Logo -->
 	<div class="py-4 px-3 shrink-0 flex items-center">
 		<a
-			href="/"
+			href={base || '/'}
 			onclick={onclose}
 			aria-label="Home"
 			class="flex items-center gap-2 min-w-0 font-bold text-base text-sidebar-foreground hover:opacity-80 transition-opacity"
