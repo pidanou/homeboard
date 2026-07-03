@@ -8,6 +8,7 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
 	import { currentUser, loadCurrentUser } from '$lib/stores/user';
+	import { loadConfig } from '$lib/stores/config';
 	import { households } from '$lib/stores/households';
 	import { Sun, LayoutList, CalendarDays, ListChecks, Settings, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-svelte';
 
@@ -69,6 +70,7 @@
 		} else {
 			ready = true;
 			loadCurrentUser();
+			loadConfig();
 		}
 
 		offline = !navigator.onLine;

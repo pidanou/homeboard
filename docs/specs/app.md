@@ -200,15 +200,14 @@ App root
 
 ---
 
-## SaaS readiness (future)
+## Architectural constraints
 
 These constraints must not be violated during any implementation:
 
 - The frontend never talks to the database or auth provider directly
 - The repository layer is the only place that knows about the database
-- Multi-family multi-user model is built in from day one
-- Auth can be swapped (custom JWT → Supabase GoTrue) without changing the API contract
-- Feature flags live in a `settings` table, not hardcoded
+- Multi-household support exists behind the `ALLOW_MULTI_HOUSEHOLD` flag (disabled by default)
+- Feature flags are env vars, exposed to the frontend read-only via `GET /api/v1/config` — never hardcoded in the UI
 
 ---
 

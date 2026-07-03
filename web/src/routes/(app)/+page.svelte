@@ -4,7 +4,7 @@
 	import { base } from '$app/paths';
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
-	import { isSaaS } from '$lib/env';
+	import { allowMultiHousehold } from '$lib/stores/config';
 	import { Input } from '$lib/components/ui/input';
 	import { Card, CardHeader, CardTitle } from '$lib/components/ui/card';
 
@@ -38,7 +38,7 @@
 	<div>
 		<div class="flex items-center justify-between mb-4">
 			<h2 class="text-xl font-semibold">Your households</h2>
-			{#if isSaaS || families.length === 0}<Button href="{base}/households/new" size="sm">New household</Button>{/if}
+			{#if $allowMultiHousehold || families.length === 0}<Button href="{base}/households/new" size="sm">New household</Button>{/if}
 		</div>
 
 		{#if loading}

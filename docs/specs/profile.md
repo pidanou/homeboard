@@ -46,7 +46,6 @@ A **profile** is the user's personal identity within the app. It controls how th
 
 - Files stored on the server filesystem under a configurable path (`UPLOAD_DIR` env var)
 - Served via a dedicated route: `GET /api/v1/uploads/avatars/:filename`
-- **SaaS path:** swap filesystem storage for an object store (S3/R2) behind the same upload interface — no frontend changes required
 
 ---
 

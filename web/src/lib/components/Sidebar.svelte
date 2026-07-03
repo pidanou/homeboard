@@ -12,7 +12,7 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { Sun, Moon, LayoutList, CalendarDays, Settings, Plus, LogOut, ListChecks, Users, ChevronsUpDown, Check, UserRound } from 'lucide-svelte';
 	import { isDark, initTheme, toggleTheme } from '$lib/theme';
-	import { isSaaS } from '$lib/env';
+	import { allowMultiHousehold } from '$lib/stores/config';
 	import Logo from '$lib/components/Logo.svelte';
 
 	let { onclose, collapsed = false, ontoggle }: {
@@ -100,7 +100,7 @@
 						<Check class="w-4 h-4 shrink-0 {family.id === familyID ? 'opacity-100' : 'opacity-0'}" />
 					</a>
 				{/each}
-				{#if isSaaS || $households.length === 0}
+				{#if $allowMultiHousehold || $households.length === 0}
 					{#if $households.length > 0}
 						<div class="my-1 h-px bg-border"></div>
 					{/if}
