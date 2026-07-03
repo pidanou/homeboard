@@ -83,16 +83,16 @@
 	}
 
 	const mobileTabNav = $derived(familyID ? [
-		{ label: 'Today',    href: `/households/${familyID}`,           icon: Sun },
-		{ label: 'Board',    href: `/households/${familyID}/board`,     icon: LayoutList },
-		{ label: 'Calendar', href: `/households/${familyID}/calendar`,  icon: CalendarDays },
-		{ label: 'Lists',    href: `/households/${familyID}/lists`,     icon: ListChecks },
-		{ label: 'Settings', href: `/households/${familyID}/settings`,  icon: Settings },
+		{ label: 'Today',    href: `${base}/households/${familyID}`,           icon: Sun },
+		{ label: 'Board',    href: `${base}/households/${familyID}/board`,     icon: LayoutList },
+		{ label: 'Calendar', href: `${base}/households/${familyID}/calendar`,  icon: CalendarDays },
+		{ label: 'Lists',    href: `${base}/households/${familyID}/lists`,     icon: ListChecks },
+		{ label: 'Settings', href: `${base}/households/${familyID}/settings`,  icon: Settings },
 	] : []);
 
 	const currentSection = $derived(() => {
-		if (!familyID) return currentPath === '/profile' ? 'Profile' : 'Homeboard';
-		if (currentPath === `/households/${familyID}`) return 'Today';
+		if (!familyID) return currentPath === `${base}/profile` ? 'Profile' : 'Homeboard';
+		if (currentPath === `${base}/households/${familyID}`) return 'Today';
 		if (currentPath.endsWith('/board')) return 'Board';
 		if (currentPath.endsWith('/calendar')) return 'Calendar';
 		if (currentPath.endsWith('/lists')) return 'Lists';
