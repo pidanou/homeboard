@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from "$app/stores";
     import { onMount } from "svelte";
-    import { api } from "$lib/api/client";
+    import { api, getBaseUrl } from "$lib/api/client";
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
     import { X, Pencil, Clock, Camera, Image } from "lucide-svelte";
@@ -97,7 +97,7 @@
     // Fetch an auth-gated URL and return a File
     async function fetchOriginalAsFile(url: string, filename: string): Promise<File | null> {
         const token = localStorage.getItem("token");
-        const fullUrl = url.startsWith("/") ? `${location.origin}${url}` : url;
+        const fullUrl = url.startsWith("/") ? `${getBaseUrl()}${url}` : url;
         const res = await fetch(fullUrl, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
         if (!res.ok) return null;
         const blob = await res.blob();
