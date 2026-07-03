@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -129,6 +130,12 @@ func main() {
 	r.Use(handler.SecurityHeaders)
 
 	r.Route("/api/v1", func(r chi.Router) {
+		r.Get("/config", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]bool{
+				"allowMultiHousehold": os.Getenv("ALLOW_MULTI_HOUSEHOLD") == "true",
+			})
+		})
 		r.Mount("/auth", authHandler.Routes())
 		r.Mount("/invites", inviteHandler.PublicRoutes())
 		// SSE stream: does its own JWT auth via ?token= (EventSource can't set headers)

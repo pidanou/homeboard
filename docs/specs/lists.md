@@ -103,7 +103,7 @@ A **List** is a named checklist scoped to the family. The canonical use case is 
 | Item categories / aisle grouping | Useful but complex; solves a problem only on long lists |
 | Quantity + unit (e.g. "2× Milk") | Nice to have, adds friction to quick-add flow |
 | Drag to reorder | Complex on mobile; creation-order is good enough |
-| Shared link / guest access | SaaS concern, not v1 |
+| Shared link / guest access | Not v1 |
 | Recurring items ("always buy milk") | Requires a different data model |
 | List templates | YAGNI until users request it |
 

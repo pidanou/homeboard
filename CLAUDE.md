@@ -17,7 +17,7 @@ Act as an expert consultant — not an order-taker. This means:
 
 ## Project Overview
 
-**Family Board** — a self-hostable family wall app. A family can share a calendar, tasks, and (eventually) more. The UI is a SvelteKit PWA (web + mobile/tablet via browser). Designed to be self-hostable first; SaaS compatibility must be kept in mind during every architectural decision.
+**Family Board** — a self-hostable family wall app. A family can share a calendar, tasks, and (eventually) more. The UI is a SvelteKit PWA (web + mobile/tablet via browser). Self-hosted only — there is no hosted/SaaS offering, and no requirement to keep a SaaS migration path open.
 
 > **Native mobile note:** The preferred path for native distribution is **Capacitor** — it wraps the existing SvelteKit app in a native shell (iOS + Android) without a rewrite. This gives access to native push notifications, haptics, and App Store distribution while keeping one codebase. Flutter was considered but deferred; the backend API is fully decoupled so either path remains viable.
 
@@ -38,7 +38,6 @@ family-board/
 - Structured as: `cmd/`, `internal/handler/`, `internal/service/`, `internal/repository/`, `internal/model/`
 - Repository interfaces are defined against plain Go types — the database is an implementation detail behind those interfaces
 - **Current implementation:** raw PostgreSQL via `pgx`, custom JWT auth
-- **Future SaaS path:** swap repository implementations to use Supabase (Postgres + GoTrue + Realtime) — no frontend or API contract changes required
 
 ### Web (`web/` — SvelteKit PWA)
 - Talks exclusively to the Go backend via REST
@@ -55,12 +54,11 @@ family-board/
 ### Auth
 - Custom JWT auth in Go (email/password + OAuth: Google, Apple)
 - JWTs verified server-side on every request
-- **Future SaaS path:** replace with Supabase GoTrue behind the same auth interface
 
 ### Deployment
 - `docker-compose.yml` spins up the full stack (Go backend + PostgreSQL + web)
 - Must remain self-hostable with a single `docker compose up`
-- SaaS readiness: multi-tenant model (family = tenant) built in from day one
+- Multi-household support (a user can belong to more than one family) is gated behind the `ALLOW_MULTI_HOUSEHOLD` feature flag, disabled by default
 
 ---
 
@@ -188,7 +186,7 @@ cd web && npm run build
 - WebSocket events follow a `type` + `payload` envelope: `{ "type": "event.created", "payload": { ... } }`
 - All dates stored and transmitted as UTC ISO 8601 strings
 - Database models in `internal/model/`, HTTP request/response DTOs in `internal/handler/dto/`
-- Feature flags or tenant-level config live in a `settings` table — don't hardcode feature availability
+- Feature flags are env vars on the backend (e.g. `ALLOW_MULTI_HOUSEHOLD`, `ALLOW_REGISTRATION`), exposed to the frontend read-only via `GET /api/v1/config` — don't hardcode feature availability in the UI
 - **Tasks with a due date must appear on the calendar view** on their due date alongside calendar events
 
 ---
@@ -223,7 +221,7 @@ The implementation roadmap lives in `docs/roadmap.md`. Keep it current:
 - Do not add dependencies without discussion
 - Do not break existing public APIs without a deprecation path
 - Do not skip error handling
-- Do not store tenant (family) data in a way that would make multi-tenancy hard to retrofit
+- Do not hardcode feature availability — flagged features (e.g. multi-household) go through env-driven flags, exposed to the frontend via `/api/v1/config`
 - Do not couple the web or mobile apps to self-hosting assumptions (e.g. hardcoded `localhost` URLs)
 - Do not access the database or auth provider from the frontend — everything goes through the Go API
 - Do not put database-specific code outside of `internal/repository/` — keep it behind the repository interface boundary

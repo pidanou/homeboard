@@ -6,8 +6,6 @@
 
 Real-time sync across every device. Install as a PWA or native iOS/Android app.
 
-**[Try the hosted version → homeboard.noudapi.com](https://homeboard.noudapi.com)**
-
 <br/>
 
 <img src="docs/screenshots/demo.gif" alt="Homeboard in action" width="80%" style="border-radius:12px"/>
@@ -85,7 +83,7 @@ Config is split into two files: `back.env` (backend + database) and `front.env` 
 | `CORS_ALLOWED_ORIGINS` | | Extra CORS origins, comma-separated, or `*` |
 | `UPLOAD_DIR` | | Directory for avatar uploads (defaults to `./uploads`) |
 | `ALLOW_REGISTRATION` | | Set to `true` to re-open registration after the first user exists |
-| `ALLOW_MULTI_HOUSEHOLD` | | Set to `true` to allow multiple households per user (SaaS mode) |
+| `ALLOW_MULTI_HOUSEHOLD` | | Set to `true` to allow multiple households per user |
 | `SMTP_HOST` | | SMTP server hostname — leave empty to disable email notifications |
 | `SMTP_PORT` | | SMTP port (default: `587`) |
 | `SMTP_USER` | | SMTP username |
@@ -101,7 +99,6 @@ Config is split into two files: `back.env` (backend + database) and `front.env` 
 | Variable | Required | Description |
 |---|---|---|
 | `VITE_API_URL` | ✅ | Public URL of the backend — must be reachable from the user's browser |
-| `VITE_APP_ENV` | | `local` (default) or `production` — controls environment-specific UI features |
 
 ---
 
@@ -110,16 +107,7 @@ Config is split into two files: `back.env` (backend + database) and `front.env` 
 | Flag | File | Default | Effect when enabled |
 |---|---|---|---|
 | `ALLOW_REGISTRATION` | `back.env` | `false` | Re-opens registration after the first user exists |
-| `ALLOW_MULTI_HOUSEHOLD` | `back.env` | `false` | Allows users to create more than one household |
-| `PUBLIC_ENV=production` | `front.env` | `local` | Switches to SaaS UI mode (see table below) |
-
-#### UI features by environment
-
-| Feature | `local` (default) | `production` |
-|---|---|---|
-| "New household" button | ❌ hidden | ✅ visible |
-| "Change server" button on login | ✅ visible | ❌ hidden |
-| `/setup` page (Capacitor server config) | ✅ active | ❌ disabled |
+| `ALLOW_MULTI_HOUSEHOLD` | `back.env` | `false` | Allows users to create more than one household; shows the "New household" button |
 
 Generate VAPID keys once (requires Node):
 
