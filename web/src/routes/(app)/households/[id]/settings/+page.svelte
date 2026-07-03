@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from "$app/stores";
     import { onMount } from "svelte";
-    import { api, getBaseUrl } from "$lib/api/client";
+    import { api, getBaseUrl, getBaseOrigin } from "$lib/api/client";
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
     import { X, Pencil, Clock, Camera, Image } from "lucide-svelte";
@@ -99,7 +99,7 @@
         const token = localStorage.getItem("token");
         let fullUrl: string;
         try {
-            fullUrl = `${getBaseUrl()}${new URL(url).pathname}`;
+            fullUrl = `${getBaseOrigin()}${new URL(url).pathname}`;
         } catch {
             fullUrl = url.startsWith("/") ? `${getBaseUrl()}${url}` : url;
         }

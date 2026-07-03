@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getBaseUrl } from '$lib/api/client';
+	import { getBaseUrl, getBaseOrigin } from '$lib/api/client';
 
 	let {
 		src,
@@ -14,7 +14,7 @@
 	const resolvedUrl = $derived((() => {
 		if (!src) return null;
 		try {
-			return `${getBaseUrl()}${new URL(src).pathname}`;
+			return `${getBaseOrigin()}${new URL(src).pathname}`;
 		} catch {
 			return src.startsWith('/') ? `${getBaseUrl()}${src}` : src;
 		}

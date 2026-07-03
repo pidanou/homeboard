@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getBaseUrl } from '$lib/api/client';
+	import { getBaseUrl, getBaseOrigin } from '$lib/api/client';
 	import { onDestroy } from 'svelte';
 
 	let {
@@ -16,7 +16,7 @@
 
 	const resolvedUrl = $derived((() => {
 		if (!photoUrl) return null;
-		try { return `${getBaseUrl()}${new URL(photoUrl).pathname}`; }
+		try { return `${getBaseOrigin()}${new URL(photoUrl).pathname}`; }
 		catch { return photoUrl.startsWith('/') ? `${getBaseUrl()}${photoUrl}` : photoUrl; }
 	})());
 

@@ -4,6 +4,11 @@ export function getBaseUrl(): string {
 	return (import.meta.env.VITE_API_URL ?? 'http://localhost:8080').replace(/\/$/, '');
 }
 
+/** Origin only (no path prefix) — for rebuilding stored absolute URLs whose pathname already includes the API's own path prefix. */
+export function getBaseOrigin(): string {
+	return new URL(getBaseUrl()).origin;
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 	const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
 

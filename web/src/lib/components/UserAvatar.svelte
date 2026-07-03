@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getBaseUrl } from '$lib/api/client';
+	import { getBaseUrl, getBaseOrigin } from '$lib/api/client';
 	import { onDestroy } from 'svelte';
 
 	let {
@@ -19,7 +19,7 @@
 	const resolvedUrl = $derived((() => {
 		if (!avatarUrl) return null;
 		try {
-			return `${getBaseUrl()}${new URL(avatarUrl).pathname}`;
+			return `${getBaseOrigin()}${new URL(avatarUrl).pathname}`;
 		} catch {
 			return avatarUrl.startsWith('/') ? `${getBaseUrl()}${avatarUrl}` : avatarUrl;
 		}
