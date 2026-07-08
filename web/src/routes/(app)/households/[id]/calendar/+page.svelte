@@ -8,7 +8,7 @@
 	import { X, CalendarDays } from 'lucide-svelte';
 	import type { CalEvent, Task, Member, AppCategory } from '$lib/types';
 	import { dotClass, CATEGORY_HEX } from '$lib/categories';
-	import { fmtTime } from '$lib/dates';
+	import { fmtTime, taskHasTime } from '$lib/dates';
 	import EditDialog from '$lib/components/EditDialog.svelte';
 	import CreateDialog from '$lib/components/CreateDialog.svelte';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
@@ -239,8 +239,11 @@
 			...filteredTasks.map(t => {
 				const done = t.status === 'done';
 				const hex = done ? null : categoryHex(t.category_id);
+				const hasTime = taskHasTime(t.end_date!);
+				const start = hasTime ? new Date(t.end_date!) : t.end_date;
+				const end = hasTime ? new Date(new Date(t.end_date!).getTime() + 60 * 60 * 1000) : t.end_date;
 				return {
-					id: `task-${t.id}`, title: (t.important ? '★ ' : '') + t.title, start: t.end_date, end: t.end_date, allDay: true,
+					id: `task-${t.id}`, title: (t.important ? '★ ' : '') + t.title, start, end, allDay: !hasTime,
 					startEditable: !done, durationEditable: false,
 					...(hex ? { backgroundColor: hex, borderColor: hex, textColor: '#fff' } : {}),
 					classNames: done ? ['ec-task', 'ec-task-done'] : ['ec-task'],
@@ -291,7 +294,7 @@
 			try {
 				if (event.extendedProps.type === 'task') {
 					const t = event.extendedProps.data as Task;
-					const newDate = toDateISO(event.start as Date);
+					const newDate = event.allDay ? toDateISO(event.start as Date) : (event.start as Date).toISOString();
 					await api.patch(`/api/v1/households/${familyID}/tasks/${t.id}`, {
 						title: t.title, description: t.description, important: t.important,
 						status: t.status, assigned_to: t.assigned_to, category_id: t.category_id,
