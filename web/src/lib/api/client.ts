@@ -1,7 +1,8 @@
 import { toast } from 'svelte-sonner';
 
 export function getBaseUrl(): string {
-	return (import.meta.env.VITE_API_URL ?? 'http://localhost:8080').replace(/\/$/, '');
+	const runtime = typeof window !== 'undefined' ? window.__API_URL__ : undefined;
+	return (runtime || import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '');
 }
 
 /** Origin only (no path prefix) — for rebuilding stored absolute URLs whose pathname already includes the API's own path prefix. */

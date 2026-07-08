@@ -17,7 +17,7 @@ services:
       retries: 5
 
   backend:
-    build: ./backend
+    image: ghcr.io/pidanou/homeboard-backend:latest
     restart: unless-stopped
     env_file:
       - back.env
@@ -34,16 +34,22 @@ services:
       - "8080:8080"
 
   web:
-    build:
-      context: ./web
-      args:
-        VITE_API_URL: ${VITE_API_URL}
-        BASE_PATH: ${BASE_PATH:-}
+    image: ghcr.io/pidanou/homeboard-web:latest
+    # To self-build instead of pulling from GHCR, comment out `image:` above and uncomment, keep only 1 dockerfile line:
+    # build:
+    #   context: ./web
+    #   dockerfile: Dockerfile          # runtime-configurable Node image
+    #   dockerfile: Dockerfile.static   # lightweight nginx image; API URL baked in at build time
+    #   args:
+    #     BASE_PATH: ${BASE_PATH:-}     # Dockerfile / Dockerfile.static
+    #     VITE_API_URL: ${VITE_API_URL} # Dockerfile.static only
     restart: unless-stopped
+    env_file:
+      - front.env
     depends_on:
       - backend
     ports:
-      - "3000:80"
+      - "3000:3000"
 
 volumes:
   db_data:
