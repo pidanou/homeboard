@@ -55,11 +55,13 @@ Real-time sync across every device. Install as a PWA or native iOS/Android app.
 
 ## 🚀 Self-hosting
 
-**Requirements:** Docker and Docker Compose — nothing else.
+**Requirements:** Docker and Docker Compose — nothing else. No need to clone the repo or build anything; `docker compose up` pulls prebuilt images from GHCR.
 
 ```bash
-git clone https://github.com/your-username/homeboard.git
-cd homeboard
+mkdir homeboard && cd homeboard
+curl -O https://raw.githubusercontent.com/pidanou/homeboard/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/pidanou/homeboard/main/back.env.example
+curl -O https://raw.githubusercontent.com/pidanou/homeboard/main/front.env.example
 cp back.env.example back.env   # backend + database config
 cp front.env.example front.env # frontend config
 # Edit both files — set POSTGRES_PASSWORD and JWT_SECRET at minimum
@@ -98,7 +100,8 @@ Config is split into two files: `back.env` (backend + database) and `front.env` 
 
 | Variable | Required | Description |
 |---|---|---|
-| `VITE_API_URL` | ✅ | Public URL of the backend — must be reachable from the user's browser |
+| `API_URL` | ✅ | Public URL of the backend — must be reachable from the user's browser |
+| `ORIGIN` | ✅ | Public URL this frontend is served at — required by SvelteKit to validate form submissions |
 
 ---
 
