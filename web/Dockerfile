@@ -3,13 +3,18 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-ARG VITE_API_URL
 ARG BASE_PATH=
-ENV VITE_API_URL=$VITE_API_URL
 ENV BASE_PATH=$BASE_PATH
+ENV ADAPTER=node
 RUN npm run build
+RUN npm prune --omit=dev
 
-FROM nginx:alpine
-COPY --from=builder /app/build /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
+FROM node:22-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
+COPY --from=builder /app/build build/
+COPY --from=builder /app/node_modules node_modules/
+COPY --from=builder /app/package.json .
+EXPOSE 3000
+CMD ["node", "build"]
