@@ -5,6 +5,7 @@
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
 	import { allowMultiHousehold } from '$lib/stores/config';
+	import { getLastHouseholdId } from '$lib/stores/lastHousehold';
 	import { Input } from '$lib/components/ui/input';
 	import { Card, CardHeader, CardTitle } from '$lib/components/ui/card';
 
@@ -15,11 +16,19 @@
 	let inviteInput = $state('');
 
 	onMount(async () => {
+		let fetched: Family[] = [];
 		try {
-			families = (await api.get<Family[]>('/api/v1/households')) ?? [];
-		} catch { } finally {
-			loading = false;
+			fetched = (await api.get<Family[]>('/api/v1/households')) ?? [];
+		} catch { }
+		families = fetched;
+
+		const lastId = getLastHouseholdId();
+		if (lastId && fetched.some(f => f.id === lastId)) {
+			await goto(`${base}/households/${lastId}`);
+			return;
 		}
+
+		loading = false;
 	});
 
 	function joinWithLink() {

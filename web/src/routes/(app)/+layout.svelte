@@ -10,6 +10,7 @@
 	import { currentUser, loadCurrentUser } from '$lib/stores/user';
 	import { loadConfig } from '$lib/stores/config';
 	import { households } from '$lib/stores/households';
+	import { setLastHouseholdId } from '$lib/stores/lastHousehold';
 	import { Sun, LayoutList, CalendarDays, ListChecks, Settings, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-svelte';
 
 	let { children } = $props();
@@ -28,6 +29,7 @@
 
 	$effect(() => {
 		if (familyID) {
+			setLastHouseholdId(familyID);
 			api.get<{ id: string; name: string; wallpaper_url?: string | null; wallpaper_original_url?: string | null }>(`/api/v1/households/${familyID}`)
 				.then(h => { household = h ?? null; })
 				.catch(() => { household = null; });
