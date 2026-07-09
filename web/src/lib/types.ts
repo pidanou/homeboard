@@ -56,6 +56,7 @@ export type AppList = {
 	id: string;
 	family_id: string;
 	name: string;
+	position: number;
 };
 
 export type AppListItem = {
