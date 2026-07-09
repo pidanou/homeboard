@@ -7,6 +7,7 @@
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { X, Plus, Pencil, CornerDownLeft, Trash2, GripVertical } from 'lucide-svelte';
 	import type { AppList, AppListItem } from '$lib/types';
+	import * as msg from '$lib/paraglide/messages.js';
 
 	const familyID = $derived($page.params.id ?? '');
 
@@ -195,8 +196,8 @@
 
 		<!-- Title row — always visible -->
 		<div class="flex items-center justify-between">
-			<h1 class="text-xl font-semibold">Lists {#if lists.length > 0}<span class="text-base font-normal text-muted-foreground ml-1">{lists.length}</span>{/if}</h1>
-			<button onclick={() => (addingList = true)} class="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="New list">
+			<h1 class="text-xl font-semibold">{msg.nav_lists()} {#if lists.length > 0}<span class="text-base font-normal text-muted-foreground ml-1">{lists.length}</span>{/if}</h1>
+			<button onclick={() => (addingList = true)} class="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label={msg.lists_new_list()}>
 				<Plus class="w-4 h-4" />
 			</button>
 		</div>
@@ -206,7 +207,7 @@
 			<div class="flex items-center gap-2">
 				<Input
 					bind:value={newListName}
-					placeholder="List name…"
+					placeholder={msg.lists_name_placeholder()}
 					class="flex-1 h-8 text-sm"
 					autofocus
 					onkeydown={(e) => {
@@ -214,8 +215,8 @@
 						if (e.key === 'Escape') { addingList = false; newListName = ''; }
 					}}
 				/>
-				<Button size="sm" class="h-8" onclick={createList} disabled={!newListName.trim()}>Add</Button>
-				<Button size="sm" variant="ghost" class="h-8" onclick={() => { addingList = false; newListName = ''; }}>Cancel</Button>
+				<Button size="sm" class="h-8" onclick={createList} disabled={!newListName.trim()}>{msg.action_add()}</Button>
+				<Button size="sm" variant="ghost" class="h-8" onclick={() => { addingList = false; newListName = ''; }}>{msg.dialog_cancel()}</Button>
 			</div>
 		{/if}
 
@@ -223,9 +224,9 @@
 		{#if confirmDeleteListID}
 			{@const target = lists.find(l => l.id === confirmDeleteListID)}
 			<div class="flex items-center gap-2">
-				<span class="flex-1 text-sm text-muted-foreground truncate">Delete <strong>{target?.name}</strong>?</span>
-				<Button size="sm" variant="destructive" onclick={() => deleteList(confirmDeleteListID!)} class="h-8">Delete</Button>
-				<Button size="sm" variant="ghost" onclick={() => (confirmDeleteListID = null)} class="h-8">Cancel</Button>
+				<span class="flex-1 text-sm text-muted-foreground truncate">{msg.lists_delete_confirm({ name: target?.name ?? '' })}</span>
+				<Button size="sm" variant="destructive" onclick={() => deleteList(confirmDeleteListID!)} class="h-8">{msg.edit_dialog_delete()}</Button>
+				<Button size="sm" variant="ghost" onclick={() => (confirmDeleteListID = null)} class="h-8">{msg.dialog_cancel()}</Button>
 			</div>
 		{/if}
 
@@ -240,7 +241,7 @@
 						<button
 							onpointerdown={(e) => startListDrag(e, list.id)}
 							class="flex items-center justify-center w-6 h-6 rounded-full touch-none cursor-grab active:cursor-grabbing opacity-70 hover:opacity-100 transition-opacity"
-							aria-label="Drag to reorder list"
+							aria-label={msg.lists_drag_aria()}
 						>
 							<GripVertical class="w-3.5 h-3.5" />
 						</button>
@@ -255,7 +256,7 @@
 							<button
 								onclick={() => (confirmDeleteListID = list.id)}
 								class="flex items-center justify-center w-5 h-5 rounded-full hover:bg-primary-foreground/20 transition-colors"
-								aria-label="Delete list"
+								aria-label={msg.lists_delete_list_aria()}
 							>
 								<X class="w-3 h-3" />
 							</button>
@@ -278,7 +279,7 @@
 			<Plus class="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
 			<input
 				class="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground/50"
-				placeholder="Add item…"
+				placeholder={msg.lists_add_item_placeholder()}
 				bind:value={newItemByList[lid]}
 				onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem(lid); } }}
 			/>
@@ -286,7 +287,7 @@
 				onclick={() => addItem(lid)}
 				disabled={!(newItemByList[lid] ?? '').trim()}
 				class="p-1 rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-colors shrink-0 disabled:pointer-events-none"
-				aria-label="Add item"
+				aria-label={msg.lists_add_item_aria()}
 			>
 				<CornerDownLeft class="w-3.5 h-3.5" />
 			</button>
@@ -294,14 +295,14 @@
 
 		<!-- Items -->
 		{#if uncheckedItems.length === 0 && checkedItems.length === 0}
-			<p class="text-sm text-muted-foreground text-center py-16 italic">Empty — add something above</p>
+			<p class="text-sm text-muted-foreground text-center py-16 italic">{msg.lists_empty_hint()}</p>
 		{:else}
 			<div class="flex flex-col divide-y divide-border pb-8">
 				{#each uncheckedItems as item (item.id)}
 					<div class="flex items-center gap-3 px-4 py-3">
 						<Checkbox checked={false} onCheckedChange={() => toggleItem(lid, item)} />
 						<span class="flex-1 text-sm">{item.name}</span>
-						<button onclick={() => deleteItem(lid, item.id)} class="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0" aria-label="Delete">
+						<button onclick={() => deleteItem(lid, item.id)} class="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0" aria-label={msg.edit_dialog_delete()}>
 							<X class="w-3.5 h-3.5" />
 						</button>
 					</div>
@@ -309,14 +310,14 @@
 
 				{#if checkedItems.length > 0}
 					<div class="flex items-center justify-between px-4 py-2 bg-muted/40">
-						<span class="text-xs font-medium text-muted-foreground">In cart ({checkedItems.length})</span>
-						<button onclick={() => clearChecked(lid)} class="text-xs text-muted-foreground hover:text-foreground transition-colors">Clear all</button>
+						<span class="text-xs font-medium text-muted-foreground">{msg.lists_in_cart({ count: checkedItems.length })}</span>
+						<button onclick={() => clearChecked(lid)} class="text-xs text-muted-foreground hover:text-foreground transition-colors">{msg.lists_clear_all()}</button>
 					</div>
 					{#each checkedItems as item (item.id)}
 						<div class="flex items-center gap-3 px-4 py-3 opacity-50">
 							<Checkbox checked={true} onCheckedChange={() => toggleItem(lid, item)} />
 							<span class="flex-1 text-sm line-through">{item.name}</span>
-							<button onclick={() => deleteItem(lid, item.id)} class="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0" aria-label="Delete">
+							<button onclick={() => deleteItem(lid, item.id)} class="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0" aria-label={msg.edit_dialog_delete()}>
 								<X class="w-3.5 h-3.5" />
 							</button>
 						</div>
@@ -326,8 +327,8 @@
 		{/if}
 	{:else if !addingList}
 		<div class="flex flex-col items-center gap-2 py-16 px-4 text-muted-foreground">
-			<p class="text-sm font-medium">No lists yet</p>
-			<p class="text-xs">Tap + to create one.</p>
+			<p class="text-sm font-medium">{msg.lists_no_lists_yet()}</p>
+			<p class="text-xs">{msg.lists_tap_to_create()}</p>
 		</div>
 	{/if}
 	</div>
@@ -338,7 +339,7 @@
 
 	<!-- Header -->
 	<div class="shrink-0 px-6 pt-6 pb-3">
-		<h1 class="text-xl font-semibold">Lists {#if lists.length > 0}<span class="text-base font-normal text-muted-foreground ml-1">{lists.length}</span>{/if}</h1>
+		<h1 class="text-xl font-semibold">{msg.nav_lists()} {#if lists.length > 0}<span class="text-base font-normal text-muted-foreground ml-1">{lists.length}</span>{/if}</h1>
 	</div>
 
 	<!-- Kanban board -->
@@ -350,12 +351,12 @@
 			{#if addingList}
 				<div class="w-72 flex flex-col rounded-xl border border-border bg-card overflow-hidden shrink-0">
 					<div class="h-14 flex items-center px-4 border-b border-border bg-muted/50">
-						<span class="text-sm font-semibold text-muted-foreground">New list</span>
+						<span class="text-sm font-semibold text-muted-foreground">{msg.lists_new_list()}</span>
 					</div>
 					<div class="p-4 flex flex-col gap-2">
 						<Input
 							bind:value={newListName}
-							placeholder="List name…"
+							placeholder={msg.lists_name_placeholder()}
 							class="h-8 text-sm"
 							autofocus
 							onkeydown={(e) => {
@@ -364,8 +365,8 @@
 							}}
 						/>
 						<div class="flex gap-2">
-							<Button size="sm" class="flex-1" onclick={createList} disabled={!newListName.trim()}>Create</Button>
-							<Button size="sm" variant="ghost" onclick={() => { addingList = false; newListName = ''; }}>Cancel</Button>
+							<Button size="sm" class="flex-1" onclick={createList} disabled={!newListName.trim()}>{msg.dialog_create()}</Button>
+							<Button size="sm" variant="ghost" onclick={() => { addingList = false; newListName = ''; }}>{msg.dialog_cancel()}</Button>
 						</div>
 					</div>
 				</div>
@@ -375,7 +376,7 @@
 					class="w-72 shrink-0 flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-border text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
 				>
 					<Plus class="w-5 h-5" />
-					<span class="text-sm font-medium">New list</span>
+					<span class="text-sm font-medium">{msg.lists_new_list()}</span>
 				</button>
 			{/if}
 
@@ -392,7 +393,7 @@
 						<button
 							onpointerdown={(e) => startListDrag(e, list.id)}
 							class="p-1.5 rounded-lg text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted transition-colors touch-none cursor-grab active:cursor-grabbing shrink-0"
-							aria-label="Drag to reorder list"
+							aria-label={msg.lists_drag_aria()}
 						>
 							<GripVertical class="w-3.5 h-3.5" />
 						</button>
@@ -410,23 +411,23 @@
 								<span class="text-xs font-medium text-muted-foreground bg-background rounded-full px-1.5 shrink-0">{itemCount(list.id)}</span>
 							{/if}
 							{#if confirmDeleteListID === list.id}
-								<span class="text-xs text-muted-foreground shrink-0">Delete?</span>
-								<Button size="sm" variant="destructive" onclick={() => deleteList(list.id)} class="h-6 px-2 text-xs shrink-0">Yes</Button>
-								<button onclick={() => (confirmDeleteListID = null)} class="p-1 text-muted-foreground hover:text-foreground shrink-0" aria-label="Cancel">
+								<span class="text-xs text-muted-foreground shrink-0">{msg.lists_delete_question()}</span>
+								<Button size="sm" variant="destructive" onclick={() => deleteList(list.id)} class="h-6 px-2 text-xs shrink-0">{msg.lists_yes()}</Button>
+								<button onclick={() => (confirmDeleteListID = null)} class="p-1 text-muted-foreground hover:text-foreground shrink-0" aria-label={msg.dialog_cancel()}>
 									<X class="w-3 h-3" />
 								</button>
 							{:else}
 								<button
 									onclick={() => { renamingListID = list.id; renameListValue = list.name; }}
 									class="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
-									aria-label="Rename list"
+									aria-label={msg.lists_rename_aria()}
 								>
 									<Pencil class="w-3.5 h-3.5" />
 								</button>
 								<button
 									onclick={() => (confirmDeleteListID = list.id)}
 									class="p-1 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
-									aria-label="Delete list"
+									aria-label={msg.lists_delete_list_aria()}
 								>
 									<Trash2 class="w-3.5 h-3.5" />
 								</button>
@@ -439,7 +440,7 @@
 						<Plus class="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
 						<input
 							class="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground/50"
-							placeholder="Add item…"
+							placeholder={msg.lists_add_item_placeholder()}
 							bind:value={newItemByList[list.id]}
 							onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem(list.id); } }}
 						/>
@@ -447,7 +448,7 @@
 							onclick={() => addItem(list.id)}
 							disabled={!(newItemByList[list.id] ?? '').trim()}
 							class="p-1 rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-colors shrink-0 disabled:pointer-events-none"
-							aria-label="Add item"
+							aria-label={msg.lists_add_item_aria()}
 						>
 							<CornerDownLeft class="w-3.5 h-3.5" />
 						</button>
@@ -456,7 +457,7 @@
 					<!-- Items -->
 					<div class="flex-1">
 					{#if uncheckedItems.length === 0 && checkedItems.length === 0}
-						<p class="text-xs text-muted-foreground text-center py-8 italic">Empty</p>
+						<p class="text-xs text-muted-foreground text-center py-8 italic">{msg.lists_empty_desktop()}</p>
 					{:else}
 						<div class="flex flex-col divide-y divide-border">
 							{#each uncheckedItems as item (item.id)}
@@ -476,7 +477,7 @@
 											ondblclick={() => { renamingItem = { listID: list.id, itemID: item.id }; renameItemValue = item.name; }}
 										>{item.name}</button>
 									{/if}
-									<button onclick={() => deleteItem(list.id, item.id)} class="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0" aria-label="Delete">
+									<button onclick={() => deleteItem(list.id, item.id)} class="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0" aria-label={msg.edit_dialog_delete()}>
 										<X class="w-3.5 h-3.5" />
 									</button>
 								</div>
@@ -484,16 +485,16 @@
 
 							{#if checkedItems.length > 0}
 								<div class="flex items-center justify-between px-4 py-2 bg-muted/40">
-									<span class="text-xs font-medium text-muted-foreground">In cart ({checkedItems.length})</span>
+									<span class="text-xs font-medium text-muted-foreground">{msg.lists_in_cart({ count: checkedItems.length })}</span>
 									<button onclick={() => clearChecked(list.id)} class="text-xs text-muted-foreground hover:text-foreground transition-colors">
-										Clear all
+										{msg.lists_clear_all()}
 									</button>
 								</div>
 								{#each checkedItems as item (item.id)}
 									<div class="flex items-center gap-3 px-4 py-2.5 opacity-50">
 										<Checkbox checked={true} onCheckedChange={() => toggleItem(list.id, item)} />
 										<span class="flex-1 text-sm line-through">{item.name}</span>
-										<button onclick={() => deleteItem(list.id, item.id)} class="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0" aria-label="Delete">
+										<button onclick={() => deleteItem(list.id, item.id)} class="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0" aria-label={msg.edit_dialog_delete()}>
 											<X class="w-3.5 h-3.5" />
 										</button>
 									</div>

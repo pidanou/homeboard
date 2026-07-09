@@ -11,6 +11,7 @@
     import AuthImage from "$lib/components/AuthImage.svelte";
     import { currentUser } from "$lib/stores/user";
     import { households, updateHouseholdName, updateHouseholdPhoto, updateHouseholdWallpaper } from "$lib/stores/households";
+    import * as msg from "$lib/paraglide/messages.js";
 
     type Invite = { token: string; expires_at: string };
     type Member = {
@@ -404,7 +405,7 @@
 <div class="px-4 md:px-6 pt-4 md:pt-6 pb-12">
     <div class="max-w-xl mx-auto flex flex-col gap-0 divide-y divide-border">
         <div class="pb-4">
-            <h1 class="text-xl font-semibold">Settings</h1>
+            <h1 class="text-xl font-semibold">{msg.nav_settings()}</h1>
         </div>
 
         <!-- General -->
@@ -412,7 +413,7 @@
             <h2
                 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
             >
-                General
+                {msg.settings_general()}
             </h2>
 
             <div
@@ -420,7 +421,7 @@
             >
                 <div class="flex items-center gap-3 px-4 py-3.5">
                     <span class="text-sm text-muted-foreground w-20 shrink-0"
-                        >Name</span
+                        >{msg.settings_name_label()}</span
                     >
                     {#if editingName}
                         <div class="flex flex-1 items-center gap-2">
@@ -442,13 +443,13 @@
                                 size="sm"
                                 onclick={saveName}
                                 disabled={!editNameValue.trim()}
-                                class="h-8">Save</Button
+                                class="h-8">{msg.edit_dialog_save()}</Button
                             >
                             <Button
                                 size="sm"
                                 variant="ghost"
                                 onclick={() => (editingName = false)}
-                                class="h-8">Cancel</Button
+                                class="h-8">{msg.dialog_cancel()}</Button
                             >
                         </div>
                     {:else}
@@ -474,13 +475,13 @@
         {#if isAdmin}
             <section class="py-4 flex flex-col gap-4">
                 <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Appearance
+                    {msg.settings_appearance()}
                 </h2>
 
                 <div class="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
                     <!-- Photo -->
                     <div class="flex items-center gap-3 px-4 py-3.5">
-                        <span class="text-sm text-muted-foreground w-24 shrink-0">Photo</span>
+                        <span class="text-sm text-muted-foreground w-24 shrink-0">{msg.settings_photo_label()}</span>
                         <div class="flex-1 flex items-center gap-3">
                             {#if householdPhotoUrl}
                                 <div class="relative w-10 h-10 shrink-0">
@@ -498,11 +499,11 @@
                             {/if}
                             <div class="flex items-center gap-2">
                                 <Button variant="outline" size="sm" onclick={openPhotoCrop} disabled={photoLoading} class="h-8">
-                                    {householdPhotoUrl ? "Change" : "Upload"}
+                                    {householdPhotoUrl ? msg.action_change() : msg.action_upload()}
                                 </Button>
                                 {#if householdPhotoUrl}
                                     <Button variant="ghost" size="sm" onclick={removePhoto} disabled={photoLoading} class="h-8 text-destructive hover:text-destructive">
-                                        Remove
+                                        {msg.action_remove()}
                                     </Button>
                                 {/if}
                             </div>
@@ -511,7 +512,7 @@
 
                     <!-- Wallpaper -->
                     <div class="flex items-start gap-3 px-4 py-3.5">
-                        <span class="text-sm text-muted-foreground w-24 shrink-0 pt-1">Wallpaper</span>
+                        <span class="text-sm text-muted-foreground w-24 shrink-0 pt-1">{msg.settings_wallpaper_label()}</span>
                         <div class="flex-1 flex flex-col gap-2">
                             {#if householdWallpaperUrl}
                                 <div class="relative w-full h-20 rounded-lg overflow-hidden">
@@ -526,11 +527,11 @@
                             <div class="flex items-center gap-2">
                                 <Button variant="outline" size="sm" onclick={openWallpaperCrop} disabled={wallpaperLoading} class="h-8">
                                     <Image class="w-3.5 h-3.5 mr-1.5" />
-                                    {householdWallpaperUrl ? "Change" : "Upload"}
+                                    {householdWallpaperUrl ? msg.action_change() : msg.action_upload()}
                                 </Button>
                                 {#if householdWallpaperUrl}
                                     <Button variant="ghost" size="sm" onclick={removeWallpaper} disabled={wallpaperLoading} class="h-8 text-destructive hover:text-destructive">
-                                        Remove
+                                        {msg.action_remove()}
                                     </Button>
                                 {/if}
                             </div>
@@ -552,11 +553,11 @@
                     <h2
                         class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
                     >
-                        Members
+                        {msg.settings_members()}
                     </h2>
                     <p class="text-xs text-muted-foreground mt-0.5">
-                        {realCount} member{realCount !== 1 ? "s" : ""}{virtualCount > 0
-                            ? ` · ${virtualCount} profile${virtualCount !== 1 ? "s" : ""}`
+                        {realCount} {realCount !== 1 ? msg.settings_member_plural() : msg.settings_member_singular()}{virtualCount > 0
+                            ? ` · ${virtualCount} ${virtualCount !== 1 ? msg.settings_profile_plural() : msg.settings_profile_singular()}`
                             : ""}
                     </p>
                 </div>
@@ -566,7 +567,7 @@
                         variant="outline"
                         onclick={() => (addingVirtual = !addingVirtual)}
                     >
-                        Add profile
+                        {msg.settings_add_profile()}
                     </Button>
                 {/if}
             </div>
@@ -575,7 +576,7 @@
                 <div class="flex gap-2">
                     <Input
                         bind:value={newVirtualName}
-                        placeholder="Name (e.g. Lucas)…"
+                        placeholder={msg.settings_add_profile_name_placeholder()}
                         class="flex-1"
                         onkeydown={(e) => {
                             if (e.key === "Enter") {
@@ -588,18 +589,18 @@
                     <Button
                         size="sm"
                         onclick={createVirtualMember}
-                        disabled={!newVirtualName.trim()}>Add</Button
+                        disabled={!newVirtualName.trim()}>{msg.action_add()}</Button
                     >
                     <Button
                         size="sm"
                         variant="ghost"
-                        onclick={() => (addingVirtual = false)}>Cancel</Button
+                        onclick={() => (addingVirtual = false)}>{msg.dialog_cancel()}</Button
                     >
                 </div>
             {/if}
 
             {#if members.length === 0}
-                <p class="text-sm text-muted-foreground">No members yet.</p>
+                <p class="text-sm text-muted-foreground">{msg.settings_no_members()}</p>
             {:else}
                 <div
                     class="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border"
@@ -621,20 +622,20 @@
                                 <p
                                     class="text-xs text-muted-foreground truncate"
                                 >
-                                    {#if member.virtual}Profile{:else}{member.email}{/if}
+                                    {#if member.virtual}{msg.settings_profile_badge()}{:else}{member.email}{/if}
                                 </p>
                             </div>
                             {#if member.virtual}
                                 <div class="flex items-center gap-2 shrink-0">
                                     <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
-                                        Profile
+                                        {msg.settings_profile_badge()}
                                     </span>
                                     {#if isAdmin}
                                         <button
                                             onclick={() =>
                                                 deleteVirtualMember(member.user_id)}
                                             class="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                                            aria-label="Remove"
+                                            aria-label={msg.action_remove()}
                                         >
                                             <X class="w-4 h-4" />
                                         </button>
@@ -649,8 +650,8 @@
                                             : 'bg-muted text-muted-foreground'}"
                                     >
                                         {member.role === "admin"
-                                            ? "Admin"
-                                            : "Member"}
+                                            ? msg.settings_admin()
+                                            : msg.settings_member_role()}
                                     </span>
                                     {#if isAdmin && member.user_id !== $currentUser?.id}
                                         <Button
@@ -666,14 +667,14 @@
                                             class="h-7 px-2 text-xs"
                                         >
                                             {member.role === "admin"
-                                                ? "Demote"
-                                                : "Make admin"}
+                                                ? msg.settings_demote()
+                                                : msg.settings_make_admin()}
                                         </Button>
                                         <button
                                             onclick={() =>
                                                 kickMember(member.user_id)}
                                             class="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                                            aria-label="Remove member"
+                                            aria-label={msg.settings_remove_member_aria()}
                                         >
                                             <X class="w-4 h-4" />
                                         </button>
@@ -691,12 +692,12 @@
             <h2
                 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
             >
-                Categories
+                {msg.settings_categories()}
             </h2>
 
             <div class="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
                 {#if categories.length === 0 && !isAdmin}
-                    <div class="px-4 py-3 text-sm text-muted-foreground">No categories yet.</div>
+                    <div class="px-4 py-3 text-sm text-muted-foreground">{msg.settings_no_categories()}</div>
                 {/if}
                     {#each categories as cat (cat.id)}
                         <div class="px-4 py-3">
@@ -736,14 +737,14 @@
                                             size="sm"
                                             onclick={() => saveEditCat(cat)}
                                             disabled={!editingCatName.trim()}
-                                            >Save</Button
+                                            >{msg.edit_dialog_save()}</Button
                                         >
                                         <Button
                                             size="sm"
                                             variant="ghost"
                                             onclick={() =>
                                                 (editingCatID = null)}
-                                            >Cancel</Button
+                                            >{msg.dialog_cancel()}</Button
                                         >
                                     </div>
                                 </div>
@@ -767,7 +768,7 @@
                                                 onclick={() =>
                                                     startEditCat(cat)}
                                                 class="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                                                aria-label="Edit"
+                                                aria-label={msg.action_edit()}
                                             >
                                                 <Pencil class="w-3.5 h-3.5" />
                                             </button>
@@ -775,7 +776,7 @@
                                                 onclick={() =>
                                                     deleteCategory(cat.id)}
                                                 class="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                                                aria-label="Delete"
+                                                aria-label={msg.edit_dialog_delete()}
                                             >
                                                 <X class="w-3.5 h-3.5" />
                                             </button>
@@ -791,13 +792,13 @@
                         <div class="flex items-center gap-2">
                             <Input
                                 bind:value={newCategoryName}
-                                placeholder="New category…"
+                                placeholder={msg.settings_new_category_placeholder()}
                                 class="flex-1 h-8 text-sm"
                                 onkeydown={(e) => {
                                     if (e.key === "Enter") { e.preventDefault(); createCategory(); }
                                 }}
                             />
-                            <Button size="sm" onclick={createCategory} disabled={!newCategoryName.trim()} class="h-8">Add</Button>
+                            <Button size="sm" onclick={createCategory} disabled={!newCategoryName.trim()} class="h-8">{msg.action_add()}</Button>
                         </div>
                         <div class="flex gap-1.5">
                             {#each CATEGORY_COLORS as c}
@@ -819,14 +820,14 @@
                     <h2
                         class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
                     >
-                        Invite link
+                        {msg.settings_invite_link()}
                     </h2>
                     <Button
                         size="sm"
                         variant="outline"
                         onclick={generateInvite}
                     >
-                        {invite ? "Regenerate" : "Generate link"}
+                        {invite ? msg.settings_regenerate() : msg.settings_generate_link()}
                     </Button>
                 </div>
 
@@ -854,8 +855,8 @@
                             >
                                 <Clock class="w-3 h-3" />
                                 {daysLeft <= 0
-                                    ? "Expires today"
-                                    : `${daysLeft}d left`}
+                                    ? msg.settings_expires_today()
+                                    : msg.settings_days_left({ days: daysLeft })}
                             </span>
                         </div>
                         <div class="flex gap-2 px-4 py-3">
@@ -866,19 +867,19 @@
                                 onclick={() => copyLink(invite!.token)}
                             >
                                 {copied === invite.token
-                                    ? "Copied!"
-                                    : "Copy link"}
+                                    ? msg.settings_copied()
+                                    : msg.settings_copy_link()}
                             </Button>
                             <Button
                                 variant="destructive"
                                 size="sm"
-                                onclick={revokeInvite}>Revoke</Button
+                                onclick={revokeInvite}>{msg.settings_revoke()}</Button
                             >
                         </div>
                     </div>
                 {:else}
                     <p class="text-sm text-muted-foreground">
-                        No active link. Generate one to invite someone.
+                        {msg.settings_no_invite_link()}
                     </p>
                 {/if}
             </section>

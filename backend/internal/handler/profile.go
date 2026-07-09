@@ -28,6 +28,7 @@ func (h *ProfileHandler) Routes() http.Handler {
 	r := chi.NewRouter()
 	r.Get("/", h.get)
 	r.Patch("/", h.updateName)
+	r.Patch("/locale", h.updateLocale)
 	r.Patch("/password", h.changePassword)
 	r.Post("/avatar", h.uploadAvatar)
 	r.Delete("/avatar", h.deleteAvatar)
@@ -57,6 +58,24 @@ func (h *ProfileHandler) updateName(w http.ResponseWriter, r *http.Request) {
 	user, err := h.auth.UpdateName(r.Context(), userID, strings.TrimSpace(body.Name))
 	if err != nil {
 		http.Error(w, "update failed", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
+}
+
+func (h *ProfileHandler) updateLocale(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(ContextKeyUserID).(string)
+	var body struct {
+		Locale string `json:"locale"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+	user, err := h.auth.SetLocale(r.Context(), userID, body.Locale)
+	if err != nil {
+		http.Error(w, "unsupported locale", http.StatusBadRequest)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

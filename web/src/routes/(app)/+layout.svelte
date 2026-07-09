@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
@@ -11,6 +12,8 @@
 	import { loadConfig } from '$lib/stores/config';
 	import { households } from '$lib/stores/households';
 	import { setLastHouseholdId } from '$lib/stores/lastHousehold';
+	import { getLocale, setLocale, locales } from '$lib/paraglide/runtime';
+	import * as m from '$lib/paraglide/messages.js';
 	import { Sun, LayoutList, CalendarDays, ListChecks, Settings, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-svelte';
 
 	let { children } = $props();
@@ -70,8 +73,18 @@
 		if (!isLoggedIn()) {
 			goto(`${base}/login`);
 		} else {
-			ready = true;
-			loadCurrentUser();
+			loadCurrentUser().then(() => {
+				const profileLocale = get(currentUser)?.locale;
+				if (
+					profileLocale &&
+					locales.includes(profileLocale as (typeof locales)[number]) &&
+					profileLocale !== getLocale()
+				) {
+					setLocale(profileLocale as (typeof locales)[number]);
+					return;
+				}
+				ready = true;
+			});
 			loadConfig();
 		}
 
@@ -92,20 +105,20 @@
 	}
 
 	const mobileTabNav = $derived(familyID ? [
-		{ label: 'Today',    href: `${base}/households/${familyID}`,           icon: Sun },
-		{ label: 'Board',    href: `${base}/households/${familyID}/board`,     icon: LayoutList },
-		{ label: 'Calendar', href: `${base}/households/${familyID}/calendar`,  icon: CalendarDays },
-		{ label: 'Lists',    href: `${base}/households/${familyID}/lists`,     icon: ListChecks },
-		{ label: 'Settings', href: `${base}/households/${familyID}/settings`,  icon: Settings },
+		{ label: m.nav_today(),    href: `${base}/households/${familyID}`,           icon: Sun },
+		{ label: m.nav_board(),    href: `${base}/households/${familyID}/board`,     icon: LayoutList },
+		{ label: m.nav_calendar(), href: `${base}/households/${familyID}/calendar`,  icon: CalendarDays },
+		{ label: m.nav_lists(),    href: `${base}/households/${familyID}/lists`,     icon: ListChecks },
+		{ label: m.nav_settings(), href: `${base}/households/${familyID}/settings`,  icon: Settings },
 	] : []);
 
 	const currentSection = $derived(() => {
-		if (!familyID) return currentPath === `${base}/profile` ? 'Profile' : 'Homeboard';
-		if (currentPath === `${base}/households/${familyID}`) return 'Today';
-		if (currentPath.endsWith('/board')) return 'Board';
-		if (currentPath.endsWith('/calendar')) return 'Calendar';
-		if (currentPath.endsWith('/lists')) return 'Lists';
-		if (currentPath.endsWith('/settings')) return 'Settings';
+		if (!familyID) return currentPath === `${base}/profile` ? m.sidebar_profile() : 'Homeboard';
+		if (currentPath === `${base}/households/${familyID}`) return m.nav_today();
+		if (currentPath.endsWith('/board')) return m.nav_board();
+		if (currentPath.endsWith('/calendar')) return m.nav_calendar();
+		if (currentPath.endsWith('/lists')) return m.nav_lists();
+		if (currentPath.endsWith('/settings')) return m.nav_settings();
 		return 'Homeboard';
 	});
 </script>
@@ -114,14 +127,14 @@
 	<div class="h-dvh flex bg-background overflow-hidden">
 		<!-- Desktop sidebar (always visible md+) -->
 		<aside
-			aria-label="Main navigation"
+			aria-label={m.layout_main_nav_aria()}
 			class="hidden md:flex shrink-0 flex-col border-r border-sidebar-border bg-sidebar fixed top-0 left-0 bottom-0 z-30 transition-[width] duration-200
 				{sidebarCollapsed ? 'w-14' : 'w-56'}"
 		>
 			<Sidebar collapsed={sidebarCollapsed} ontoggle={toggleSidebar} />
 			<button
 				onclick={toggleSidebar}
-				aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+				aria-label={sidebarCollapsed ? m.layout_expand_sidebar_aria() : m.layout_collapse_sidebar_aria()}
 				class="absolute right-0 top-6 translate-x-1/2 z-40 flex items-center justify-center w-6 h-6 rounded-full border border-sidebar-border bg-sidebar text-muted-foreground hover:text-foreground shadow-sm transition-colors"
 			>
 				{#if sidebarCollapsed}
@@ -152,7 +165,7 @@
 						<span class="font-semibold text-base">{currentSection()}</span>
 					{/if}
 					{#if user}
-						<a href="{base}/profile" class="p-1 rounded-full hover:opacity-80 transition-opacity shrink-0" aria-label="My profile">
+						<a href="{base}/profile" class="p-1 rounded-full hover:opacity-80 transition-opacity shrink-0" aria-label={m.layout_my_profile_aria()}>
 							<UserAvatar name={user.name} avatarUrl={user.avatar_url} userId={user.id} size={32} />
 						</a>
 					{/if}
@@ -161,7 +174,7 @@
 
 			{#if offline}
 				<div class="bg-yellow-500/90 text-yellow-950 text-xs font-medium text-center py-1.5 px-4 shrink-0">
-					No internet connection
+					{m.layout_no_internet()}
 				</div>
 			{/if}
 
@@ -171,7 +184,7 @@
 
 			<!-- Mobile bottom tab bar (only when in a family) -->
 			{#if mobileTabNav.length > 0}
-				<nav aria-label="Section navigation" class="md:hidden border-t border-border bg-background shrink-0 flex safe-area-bottom">
+				<nav aria-label={m.layout_section_nav_aria()} class="md:hidden border-t border-border bg-background shrink-0 flex safe-area-bottom">
 					{#each mobileTabNav as item (item.href)}
 						{@const Icon = item.icon}
 						<a

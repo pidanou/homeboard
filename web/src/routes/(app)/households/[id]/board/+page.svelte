@@ -18,6 +18,7 @@
     import EventCard from "$lib/components/EventCard.svelte";
     import CreateDialog from "$lib/components/CreateDialog.svelte";
     import EditDialog from "$lib/components/EditDialog.svelte";
+    import * as m from "$lib/paraglide/messages.js";
 
     const familyID = $derived($page.params.id ?? "");
     const now = new Date();
@@ -182,10 +183,10 @@
     type GroupID = "overdue" | "today" | "week" | "later";
     const GROUP_ORDER: GroupID[] = ["overdue", "today", "week", "later"];
     const GROUP_META: Record<GroupID, { label: string; cls: string }> = {
-        overdue: { label: "Overdue", cls: "text-destructive" },
-        today: { label: "Today", cls: "text-foreground" },
-        week: { label: "This week", cls: "text-muted-foreground" },
-        later: { label: "Later", cls: "text-muted-foreground" },
+        overdue: { label: m.board_group_overdue(), cls: "text-destructive" },
+        today: { label: m.nav_today(), cls: "text-foreground" },
+        week: { label: m.board_group_week(), cls: "text-muted-foreground" },
+        later: { label: m.board_group_later(), cls: "text-muted-foreground" },
     };
 
     const groupedItems = $derived(
@@ -232,7 +233,7 @@
         <form onsubmit={quickAdd} class="flex-1">
             <Input
                 bind:value={quickTitle}
-                placeholder="Add a task"
+                placeholder={m.board_add_task_placeholder()}
                 class="bg-muted/20 border-dashed focus-visible:border-solid"
             />
         </form>
@@ -242,14 +243,14 @@
                 size="sm"
                 onclick={() => createDialog?.open("task")}
             >
-                <CheckSquare class="w-3.5 h-3.5 mr-1" />Task
+                <CheckSquare class="w-3.5 h-3.5 mr-1" />{m.board_add_task_button()}
             </Button>
             <Button
                 variant="outline"
                 size="sm"
                 onclick={() => createDialog?.open("event")}
             >
-                <CalendarDays class="w-3.5 h-3.5 mr-1" />Event
+                <CalendarDays class="w-3.5 h-3.5 mr-1" />{m.board_add_event_button()}
             </Button>
         </div>
     </div>
@@ -271,10 +272,10 @@
         >
             <CheckSquare class="w-10 h-10 opacity-30" />
             <p class="text-sm font-medium">
-                {filter === "done" ? "Nothing completed yet." : "All caught up"}
+                {filter === "done" ? m.board_nothing_completed() : m.board_all_caught_up()}
             </p>
             {#if filter !== "done"}
-                <p class="text-xs">Add a task or event above to get started.</p>
+                <p class="text-xs">{m.board_empty_hint()}</p>
             {/if}
         </div>
     {:else if filter === "done"}

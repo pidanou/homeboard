@@ -8,10 +8,11 @@
 	import { X, CalendarDays } from 'lucide-svelte';
 	import type { CalEvent, Task, Member, AppCategory } from '$lib/types';
 	import { dotClass, CATEGORY_HEX } from '$lib/categories';
-	import { fmtTime, taskHasTime } from '$lib/dates';
+	import { fmtTime, taskHasTime, fmtWeekdayDate } from '$lib/dates';
 	import EditDialog from '$lib/components/EditDialog.svelte';
 	import CreateDialog from '$lib/components/CreateDialog.svelte';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
+	import * as msg from '$lib/paraglide/messages.js';
 
 	function categoryHex(categoryID: string | undefined): string | null {
 		if (!categoryID) return null;
@@ -192,7 +193,7 @@
 			.sort(([a], [b]) => a - b)
 			.map(([dayMs, { evs, tsks }]) => ({
 				dayMs,
-				label: new Date(dayMs).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }),
+				label: fmtWeekdayDate(new Date(dayMs)),
 				events: evs.sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()),
 				tasks: tsks,
 			}));
@@ -356,7 +357,7 @@
 	function switchView(v: AppView) {
 		appView = v;
 		if (v === 'agenda') {
-			periodLabel = 'Upcoming';
+			periodLabel = msg.cal_upcoming();
 			agendaReady = false;
 			loadAgenda();
 		} else {
@@ -409,7 +410,7 @@
 <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
 	<div class="flex items-center gap-1.5 flex-wrap">
 		<div class="flex rounded-md border border-border overflow-hidden text-sm shrink-0">
-			{#each [['month','M','Month'],['week','W','Week'],['day','D','Day'],['agenda','A','Agenda']] as [v, short, long]}
+			{#each [['month','M',msg.cal_view_month()],['week','W',msg.cal_view_week()],['day','D',msg.cal_view_day()],['agenda','A',msg.cal_view_agenda()]] as [v, short, long]}
 				<button
 					onclick={() => switchView(v as AppView)}
 					class="px-2.5 py-1.5 transition-colors cursor-pointer {appView === v ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}"
@@ -421,12 +422,12 @@
 		</div>
 
 		{#if appView !== 'agenda'}
-			<Button variant="outline" size="sm" onclick={prevPeriod} aria-label="Previous">‹</Button>
+			<Button variant="outline" size="sm" onclick={prevPeriod} aria-label={msg.cal_previous_aria()}>‹</Button>
 			<span class="text-sm font-medium max-w-40 truncate text-center">{periodLabel}</span>
-			<Button variant="outline" size="sm" onclick={nextPeriod} aria-label="Next">›</Button>
-			<Button variant="outline" size="sm" onclick={jumpToToday}>Today</Button>
+			<Button variant="outline" size="sm" onclick={nextPeriod} aria-label={msg.cal_next_aria()}>›</Button>
+			<Button variant="outline" size="sm" onclick={jumpToToday}>{msg.nav_today()}</Button>
 		{:else}
-			<Button variant="outline" size="sm" onclick={scrollToToday}>Today</Button>
+			<Button variant="outline" size="sm" onclick={scrollToToday}>{msg.nav_today()}</Button>
 		{/if}
 	</div>
 </div>
@@ -435,18 +436,18 @@
 <div class="flex items-center gap-2 mb-2 flex-wrap">
 	<button onclick={() => toggleType('task')} class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs transition-all cursor-pointer {chipCls(filterTypes.has('task'))}">
 		<span class="w-2.5 h-2.5 rounded-full border border-dashed border-current shrink-0"></span>
-		Tasks
+		{msg.board_filter_tasks()}
 	</button>
 	<button onclick={() => toggleType('event')} class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs transition-all cursor-pointer {chipCls(filterTypes.has('event'))}">
 		<span class="w-2.5 h-2.5 rounded-full bg-current shrink-0"></span>
-		Events
+		{msg.board_filter_events()}
 	</button>
 	<button onclick={() => (showBirthdays = !showBirthdays)} class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs transition-all cursor-pointer {chipCls(!showBirthdays)}">
-		🎂 Birthdays
+		🎂 {msg.board_filter_birthdays()}
 	</button>
 	<span class="text-border text-xs">|</span>
 	<button onclick={() => (showCompleted = !showCompleted)} class="text-xs cursor-pointer transition-colors {showCompleted ? 'text-foreground' : 'text-muted-foreground/50 hover:text-muted-foreground'}">
-		{showCompleted ? 'Hide completed' : 'Show completed'}
+		{showCompleted ? msg.cal_hide_completed() : msg.cal_show_completed()}
 	</button>
 {#if categories.length > 0}
 		<span class="text-border text-xs hidden sm:block">|</span>
@@ -468,11 +469,11 @@
 	{/if}
 	{#if someFilterActive}
 		<button onclick={clearFilters} class="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer ml-1">
-			<X class="w-3 h-3" />Clear
+			<X class="w-3 h-3" />{msg.board_clear_filters()}
 		</button>
 	{/if}
 	{#if appView !== 'agenda'}
-		<span class="text-xs text-muted-foreground/40 ml-auto hidden sm:block select-none">Click or drag to add</span>
+		<span class="text-xs text-muted-foreground/40 ml-auto hidden sm:block select-none">{msg.cal_click_drag_hint()}</span>
 	{/if}
 </div>
 
@@ -483,21 +484,21 @@
 	<div class="px-4 md:px-6 pb-8">
 		{#if !agendaReady}
 			<div class="flex items-center justify-center py-16">
-				<span class="text-xs text-muted-foreground/50">Loading…</span>
+				<span class="text-xs text-muted-foreground/50">{msg.invite_loading()}</span>
 			</div>
 		{:else}
 		<!-- Load past button — explicit, no scroll detection -->
 		<div class="flex justify-center mb-4">
 			<Button variant="ghost" size="sm" onclick={extendAgendaBack} disabled={agendaLoadingTop}
 				class="text-xs text-muted-foreground">
-				{agendaLoadingTop ? 'Loading…' : '↑ Load previous month'}
+				{agendaLoadingTop ? msg.invite_loading() : `↑ ${msg.cal_load_previous_month()}`}
 			</Button>
 		</div>
 
 		{#if agendaGroups.length === 0 && !agendaLoadingBottom}
 			<div class="flex flex-col items-center gap-2 py-16 text-muted-foreground">
 				<CalendarDays class="w-10 h-10 opacity-30" />
-				<p class="text-sm font-medium">Nothing here</p>
+				<p class="text-sm font-medium">{msg.cal_nothing_here()}</p>
 			</div>
 		{:else}
 			{#each agendaGroups as group (group.dayMs)}
@@ -521,7 +522,7 @@
 								class="flex items-baseline gap-3 text-left py-1 px-2 -mx-2 rounded-md hover:bg-accent/50 transition-colors cursor-pointer w-full"
 							>
 								<span class="text-xs text-muted-foreground tabular-nums w-12 shrink-0 text-right">
-									{ev.all_day ? 'All day' : fmtTime(ev.start_at)}
+									{ev.all_day ? msg.today_all_day() : fmtTime(ev.start_at)}
 								</span>
 								{#if ev.birthday_of}<span class="text-sm shrink-0">🎂</span>{/if}
 								<span class="text-sm font-medium flex-1 min-w-0 truncate">{ev.title}</span>
@@ -544,7 +545,7 @@
 					{#if group.events.length > 0}
 						<div class="flex items-center gap-2 my-1.5 ml-[3.75rem]">
 							<div class="flex-1 h-px bg-border/50"></div>
-							<span class="text-[10px] uppercase tracking-wider text-muted-foreground/50 shrink-0">Tasks</span>
+							<span class="text-[10px] uppercase tracking-wider text-muted-foreground/50 shrink-0">{msg.board_filter_tasks()}</span>
 						</div>
 					{/if}
 					<div class="flex flex-col gap-0.5">
@@ -573,7 +574,7 @@
 		<!-- Bottom sentinel for future scroll -->
 		<div bind:this={agendaBottomSentinel} class="h-10 flex items-center justify-center mt-4">
 			{#if agendaLoadingBottom}
-				<span class="text-xs text-muted-foreground/50">Loading…</span>
+				<span class="text-xs text-muted-foreground/50">{msg.invite_loading()}</span>
 			{/if}
 		</div>
 		{/if}
