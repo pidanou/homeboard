@@ -1,6 +1,7 @@
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
 import { base } from '$app/paths';
+import { clearLastHouseholdId } from '$lib/stores/lastHousehold';
 
 export function getToken(): string | null {
 	if (!browser) return null;
@@ -22,6 +23,7 @@ export function clearToken(): void {
 
 export function logout(): void {
 	clearToken();
+	clearLastHouseholdId();
 	goto(`${base}/login`);
 }
 
