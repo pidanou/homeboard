@@ -221,6 +221,18 @@ One focused sweep to reconcile the full UI against `docs/specs/design.md`.
 
 ---
 
+## M19 — Multi-language support (en/fr/es) ✅
+
+- ✅ Backend: `locale` column on `users` (migration 000029), validated to `en`/`fr`/`es` in `AuthService.UpdateProfile`; `GET /api/v1/config` exposes `supportedLocales`
+- ✅ Frontend: `@inlang/paraglide-js` scaffolded (compile-time, tree-shakeable); message dictionaries in `web/messages/{en,fr,es}.json`
+- ✅ Locale resolution: `localStorage` (paraglide's own strategy) → `navigator.language` on first-ever load → profile's explicit `locale` always wins once loaded
+- ✅ Full sweep: all user-facing strings across layout/chrome, auth, Today/Board, Lists, Calendar, Settings, Profile, and shared dialogs replaced with `m.*()`/`msg.*()` message calls
+- ✅ Date/time formatting centralized through `web/src/lib/dates.ts`, passing paraglide's `getLocale()` instead of the browser default
+- ✅ Profile page: Language selector (English/Français/Español) — patches `locale` to backend, calls `setLocale()` to apply immediately
+- ⬜ Backend error-message i18n (toasts surfacing raw Go error text) — out of scope, see `docs/specs/i18n.md`
+
+---
+
 ## Deferred / no milestone yet
 
 These are captured in spec out-of-scope tables. Promote to a milestone when prioritised.

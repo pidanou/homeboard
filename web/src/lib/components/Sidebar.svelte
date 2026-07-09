@@ -14,6 +14,7 @@
 	import { isDark, initTheme, toggleTheme } from '$lib/theme';
 	import { allowMultiHousehold } from '$lib/stores/config';
 	import Logo from '$lib/components/Logo.svelte';
+	import * as m from '$lib/paraglide/messages.js';
 
 	let { onclose, collapsed = false, ontoggle }: {
 		onclose?: () => void;
@@ -42,11 +43,11 @@
 	}
 
 	const subNav = $derived(familyID ? [
-		{ label: 'Today',    href: `${base}/households/${familyID}`,          icon: Sun,          color: 'var(--color-today)',    bg: 'var(--color-today-bg)' },
-		{ label: 'Board',    href: `${base}/households/${familyID}/board`,     icon: LayoutList,   color: 'var(--color-tasks)',    bg: 'var(--color-tasks-bg)' },
-		{ label: 'Calendar', href: `${base}/households/${familyID}/calendar`,  icon: CalendarDays, color: 'var(--color-calendar)', bg: 'var(--color-calendar-bg)' },
-		{ label: 'Lists',    href: `${base}/households/${familyID}/lists`,     icon: ListChecks,   color: 'var(--color-lists)',    bg: 'var(--color-lists-bg)' },
-		{ label: 'Settings', href: `${base}/households/${familyID}/settings`,  icon: Settings,     color: null,                   bg: null },
+		{ label: m.nav_today(),    href: `${base}/households/${familyID}`,          icon: Sun,          color: 'var(--color-today)',    bg: 'var(--color-today-bg)' },
+		{ label: m.nav_board(),    href: `${base}/households/${familyID}/board`,     icon: LayoutList,   color: 'var(--color-tasks)',    bg: 'var(--color-tasks-bg)' },
+		{ label: m.nav_calendar(), href: `${base}/households/${familyID}/calendar`,  icon: CalendarDays, color: 'var(--color-calendar)', bg: 'var(--color-calendar-bg)' },
+		{ label: m.nav_lists(),    href: `${base}/households/${familyID}/lists`,     icon: ListChecks,   color: 'var(--color-lists)',    bg: 'var(--color-lists-bg)' },
+		{ label: m.nav_settings(), href: `${base}/households/${familyID}/settings`,  icon: Settings,     color: null,                   bg: null },
 	] : []);
 
 	const textStyle = $derived(collapsed ? 'max-width:0;opacity:0;overflow:hidden' : 'max-width:200px;opacity:1');
@@ -61,7 +62,7 @@
 		<a
 			href={base || '/'}
 			onclick={onclose}
-			aria-label="Home"
+			aria-label={m.sidebar_home_aria()}
 			class="flex items-center gap-2 min-w-0 font-bold text-base text-sidebar-foreground hover:opacity-80 transition-opacity"
 		>
 			<Logo size={24} class="text-primary shrink-0" />
@@ -76,7 +77,7 @@
 		<Popover.Root bind:open={switcherOpen}>
 			<Popover.Trigger
 				class="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-sidebar-accent/60 transition-colors cursor-pointer text-left"
-				aria-label="Switch household"
+				aria-label={m.sidebar_switch_household_aria()}
 			>
 				{#if currentFamily}
 					<HouseholdAvatar name={currentFamily.name} photoUrl={currentFamily.photo_url} size={24} />
@@ -84,7 +85,7 @@
 					<Users class="w-4 h-4 shrink-0 text-muted-foreground" />
 				{/if}
 				<span class="flex-1 truncate font-medium text-sidebar-foreground text-sm whitespace-nowrap transition-[max-width,opacity] duration-200" style={textStyle}>
-					{currentFamily?.name ?? 'Select a family'}
+					{currentFamily?.name ?? m.sidebar_select_family_placeholder()}
 				</span>
 				<ChevronsUpDown class="w-3.5 h-3.5 shrink-0 text-muted-foreground transition-[max-width,opacity] duration-200" style={iconStyle} />
 			</Popover.Trigger>
@@ -110,7 +111,7 @@
 						class="flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-accent transition-colors w-full text-muted-foreground"
 					>
 						<Plus class="w-4 h-4 shrink-0" />
-						New household
+						{m.sidebar_new_household()}
 					</a>
 				{/if}
 			</Popover.Content>
@@ -151,7 +152,7 @@
 				</Tooltip.Root>
 			{/each}
 		{:else if !collapsed}
-			<p class="px-2 text-xs text-muted-foreground mt-1">Select a household to get started.</p>
+			<p class="px-2 text-xs text-muted-foreground mt-1">{m.sidebar_select_household_hint()}</p>
 		{/if}
 	</div>
 
@@ -161,7 +162,7 @@
 			<Popover.Root bind:open={userMenuOpen}>
 				<Popover.Trigger
 					class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm w-full text-left hover:bg-sidebar-accent/60 transition-colors cursor-pointer"
-					aria-label="User menu"
+					aria-label={m.sidebar_user_menu_aria()}
 				>
 					<UserAvatar name={user.name} avatarUrl={user.avatar_url} userId={user.id} size={24} />
 					<span class="truncate flex-1 text-sidebar-foreground whitespace-nowrap transition-[max-width,opacity] duration-200" style={textStyle}>
@@ -176,7 +177,7 @@
 						class="flex items-center gap-2 px-2 py-2 rounded-xl text-sm hover:bg-accent transition-colors w-full"
 					>
 						<UserRound class="w-4 h-4 shrink-0 opacity-70" />
-						Profile
+						{m.sidebar_profile()}
 					</a>
 					<button
 						onclick={toggleTheme}
@@ -184,10 +185,10 @@
 					>
 						{#if $isDark}
 							<Sun class="w-4 h-4 shrink-0 opacity-70" />
-							Light mode
+							{m.sidebar_light_mode()}
 						{:else}
 							<Moon class="w-4 h-4 shrink-0 opacity-70" />
-							Dark mode
+							{m.sidebar_dark_mode()}
 						{/if}
 					</button>
 					<div class="my-1 h-px bg-border"></div>
@@ -196,7 +197,7 @@
 						class="flex items-center gap-2 px-2 py-2 rounded-xl text-sm hover:bg-accent transition-colors w-full text-left text-destructive"
 					>
 						<LogOut class="w-4 h-4 shrink-0" />
-						Sign out
+						{m.sidebar_sign_out()}
 					</button>
 				</Popover.Content>
 			</Popover.Root>

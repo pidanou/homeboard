@@ -132,8 +132,9 @@ func main() {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/config", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]bool{
+			json.NewEncoder(w).Encode(map[string]any{
 				"allowMultiHousehold": os.Getenv("ALLOW_MULTI_HOUSEHOLD") == "true",
+				"supportedLocales":    []string{"en", "fr", "es"},
 			})
 		})
 		r.Mount("/auth", authHandler.Routes())

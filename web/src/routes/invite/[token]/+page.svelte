@@ -8,6 +8,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
+	import * as m from '$lib/paraglide/messages.js';
 
 	type Invite = { token: string; family_id: string; family_name: string; expires_at: string };
 	type VirtualMember = { id: string; name: string };
@@ -66,7 +67,7 @@
 				goto(`${base}/`);
 			}
 		} catch {
-			regError = 'Registration failed. The email may already be taken.';
+			regError = m.invite_register_failed();
 		} finally {
 			loading = false;
 		}
@@ -87,11 +88,11 @@
 		<h1 class="text-2xl font-bold">Homeboard</h1>
 
 		{#if failed}
-			<p class="text-destructive text-sm">Invite not found or expired.</p>
+			<p class="text-destructive text-sm">{m.invite_not_found()}</p>
 
 		{:else if unlinked.length > 0}
 			<!-- Linking prompt -->
-			<p class="text-muted-foreground text-sm">Are you one of these people already in the household?</p>
+			<p class="text-muted-foreground text-sm">{m.invite_link_question()}</p>
 			<div class="flex flex-col gap-2 text-left">
 				{#each unlinked as vm (vm.id)}
 					<button
@@ -108,48 +109,48 @@
 					onclick={() => goto(`${base}/`)}
 					class="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
 				>
-					No, I'm someone new
+					{m.invite_someone_new()}
 				</button>
 			</div>
 
 		{:else if invite && isLoggedIn()}
-			<p class="text-muted-foreground">You've been invited to join <span class="font-semibold text-foreground">{invite.family_name}</span>.</p>
+			<p class="text-muted-foreground">{m.invite_join_prompt({ familyName: invite.family_name })}</p>
 			<Button onclick={accept} disabled={loading} class="w-full">
-				{loading ? 'Accepting…' : 'Accept invite'}
+				{loading ? m.invite_accepting() : m.invite_accept()}
 			</Button>
 
 		{:else if invite}
-			<p class="text-muted-foreground">You've been invited to join <span class="font-semibold text-foreground">{invite.family_name}</span>.</p>
-			<p class="text-sm text-muted-foreground">Create an account to continue.</p>
+			<p class="text-muted-foreground">{m.invite_join_prompt({ familyName: invite.family_name })}</p>
+			<p class="text-sm text-muted-foreground">{m.invite_create_account_prompt()}</p>
 
 			<form onsubmit={(e) => { e.preventDefault(); registerAndAccept(); }} class="flex flex-col gap-3 text-left">
 				<div class="flex flex-col gap-1">
-					<Label for="name">Name</Label>
-					<Input id="name" bind:value={name} placeholder="Your name" required />
+					<Label for="name">{m.auth_name_label()}</Label>
+					<Input id="name" bind:value={name} placeholder={m.invite_name_placeholder()} required />
 				</div>
 				<div class="flex flex-col gap-1">
-					<Label for="email">Email</Label>
-					<Input id="email" type="email" bind:value={email} placeholder="you@example.com" required />
+					<Label for="email">{m.auth_email_label()}</Label>
+					<Input id="email" type="email" bind:value={email} placeholder={m.invite_email_placeholder()} required />
 				</div>
 				<div class="flex flex-col gap-1">
-					<Label for="password">Password</Label>
+					<Label for="password">{m.auth_password_label()}</Label>
 					<Input id="password" type="password" bind:value={password} placeholder="••••••••" required minlength={8} />
 				</div>
 				{#if regError}
 					<p class="text-destructive text-sm">{regError}</p>
 				{/if}
 				<Button type="submit" disabled={loading} class="w-full">
-					{loading ? 'Creating account…' : 'Create account & join'}
+					{loading ? m.invite_creating_account() : m.invite_create_join()}
 				</Button>
 			</form>
 
 			<p class="text-sm text-muted-foreground">
-				Already have an account?
-				<a href="{base}/login?redirect={base}/invite/{token}" class="underline">Sign in</a>
+				{m.invite_have_account()}
+				<a href="{base}/login?redirect={base}/invite/{token}" class="underline">{m.invite_sign_in()}</a>
 			</p>
 
 		{:else}
-			<p class="text-sm text-muted-foreground">Loading…</p>
+			<p class="text-sm text-muted-foreground">{m.invite_loading()}</p>
 		{/if}
 	</div>
 </div>

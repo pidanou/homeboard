@@ -4,12 +4,13 @@
 	import { Button } from '$lib/components/ui/button';
 	import { GripVertical, Plus } from 'lucide-svelte';
 	import type { Task, CalEvent, Member, AppCategory } from '$lib/types';
-	import { localDayMs, fmtTime } from '$lib/dates';
+	import { localDayMs, fmtTime, fmtWeekdayDate } from '$lib/dates';
 	import { sortable } from '$lib/sortable';
 	import TaskCard from '$lib/components/TaskCard.svelte';
 	import DayView from '$lib/components/DayView.svelte';
 	import CreateDialog from '$lib/components/CreateDialog.svelte';
 	import EditDialog from '$lib/components/EditDialog.svelte';
+	import * as m from '$lib/paraglide/messages.js';
 
 	const familyID = $derived($page.params.id ?? '');
 	const now = new Date();
@@ -109,9 +110,9 @@
 <div class="h-full flex flex-col">
 	<!-- Header -->
 	<div class="px-4 md:px-6 pt-4 md:pt-6 pb-3 shrink-0">
-		<h1 class="text-xl font-semibold">Today</h1>
+		<h1 class="text-xl font-semibold">{m.nav_today()}</h1>
 		<p class="text-xs text-muted-foreground">
-			{now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+			{fmtWeekdayDate(now)}
 		</p>
 	</div>
 
@@ -123,10 +124,10 @@
 				<!-- Due today -->
 				<div>
 					<div class="flex items-center gap-3 mb-3">
-						<span class="text-xs font-semibold uppercase tracking-wide shrink-0 text-foreground">To do</span>
+						<span class="text-xs font-semibold uppercase tracking-wide shrink-0 text-foreground">{m.today_todo_label()}</span>
 						<div class="flex-1 h-px bg-border"></div>
 						<Button size="sm" variant="ghost" class="h-6 px-2 text-xs text-muted-foreground" onclick={() => createDialog?.open('task', new Date())}>
-							<Plus class="w-3 h-3 mr-0.5" />Task
+							<Plus class="w-3 h-3 mr-0.5" />{m.today_add_task_button()}
 						</Button>
 					</div>
 					{#if dueTodayTasks.length > 0}
@@ -145,7 +146,7 @@
 							{/each}
 						</div>
 					{:else}
-						<p class="text-sm text-muted-foreground/50 italic">Nothing to do</p>
+						<p class="text-sm text-muted-foreground/50 italic">{m.today_nothing_todo()}</p>
 					{/if}
 				</div>
 			</div>
@@ -153,10 +154,10 @@
 			<!-- Schedule column: fills remaining height -->
 			<div class="flex flex-col md:h-full md:min-h-0 md:overflow-hidden">
 				<div class="flex items-center gap-3 mb-3 shrink-0">
-					<span class="text-xs font-semibold uppercase tracking-wide shrink-0 text-muted-foreground">Schedule</span>
+					<span class="text-xs font-semibold uppercase tracking-wide shrink-0 text-muted-foreground">{m.today_schedule_label()}</span>
 					<div class="flex-1 h-px bg-border"></div>
 					<Button size="sm" variant="ghost" class="h-6 px-2 text-xs text-muted-foreground" onclick={() => createDialog?.open('event', new Date())}>
-						<Plus class="w-3 h-3 mr-0.5" />Event
+						<Plus class="w-3 h-3 mr-0.5" />{m.today_add_event_button()}
 					</Button>
 				</div>
 
@@ -169,7 +170,7 @@
 								class="flex items-baseline gap-3 text-left py-1.5 px-2 -mx-2 rounded-md hover:bg-accent/50 transition-colors"
 							>
 								<span class="text-xs text-muted-foreground tabular-nums w-12 shrink-0 text-right">
-									{event.all_day ? 'All day' : fmtTime(event.start_at)}
+									{event.all_day ? m.today_all_day() : fmtTime(event.start_at)}
 								</span>
 								<span class="text-sm font-medium">{event.title}</span>
 								{#if event.location}
@@ -178,7 +179,7 @@
 							</button>
 						{/each}
 					{:else}
-						<p class="text-sm text-muted-foreground/50 italic">Nothing scheduled</p>
+						<p class="text-sm text-muted-foreground/50 italic">{m.today_nothing_scheduled()}</p>
 					{/if}
 				</div>
 

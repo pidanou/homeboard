@@ -4,6 +4,7 @@
 	import { relativeDate, taskHasTime, fmtTime, localDayMs } from '$lib/dates';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { User, Star } from 'lucide-svelte';
+	import * as msg from '$lib/paraglide/messages.js';
 
 	let { task, members, categories, isDoneFilter, onclick, ontoggle }: {
 		task: Task;
@@ -48,7 +49,9 @@
 			<div class="flex items-center gap-2 mt-1 flex-wrap">
 				{#if task.end_date}
 					<p class="text-xs {isOverdue(task) ? 'text-destructive font-medium' : 'text-muted-foreground'}">
-						Due {relativeDate(task.end_date)}{taskHasTime(task.end_date) ? ` at ${fmtTime(task.end_date)}` : ''}
+						{taskHasTime(task.end_date)
+							? msg.taskcard_due_at({ date: relativeDate(task.end_date), time: fmtTime(task.end_date) })
+							: msg.taskcard_due({ date: relativeDate(task.end_date) })}
 					</p>
 				{/if}
 				{#if task.assigned_to}

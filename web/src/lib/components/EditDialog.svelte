@@ -15,6 +15,7 @@
 	import { CalendarDate } from '@internationalized/date';
 	import { CalendarDays } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
+	import * as msg from '$lib/paraglide/messages.js';
 	let { familyID, members, categories, onSaved, onDeleted }: {
 		familyID: string;
 		members: Member[];
@@ -45,9 +46,9 @@
 	let efBirthdayOf = $state<string | undefined>(undefined);
 	let efShowMore = $state(false);
 
-	const REPEAT_LABELS: Record<string, string> = {
-		none: 'Does not repeat', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly'
-	};
+	const REPEAT_LABELS = $derived<Record<string, string>>({
+		none: msg.repeat_none(), daily: msg.repeat_daily(), weekly: msg.repeat_weekly(), monthly: msg.repeat_monthly(), yearly: msg.repeat_yearly()
+	});
 
 	const RRULE: Record<string, string> = {
 		daily: 'FREQ=DAILY', weekly: 'FREQ=WEEKLY', monthly: 'FREQ=MONTHLY', yearly: 'FREQ=YEARLY',
@@ -99,7 +100,7 @@
 	}
 
 	function save() {
-		if (efBirthdayOf?.trim()) ef.title = efBirthdayOf.trim() + "'s Birthday";
+		if (efBirthdayOf?.trim()) ef.title = efBirthdayOf.trim() + msg.dialog_birthday_suffix();
 		if (!ef.title.trim()) return;
 		if (editKind === 'event' && efIsRecurring) { efScopePrompt = 'save'; return; }
 		doSave(editID);
@@ -163,14 +164,14 @@
 		<Dialog.Overlay />
 		<Dialog.Content class="sm:max-w-md flex flex-col max-h-[90dvh]">
 			<Dialog.Header>
-				<Dialog.Title>Edit {editKind}</Dialog.Title>
+				<Dialog.Title>{msg.edit_dialog_title({ kind: editKind === 'task' ? msg.dialog_type_task().toLowerCase() : msg.dialog_type_event().toLowerCase() })}</Dialog.Title>
 			</Dialog.Header>
 
 			<div class="flex flex-col gap-3 py-2 overflow-y-auto flex-1 min-h-0 px-1"
 				onkeydown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); save(); } }}>
 				<!-- Title -->
 				{#if efBirthdayOf !== undefined}
-					<Input bind:value={efBirthdayOf} placeholder="Person's name…" class="flex-1" />
+					<Input bind:value={efBirthdayOf} placeholder={msg.dialog_birthday_name_placeholder()} class="flex-1" />
 				{:else}
 				<Input bind:value={ef.title} class="flex-1" />
 				{/if}
@@ -180,14 +181,14 @@
 					<div class="flex flex-col gap-2">
 						<label class="flex items-center gap-2 text-sm cursor-pointer">
 							<Checkbox bind:checked={ef.important} />
-							Important
+							{msg.dialog_important()}
 						</label>
 						<div class="flex items-center gap-2">
 							<Popover.Root bind:open={efDueOpen}>
 								<Popover.Trigger class="flex-1">
 									<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
 										<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
-										{efDueDate ? fmtCalDate(efDueDate) : 'No due date'}
+										{efDueDate ? fmtCalDate(efDueDate) : msg.dialog_no_due_date()}
 									</Button>
 								</Popover.Trigger>
 								<Popover.Content class="w-auto p-0" align="start">
@@ -204,16 +205,16 @@
 					{#if efShowMore}
 						{#if members.length > 0}
 							<Select.Root type="single" bind:value={ef.assignedTo}>
-								<Select.Trigger class="w-full">{members.find(m => m.user_id === ef.assignedTo)?.name ?? 'Unassigned'}</Select.Trigger>
+								<Select.Trigger class="w-full">{members.find(mem => mem.user_id === ef.assignedTo)?.name ?? msg.dialog_unassigned()}</Select.Trigger>
 								<Select.Content>
-									<Select.Item value="">Unassigned</Select.Item>
-									{#each members as m}
-										<Select.Item value={m.user_id}>{m.name}</Select.Item>
+									<Select.Item value="">{msg.dialog_unassigned()}</Select.Item>
+									{#each members as mem}
+										<Select.Item value={mem.user_id}>{mem.name}</Select.Item>
 									{/each}
 								</Select.Content>
 							</Select.Root>
 						{/if}
-						<Textarea bind:value={ef.description} placeholder="Notes…" rows={2} />
+						<Textarea bind:value={ef.description} placeholder={msg.dialog_notes_placeholder()} rows={2} />
 						<CategoryPicker {familyID} {categories} bind:selectedID={efCategoryID} />
 					{/if}
 				{:else if efBirthdayOf !== undefined}
@@ -222,7 +223,7 @@
 						<Popover.Trigger>
 							<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
 								<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
-								{efEventRange.start ? fmtCalDate(efEventRange.start) : 'Birthday date…'}
+								{efEventRange.start ? fmtCalDate(efEventRange.start) : msg.dialog_birthday_date_placeholder()}
 							</Button>
 						</Popover.Trigger>
 						<Popover.Content class="w-auto p-0" align="start">
@@ -251,11 +252,11 @@
 					</Popover.Root>
 					<label class="flex items-center gap-2 text-sm cursor-pointer">
 						<Checkbox bind:checked={ef.allDay} />
-						All day
+						{msg.dialog_all_day()}
 					</label>
 					<label class="flex items-center gap-2 text-sm cursor-pointer">
 						<Checkbox bind:checked={ef.important} />
-						Important
+						{msg.dialog_important()}
 					</label>
 					{#if !ef.allDay}
 						<div class="flex gap-2">
@@ -267,30 +268,30 @@
 					<!-- Event secondary -->
 					{#if efShowMore}
 						<Select.Root type="single" bind:value={efRepeat}>
-							<Select.Trigger class="w-full">{REPEAT_LABELS[efRepeat] ?? 'Does not repeat'}</Select.Trigger>
+							<Select.Trigger class="w-full">{REPEAT_LABELS[efRepeat] ?? msg.repeat_none()}</Select.Trigger>
 							<Select.Content>
-								<Select.Item value="none">Does not repeat</Select.Item>
-								<Select.Item value="daily">Daily</Select.Item>
-								<Select.Item value="weekly">Weekly</Select.Item>
-								<Select.Item value="monthly">Monthly</Select.Item>
-								<Select.Item value="yearly">Yearly</Select.Item>
+								<Select.Item value="none">{msg.repeat_none()}</Select.Item>
+								<Select.Item value="daily">{msg.repeat_daily()}</Select.Item>
+								<Select.Item value="weekly">{msg.repeat_weekly()}</Select.Item>
+								<Select.Item value="monthly">{msg.repeat_monthly()}</Select.Item>
+								<Select.Item value="yearly">{msg.repeat_yearly()}</Select.Item>
 							</Select.Content>
 						</Select.Root>
-						<Input bind:value={ef.location} placeholder="Location…" />
+						<Input bind:value={ef.location} placeholder={msg.dialog_location_placeholder()} />
 						{#if members.length > 0}
 							<div class="flex flex-col gap-1.5">
-								{#each members as m}
+								{#each members as mem}
 									<label class="flex items-center gap-2 text-sm cursor-pointer">
 										<Checkbox
-											checked={ef.attendeeIDs.includes(m.user_id)}
-											onCheckedChange={() => (ef.attendeeIDs = toggleAttendee(ef.attendeeIDs, m.user_id))}
+											checked={ef.attendeeIDs.includes(mem.user_id)}
+											onCheckedChange={() => (ef.attendeeIDs = toggleAttendee(ef.attendeeIDs, mem.user_id))}
 										/>
-										{m.name}
+										{mem.name}
 									</label>
 								{/each}
 							</div>
 						{/if}
-						<Textarea bind:value={ef.description} placeholder="Notes…" rows={2} />
+						<Textarea bind:value={ef.description} placeholder={msg.dialog_notes_placeholder()} rows={2} />
 						<CategoryPicker {familyID} {categories} bind:selectedID={efCategoryID} />
 					{/if}
 				{/if}
@@ -298,35 +299,35 @@
 				<button
 					class="text-xs text-muted-foreground hover:text-foreground transition-colors text-left w-fit"
 					onclick={() => (efShowMore = !efShowMore)}
-				>{efShowMore ? '− Less options' : '+ More options'}</button>
+				>{efShowMore ? msg.dialog_less_options() : msg.dialog_more_options()}</button>
 			</div>
 
 			<Dialog.Footer class="flex-col gap-2">
 				{#if efScopePrompt}
 					<p class="text-sm text-muted-foreground text-center">
-						{efScopePrompt === 'save' ? 'Update which events?' : 'Delete which events?'}
+						{efScopePrompt === 'save' ? msg.edit_dialog_update_which() : msg.edit_dialog_delete_which()}
 					</p>
 					<div class="flex gap-2 justify-center">
 						<Button variant="outline" size="sm" onclick={() => {
 							if (efScopePrompt === 'save') doSave(editID);
 							else doDelete(editID);
-						}}>This event</Button>
+						}}>{msg.edit_dialog_this_event()}</Button>
 						<Button variant="outline" size="sm" onclick={() => {
 							const pid = parentID(editID);
 							if (efScopePrompt === 'save') doSave(pid);
 							else doDelete(pid);
-						}}>All events</Button>
-						<Button variant="ghost" size="sm" onclick={() => (efScopePrompt = null)}>Cancel</Button>
+						}}>{msg.edit_dialog_all_events()}</Button>
+						<Button variant="ghost" size="sm" onclick={() => (efScopePrompt = null)}>{msg.dialog_cancel()}</Button>
 					</div>
 				{:else}
 					<div class="flex flex-col-reverse sm:flex-row gap-2">
-						<Button variant="destructive" onclick={del}>Delete</Button>
+						<Button variant="destructive" onclick={del}>{msg.edit_dialog_delete()}</Button>
 						<div class="flex gap-2 sm:ml-auto">
-							<Button variant="outline" onclick={() => (isOpen = false)}>Cancel</Button>
+							<Button variant="outline" onclick={() => (isOpen = false)}>{msg.dialog_cancel()}</Button>
 							<Button
 								onclick={save}
 								disabled={!ef.title.trim() || (editKind === 'event' && !efEventRange.start)}
-							>Save</Button>
+							>{msg.edit_dialog_save()}</Button>
 						</div>
 					</div>
 				{/if}

@@ -4,6 +4,7 @@
 	import { api } from '$lib/api/client';
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
+	import * as msg from '$lib/paraglide/messages.js';
 
 	let { familyID, categories, selectedID = $bindable<string | undefined>(undefined) }: {
 		familyID: string;
@@ -59,7 +60,7 @@
 		<div class="flex flex-col gap-2 p-2.5 rounded-lg border border-border bg-muted/30">
 			<Input
 				bind:value={newName}
-				placeholder="Category name…"
+				placeholder={msg.category_picker_name_placeholder()}
 				class="h-7 text-xs"
 				onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); createCategory(); } if (e.key === 'Escape') adding = false; }}
 			/>
@@ -75,8 +76,8 @@
 				{/each}
 			</div>
 			<div class="flex gap-1.5">
-				<Button size="sm" class="h-6 text-xs px-2" onclick={createCategory} disabled={!newName.trim()}>Add</Button>
-				<Button size="sm" variant="ghost" class="h-6 text-xs px-2" onclick={() => (adding = false)}>Cancel</Button>
+				<Button size="sm" class="h-6 text-xs px-2" onclick={createCategory} disabled={!newName.trim()}>{msg.action_add()}</Button>
+				<Button size="sm" variant="ghost" class="h-6 text-xs px-2" onclick={() => (adding = false)}>{msg.dialog_cancel()}</Button>
 			</div>
 		</div>
 	{:else}
@@ -84,6 +85,6 @@
 			type="button"
 			onclick={() => (adding = true)}
 			class="text-xs text-muted-foreground hover:text-foreground transition-colors text-left cursor-pointer w-fit"
-		>+ New category</button>
+		>+ {msg.category_picker_new()}</button>
 	{/if}
 </div>
