@@ -38,6 +38,7 @@ func (s *AuthService) CreateUser(ctx context.Context, email, password, name stri
 		Email:        email,
 		PasswordHash: string(hash),
 		Name:         name,
+		Locale:       "en",
 		CreatedAt:    time.Now().UTC(),
 	}
 	if err := s.users.Create(ctx, user); err != nil {
@@ -81,6 +82,7 @@ func (s *AuthService) Register(ctx context.Context, email, password, name string
 		Email:        email,
 		PasswordHash: string(hash),
 		Name:         name,
+		Locale:       "en",
 		CreatedAt:    time.Now().UTC(),
 	}
 	if err := s.users.Create(ctx, user); err != nil {
@@ -166,4 +168,21 @@ func (s *AuthService) SetAvatar(ctx context.Context, userID string, avatarURL *s
 	}
 	user.AvatarURL = avatarURL
 	return s.users.Update(ctx, user)
+}
+
+var supportedLocales = map[string]bool{"en": true, "fr": true, "es": true}
+
+func (s *AuthService) SetLocale(ctx context.Context, userID, locale string) (*model.User, error) {
+	if !supportedLocales[locale] {
+		return nil, errors.New("unsupported locale")
+	}
+	user, err := s.users.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	user.Locale = locale
+	if err := s.users.Update(ctx, user); err != nil {
+		return nil, fmt.Errorf("update user: %w", err)
+	}
+	return user, nil
 }

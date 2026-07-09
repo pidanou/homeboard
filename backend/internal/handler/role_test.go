@@ -48,14 +48,16 @@ func newTestEnv(t *testing.T) *testEnv {
 	householdRepo := pgRepo.NewHouseholdRepository(pool)
 	inviteRepo := pgRepo.NewInviteRepository(pool)
 	labelRepo := pgRepo.NewCategoryRepository(pool)
+	userRepo := pgRepo.NewUserRepository(pool)
 
 	householdSvc := service.NewHouseholdService(householdRepo)
 	inviteSvc := service.NewInviteService(inviteRepo, householdRepo)
 	labelSvc := service.NewCategoryService(labelRepo)
+	authSvc := service.NewAuthService(userRepo, testJWTSecret, nil)
 	hub := handler.NewHub()
 
-	householdH := handler.NewHouseholdHandler(householdSvc)
-	inviteH := handler.NewInviteHandler(inviteSvc, householdSvc, testJWTSecret)
+	householdH := handler.NewHouseholdHandler(householdSvc, t.TempDir(), "http://localhost")
+	inviteH := handler.NewInviteHandler(inviteSvc, householdSvc, authSvc, testJWTSecret)
 	labelH := handler.NewCategoryHandler(labelSvc, householdSvc, hub)
 
 	r := chi.NewRouter()

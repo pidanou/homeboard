@@ -6,6 +6,7 @@ export type CurrentUser = {
 	name: string;
 	email: string;
 	avatar_url: string | null;
+	locale: string;
 };
 
 export const currentUser = writable<CurrentUser | null>(null);

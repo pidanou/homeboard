@@ -15,6 +15,7 @@
 	import { CalendarDate, type DateValue } from '@internationalized/date';
 	import { CalendarDays } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
+	import * as msg from '$lib/paraglide/messages.js';
 	let { familyID, members, categories, onCreated }: {
 		familyID: string;
 		members: Member[];
@@ -39,9 +40,9 @@
 	let cfBirthdayOf = $state('');
 	let cfShowMore = $state(false);
 
-	const REPEAT_LABELS: Record<string, string> = {
-		none: 'Does not repeat', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly'
-	};
+	const REPEAT_LABELS: Record<string, string> = $derived({
+		none: msg.repeat_none(), daily: msg.repeat_daily(), weekly: msg.repeat_weekly(), monthly: msg.repeat_monthly(), yearly: msg.repeat_yearly()
+	});
 	let cfRepeat = $state<'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'>('none');
 
 	const RRULE: Record<string, string> = {
@@ -79,7 +80,7 @@
 
 	async function submit() {
 		const isBirthday = createType === 'birthday';
-		if (isBirthday) cf.title = cfBirthdayOf.trim() + "'s Birthday";
+		if (isBirthday) cf.title = cfBirthdayOf.trim() + msg.dialog_birthday_suffix();
 		if (!cf.title.trim()) return;
 		try {
 			if (createType === 'task') {
@@ -124,7 +125,7 @@
 		<Dialog.Overlay />
 		<Dialog.Content class="sm:max-w-md flex flex-col max-h-[90dvh]">
 			<Dialog.Header>
-				<Dialog.Title>New ticket</Dialog.Title>
+				<Dialog.Title>{msg.dialog_new_item_title()}</Dialog.Title>
 			</Dialog.Header>
 
 			<div class="flex flex-col gap-3 py-2 overflow-y-auto flex-1 min-h-0 px-1"
@@ -135,24 +136,24 @@
 						class="px-3 py-1 rounded-full text-sm font-medium transition-colors cursor-pointer
 							{createType === 'task' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}"
 						onclick={() => (createType = 'task')}
-					>Task</button>
+					>{msg.dialog_type_task()}</button>
 					<button
 						class="px-3 py-1 rounded-full text-sm font-medium transition-colors cursor-pointer
 							{createType === 'event' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}"
 						onclick={() => { createType = 'event'; cf.allDay = false; }}
-					>Event</button>
+					>{msg.dialog_type_event()}</button>
 				<button
 					class="px-3 py-1 rounded-full text-sm font-medium transition-colors cursor-pointer
 						{createType === 'birthday' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}"
 					onclick={() => { createType = 'birthday'; cfBirthdayOf = ''; }}
-					>Birthday</button>
+					>{msg.dialog_type_birthday()}</button>
 				</div>
 
 				<!-- Title -->
 				{#if createType === 'birthday'}
-					<Input bind:value={cfBirthdayOf} placeholder="Person's name…" class="flex-1" />
+					<Input bind:value={cfBirthdayOf} placeholder={msg.dialog_birthday_name_placeholder()} class="flex-1" />
 				{:else}
-					<Input bind:value={cf.title} placeholder={createType === 'task' ? 'Buy groceries…' : 'Team dinner…'} class="flex-1" />
+					<Input bind:value={cf.title} placeholder={createType === 'task' ? msg.dialog_task_title_placeholder() : msg.dialog_event_title_placeholder()} class="flex-1" />
 				{/if}
 
 				{#if createType === 'task'}
@@ -160,14 +161,14 @@
 					<div class="flex flex-col gap-2">
 						<label class="flex items-center gap-2 text-sm cursor-pointer">
 							<Checkbox bind:checked={cf.important} />
-							Important
+							{msg.dialog_important()}
 						</label>
 						<div class="flex items-center gap-2">
 							<Popover.Root bind:open={cfDueOpen}>
 								<Popover.Trigger class="flex-1">
 									<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
 										<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
-										{cfDueDate ? fmtCalDate(cfDueDate) : 'No due date'}
+										{cfDueDate ? fmtCalDate(cfDueDate) : msg.dialog_no_due_date()}
 									</Button>
 								</Popover.Trigger>
 								<Popover.Content class="w-auto p-0" align="start">
@@ -184,16 +185,16 @@
 					{#if cfShowMore}
 						{#if members.length > 0}
 							<Select.Root type="single" bind:value={cf.assignedTo}>
-								<Select.Trigger class="w-full">{members.find(m => m.user_id === cf.assignedTo)?.name ?? 'Unassigned'}</Select.Trigger>
+							<Select.Trigger class="w-full">{members.find(mem => mem.user_id === cf.assignedTo)?.name ?? msg.dialog_unassigned()}</Select.Trigger>
 								<Select.Content>
-									<Select.Item value="">Unassigned</Select.Item>
-									{#each members as m}
-										<Select.Item value={m.user_id}>{m.name}</Select.Item>
+									<Select.Item value="">{msg.dialog_unassigned()}</Select.Item>
+									{#each members as mem}
+										<Select.Item value={mem.user_id}>{mem.name}</Select.Item>
 									{/each}
 								</Select.Content>
 							</Select.Root>
 						{/if}
-						<Textarea bind:value={cf.description} placeholder="Notes…" rows={2} />
+						<Textarea bind:value={cf.description} placeholder={msg.dialog_notes_placeholder()} rows={2} />
 						<CategoryPicker {familyID} {categories} bind:selectedID={cfCategoryID} />
 					{/if}
 				{:else if createType === 'birthday'}
@@ -202,7 +203,7 @@
 						<Popover.Trigger class="flex-1">
 							<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
 								<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
-								{cfDueDate ? fmtCalDate(cfDueDate) : 'Birthday date…'}
+								{cfDueDate ? fmtCalDate(cfDueDate) : msg.dialog_birthday_date_placeholder()}
 							</Button>
 						</Popover.Trigger>
 						<Popover.Content class="w-auto p-0" align="start">
@@ -228,11 +229,11 @@
 					<div class="flex items-center gap-4">
 						<label class="flex items-center gap-2 text-sm cursor-pointer">
 							<Checkbox bind:checked={cf.allDay} />
-							All day
+							{msg.dialog_all_day()}
 						</label>
 						<label class="flex items-center gap-2 text-sm cursor-pointer">
 							<Checkbox bind:checked={cf.important} />
-							Important
+							{msg.dialog_important()}
 						</label>
 					</div>
 					{#if !cf.allDay}
@@ -245,30 +246,30 @@
 					<!-- Event secondary -->
 					{#if cfShowMore}
 						<Select.Root type="single" bind:value={cfRepeat}>
-							<Select.Trigger class="w-full">{REPEAT_LABELS[cfRepeat] ?? 'Does not repeat'}</Select.Trigger>
+							<Select.Trigger class="w-full">{REPEAT_LABELS[cfRepeat] ?? msg.repeat_none()}</Select.Trigger>
 							<Select.Content>
-								<Select.Item value="none">Does not repeat</Select.Item>
-								<Select.Item value="daily">Daily</Select.Item>
-								<Select.Item value="weekly">Weekly</Select.Item>
-								<Select.Item value="monthly">Monthly</Select.Item>
-								<Select.Item value="yearly">Yearly</Select.Item>
+								<Select.Item value="none">{msg.repeat_none()}</Select.Item>
+								<Select.Item value="daily">{msg.repeat_daily()}</Select.Item>
+								<Select.Item value="weekly">{msg.repeat_weekly()}</Select.Item>
+								<Select.Item value="monthly">{msg.repeat_monthly()}</Select.Item>
+								<Select.Item value="yearly">{msg.repeat_yearly()}</Select.Item>
 							</Select.Content>
 						</Select.Root>
-						<Input bind:value={cf.location} placeholder="Location…" />
+						<Input bind:value={cf.location} placeholder={msg.dialog_location_placeholder()} />
 						{#if members.length > 0}
 							<div class="flex flex-col gap-1.5">
-								{#each members as m}
+								{#each members as mem}
 									<label class="flex items-center gap-2 text-sm cursor-pointer">
 										<Checkbox
-											checked={cf.attendeeIDs.includes(m.user_id)}
-											onCheckedChange={() => (cf.attendeeIDs = toggleAttendee(cf.attendeeIDs, m.user_id))}
+											checked={cf.attendeeIDs.includes(mem.user_id)}
+											onCheckedChange={() => (cf.attendeeIDs = toggleAttendee(cf.attendeeIDs, mem.user_id))}
 										/>
-										{m.name}
+										{mem.name}
 									</label>
 								{/each}
 							</div>
 						{/if}
-						<Textarea bind:value={cf.description} placeholder="Notes…" rows={2} />
+						<Textarea bind:value={cf.description} placeholder={msg.dialog_notes_placeholder()} rows={2} />
 						<CategoryPicker {familyID} {categories} bind:selectedID={cfCategoryID} />
 					{/if}
 				{/if}
@@ -276,17 +277,17 @@
 				<button
 					class="text-xs text-muted-foreground hover:text-foreground transition-colors text-left w-fit"
 					onclick={() => (cfShowMore = !cfShowMore)}
-				>{cfShowMore ? '− Less options' : '+ More options'}</button>
+				>{cfShowMore ? msg.dialog_less_options() : msg.dialog_more_options()}</button>
 			</div>
 
 			<Dialog.Footer class="gap-2">
-				<Button variant="outline" onclick={() => (isOpen = false)}>Cancel</Button>
+				<Button variant="outline" onclick={() => (isOpen = false)}>{msg.dialog_cancel()}</Button>
 				<Button onclick={submit} disabled={
 						(createType === 'birthday' && (!cfBirthdayOf.trim() || !cfDueDate)) ||
 						(createType === 'event' && (!cf.title.trim() || !cfEventRange.start)) ||
 						(createType === 'task' && !cf.title.trim())
 					}>
-					Create
+					{msg.dialog_create()}
 				</Button>
 			</Dialog.Footer>
 		</Dialog.Content>

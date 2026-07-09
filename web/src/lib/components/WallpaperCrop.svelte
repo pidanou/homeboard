@@ -1,6 +1,7 @@
 <script lang="ts">
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
+	import * as msg from '$lib/paraglide/messages.js';
 
 	const W = 640, H = 360; // 16:9 display canvas
 
@@ -110,8 +111,8 @@
 <Dialog.Root bind:open>
 	<Dialog.Content class="sm:max-w-3xl">
 		<Dialog.Header>
-			<Dialog.Title>Crop wallpaper</Dialog.Title>
-			<Dialog.Description>Drag to reposition, scroll to zoom.</Dialog.Description>
+			<Dialog.Title>{msg.crop_wallpaper_title()}</Dialog.Title>
+			<Dialog.Description>{msg.crop_desc()}</Dialog.Description>
 		</Dialog.Header>
 
 		<div class="flex justify-center my-2">
@@ -133,8 +134,8 @@
 		</div>
 
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (open = false)}>Cancel</Button>
-			<Button onclick={confirm} disabled={!imgLoaded}>Use wallpaper</Button>
+			<Button variant="outline" onclick={() => (open = false)}>{msg.dialog_cancel()}</Button>
+			<Button onclick={confirm} disabled={!imgLoaded}>{msg.crop_use_wallpaper()}</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

@@ -8,15 +8,24 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
+	import * as ToggleGroup from '$lib/components/ui/toggle-group';
 	import { logout } from '$lib/auth';
 	import { subscribePush, unsubscribePush, isPushSubscribed } from '$lib/push';
 	import { Camera, ChevronLeft, LogOut, Bell, BellOff } from 'lucide-svelte';
+	import * as msg from '$lib/paraglide/messages.js';
+	import { getLocale, setLocale, locales } from '$lib/paraglide/runtime';
 
 	let user = $derived($currentUser);
 
 	// Which sub-form is open
 	type Panel = null | 'name' | 'password';
 	let panel = $state<Panel>(null);
+
+	const LANGUAGE_LABELS: Record<string, string> = { en: 'English', fr: 'Français', es: 'Español' };
+
+	// Language
+	let languageValue = $state(getLocale());
+	let languageLoading = $state(false);
 
 	// Name edit
 	let nameValue = $state('');
@@ -53,14 +62,14 @@
 
 	async function saveName() {
 		nameError = '';
-		if (!nameValue.trim()) { nameError = 'Name is required'; return; }
+		if (!nameValue.trim()) { nameError = msg.profile_name_required(); return; }
 		nameLoading = true;
 		try {
 			await api.patch('/api/v1/profile', { name: nameValue.trim() });
 			await loadCurrentUser();
 			panel = null;
 		} catch (e: unknown) {
-			nameError = e instanceof Error ? e.message : 'Update failed';
+			nameError = e instanceof Error ? e.message : msg.profile_update_failed();
 		} finally {
 			nameLoading = false;
 		}
@@ -69,8 +78,8 @@
 	async function savePassword() {
 		pwError = '';
 		pwSuccess = false;
-		if (newPw.length < 8) { pwError = 'Password must be at least 8 characters'; return; }
-		if (newPw !== confirmPw) { pwError = 'Passwords do not match'; return; }
+		if (newPw.length < 8) { pwError = msg.profile_password_min_length(); return; }
+		if (newPw !== confirmPw) { pwError = msg.profile_passwords_mismatch(); return; }
 		pwLoading = true;
 		try {
 			await api.patch('/api/v1/profile/password', { current_password: currentPw, new_password: newPw });
@@ -78,7 +87,7 @@
 			currentPw = ''; newPw = ''; confirmPw = '';
 			setTimeout(() => { pwSuccess = false; panel = null; }, 1500);
 		} catch (e: unknown) {
-			pwError = e instanceof Error ? e.message : 'Update failed';
+			pwError = e instanceof Error ? e.message : msg.profile_update_failed();
 		} finally {
 			pwLoading = false;
 		}
@@ -105,6 +114,18 @@
 		}
 	}
 
+	async function saveLanguage(value: string) {
+		if (!locales.includes(value as (typeof locales)[number]) || value === getLocale()) return;
+		languageValue = value as (typeof locales)[number];
+		languageLoading = true;
+		try {
+			await api.patch('/api/v1/profile/locale', { locale: value });
+		} finally {
+			languageLoading = false;
+		}
+		setLocale(value as (typeof locales)[number]);
+	}
+
 	async function removeAvatar() {
 		avatarLoading = true;
 		try {
@@ -121,7 +142,7 @@
 
 		<!-- Header -->
 		<div class="pb-6">
-			<h1 class="text-2xl font-bold">My Profile</h1>
+			<h1 class="text-2xl font-bold">{msg.profile_title()}</h1>
 		</div>
 
 		{#if user}
@@ -142,11 +163,11 @@
 				<div class="flex items-center gap-2">
 					<Button variant="outline" size="sm" onclick={() => fileInput.click()} disabled={avatarLoading}>
 						<Camera class="w-4 h-4 mr-1.5" />
-						{user.avatar_url ? 'Change photo' : 'Upload photo'}
+						{user.avatar_url ? msg.profile_change_photo() : msg.profile_upload_photo()}
 					</Button>
 					{#if user.avatar_url}
 						<Button variant="ghost" size="sm" onclick={removeAvatar} disabled={avatarLoading} class="text-destructive hover:text-destructive">
-							Remove
+							{msg.action_remove()}
 						</Button>
 					{/if}
 				</div>
@@ -157,7 +178,7 @@
 
 			<!-- Account section -->
 			<section class="py-6 flex flex-col gap-4">
-				<h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Account</h2>
+				<h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{msg.profile_account()}</h2>
 
 				<!-- Display name row -->
 				<div class="rounded-xl border border-border overflow-hidden">
@@ -165,7 +186,7 @@
 						onclick={() => panel = panel === 'name' ? null : 'name'}
 						class="w-full flex items-center justify-between px-4 py-3.5 text-sm hover:bg-muted/50 transition-colors text-left"
 					>
-						<span class="font-medium">Display name</span>
+						<span class="font-medium">{msg.profile_display_name()}</span>
 						<span class="text-muted-foreground text-sm">{user.name}</span>
 					</button>
 
@@ -173,7 +194,7 @@
 						<Separator />
 						<div class="px-4 py-4 space-y-3 bg-muted/20">
 							<div class="space-y-1.5">
-								<Label for="display-name">New name</Label>
+								<Label for="display-name">{msg.profile_new_name_label()}</Label>
 								<Input
 									id="display-name"
 									bind:value={nameValue}
@@ -184,8 +205,8 @@
 							</div>
 							{#if nameError}<p class="text-sm text-destructive">{nameError}</p>{/if}
 							<div class="flex gap-2 justify-end">
-								<Button variant="outline" size="sm" onclick={() => panel = null}>Cancel</Button>
-								<Button size="sm" onclick={saveName} disabled={nameLoading}>Save</Button>
+								<Button variant="outline" size="sm" onclick={() => panel = null}>{msg.dialog_cancel()}</Button>
+								<Button size="sm" onclick={saveName} disabled={nameLoading}>{msg.edit_dialog_save()}</Button>
 							</div>
 						</div>
 					{/if}
@@ -197,7 +218,7 @@
 						onclick={() => panel = panel === 'password' ? null : 'password'}
 						class="w-full flex items-center justify-between px-4 py-3.5 text-sm hover:bg-muted/50 transition-colors text-left"
 					>
-						<span class="font-medium">Change password</span>
+						<span class="font-medium">{msg.profile_change_password()}</span>
 						<span class="text-muted-foreground">••••••••</span>
 					</button>
 
@@ -205,27 +226,50 @@
 						<Separator />
 						<div class="px-4 py-4 space-y-3 bg-muted/20">
 							<div class="space-y-1.5">
-								<Label for="current-pw">Current password</Label>
+								<Label for="current-pw">{msg.profile_current_password()}</Label>
 								<Input id="current-pw" type="password" bind:value={currentPw} autofocus />
 							</div>
 							<div class="space-y-1.5">
-								<Label for="new-pw">New password</Label>
+								<Label for="new-pw">{msg.profile_new_password()}</Label>
 								<Input id="new-pw" type="password" bind:value={newPw} />
 							</div>
 							<div class="space-y-1.5">
-								<Label for="confirm-pw">Confirm new password</Label>
+								<Label for="confirm-pw">{msg.profile_confirm_password()}</Label>
 								<Input id="confirm-pw" type="password" bind:value={confirmPw}
 									onkeydown={(e) => { if (e.key === 'Enter') savePassword(); }}
 								/>
 							</div>
 							{#if pwError}<p class="text-sm text-destructive">{pwError}</p>{/if}
-							{#if pwSuccess}<p class="text-sm text-green-600">Password updated!</p>{/if}
+							{#if pwSuccess}<p class="text-sm text-green-600">{msg.profile_password_updated()}</p>{/if}
 							<div class="flex gap-2 justify-end">
-								<Button variant="outline" size="sm" onclick={() => panel = null}>Cancel</Button>
-								<Button size="sm" onclick={savePassword} disabled={pwLoading}>Update</Button>
+								<Button variant="outline" size="sm" onclick={() => panel = null}>{msg.dialog_cancel()}</Button>
+								<Button size="sm" onclick={savePassword} disabled={pwLoading}>{msg.profile_update_button()}</Button>
 							</div>
 						</div>
 					{/if}
+				</div>
+
+				<!-- Language row -->
+				<div class="rounded-xl border border-border px-4 py-3 flex items-center justify-between gap-3">
+					<span class="font-medium text-sm">{msg.profile_language()}</span>
+					<ToggleGroup.Root
+						type="single"
+						bind:value={languageValue}
+						onValueChange={(v) => v && saveLanguage(v)}
+						variant="outline"
+						size="sm"
+					>
+						{#each locales as loc}
+							<ToggleGroup.Item
+								value={loc}
+								disabled={languageLoading}
+								title={LANGUAGE_LABELS[loc] ?? loc}
+								class="text-xs font-semibold px-3 data-[state=on]:bg-foreground data-[state=on]:text-background data-[state=on]:hover:bg-foreground/90"
+							>
+								{loc.toUpperCase()}
+							</ToggleGroup.Item>
+						{/each}
+					</ToggleGroup.Root>
 				</div>
 			</section>
 		{:else}
@@ -236,7 +280,7 @@
 
 		{#if pushSupported}
 			<section class="py-6 flex flex-col gap-4">
-				<h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notifications</h2>
+				<h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{msg.profile_notifications()}</h2>
 				<Button
 					variant={pushSubscribed ? 'outline' : 'default'}
 					onclick={async () => {
@@ -254,9 +298,9 @@
 					}}
 				>
 					{#if pushSubscribed}
-						<BellOff class="w-4 h-4 mr-2" /> Disable notifications
+						<BellOff class="w-4 h-4 mr-2" /> {msg.profile_disable_notifications()}
 					{:else}
-						<Bell class="w-4 h-4 mr-2" /> Enable notifications
+						<Bell class="w-4 h-4 mr-2" /> {msg.profile_enable_notifications()}
 					{/if}
 				</Button>
 			</section>
@@ -265,7 +309,7 @@
 		<section class="py-6">
 			<Button variant="destructive" class="w-full" onclick={logout}>
 				<LogOut class="w-4 h-4 mr-2" />
-				Sign out
+				{msg.sidebar_sign_out()}
 			</Button>
 		</section>
 

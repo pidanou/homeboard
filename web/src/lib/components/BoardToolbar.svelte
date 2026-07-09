@@ -3,6 +3,7 @@
     import { dotClass } from "$lib/categories";
     import { X, Tag } from "lucide-svelte";
     import UserAvatar from "$lib/components/UserAvatar.svelte";
+    import * as msg from "$lib/paraglide/messages.js";
 
     let {
         filter = $bindable<Filter>("all"),
@@ -47,11 +48,11 @@
     }
 
     const FILTERS: { id: Filter; label: string }[] = $derived([
-        { id: "all", label: "Active" },
-        { id: "tasks", label: "Tasks" },
-        { id: "events", label: "Events" },
-        { id: "birthdays", label: "🎂 Birthdays" },
-        { id: "done", label: `Done${doneCnt ? ` (${doneCnt})` : ""}` },
+        { id: "all", label: msg.board_filter_active() },
+        { id: "tasks", label: msg.board_filter_tasks() },
+        { id: "events", label: msg.board_filter_events() },
+        { id: "birthdays", label: `🎂 ${msg.board_filter_birthdays()}` },
+        { id: "done", label: `${msg.board_filter_done()}${doneCnt ? ` (${doneCnt})` : ""}` },
     ]);
 </script>
 
@@ -110,7 +111,7 @@
                 filterCategory = null;
             }}
             class="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            ><X class="w-3 h-3" />Clear</button
+            ><X class="w-3 h-3" />{msg.board_clear_filters()}</button
         >
     {/if}
 </div>

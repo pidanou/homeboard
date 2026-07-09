@@ -1,4 +1,5 @@
 import { toast } from 'svelte-sonner';
+import * as m from '$lib/paraglide/messages.js';
 
 export function getBaseUrl(): string {
 	const runtime = typeof window !== 'undefined' ? window.__API_URL__ : undefined;
@@ -21,7 +22,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 			...init.headers
 		}
 	}).catch((err) => {
-		toast.error(`Cannot reach server: ${getBaseUrl()}`);
+		toast.error(m.client_cannot_reach_server({ url: getBaseUrl() }));
 		throw err;
 	});
 

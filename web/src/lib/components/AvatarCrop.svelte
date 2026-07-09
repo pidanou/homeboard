@@ -1,6 +1,7 @@
 <script lang="ts">
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
+	import * as msg from '$lib/paraglide/messages.js';
 
 	let {
 		open = $bindable(false),
@@ -172,8 +173,8 @@
 <Dialog.Root bind:open>
 	<Dialog.Content class="sm:max-w-sm">
 		<Dialog.Header>
-			<Dialog.Title>Crop photo</Dialog.Title>
-			<Dialog.Description>Drag to reposition, scroll to zoom.</Dialog.Description>
+			<Dialog.Title>{msg.crop_photo_title()}</Dialog.Title>
+			<Dialog.Description>{msg.crop_desc()}</Dialog.Description>
 		</Dialog.Header>
 
 		<div class="flex justify-center my-2">
@@ -195,8 +196,8 @@
 		</div>
 
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (open = false)}>Cancel</Button>
-			<Button onclick={confirm} disabled={!imgLoaded}>Use photo</Button>
+			<Button variant="outline" onclick={() => (open = false)}>{msg.dialog_cancel()}</Button>
+			<Button onclick={confirm} disabled={!imgLoaded}>{msg.crop_use_photo()}</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
