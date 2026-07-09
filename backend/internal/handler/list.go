@@ -21,6 +21,7 @@ func (h *ListHandler) Routes() http.Handler {
 	r := chi.NewRouter()
 	r.Get("/", h.listLists)
 	r.Post("/", h.createList)
+	r.Patch("/reorder", h.reorderLists) // static route, must precede /{listID}
 	r.Patch("/{listID}", h.renameList)
 	r.Delete("/{listID}", h.deleteList)
 	r.Get("/{listID}/items", h.listItems)
@@ -70,6 +71,23 @@ func (h *ListHandler) renameList(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := h.lists.Rename(r.Context(), listID, familyID, body.Name); err != nil {
 		http.Error(w, "failed to rename list", http.StatusInternalServerError)
+		return
+	}
+	h.hub.Broadcast(familyID)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *ListHandler) reorderLists(w http.ResponseWriter, r *http.Request) {
+	familyID := chi.URLParam(r, "familyID")
+	var body struct {
+		ListIDs []string `json:"list_ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || len(body.ListIDs) == 0 {
+		http.Error(w, "list_ids is required", http.StatusBadRequest)
+		return
+	}
+	if err := h.lists.Reorder(r.Context(), familyID, body.ListIDs); err != nil {
+		http.Error(w, "failed to reorder lists", http.StatusInternalServerError)
 		return
 	}
 	h.hub.Broadcast(familyID)

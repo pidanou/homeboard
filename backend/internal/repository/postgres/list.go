@@ -17,16 +17,17 @@ func NewListRepository(pool *pgxpool.Pool) *ListRepository {
 }
 
 func (r *ListRepository) CreateList(ctx context.Context, list *model.List) error {
-	_, err := r.pool.Exec(ctx,
-		`INSERT INTO lists (id, family_id, name, created_at) VALUES ($1, $2, $3, $4)`,
+	return r.pool.QueryRow(ctx,
+		`INSERT INTO lists (id, family_id, name, position, created_at)
+		 VALUES ($1, $2, $3, (SELECT COALESCE(MAX(position) + 1, 0) FROM lists WHERE family_id = $2), $4)
+		 RETURNING position`,
 		list.ID, list.FamilyID, list.Name, list.CreatedAt,
-	)
-	return err
+	).Scan(&list.Position)
 }
 
 func (r *ListRepository) ListsByFamilyID(ctx context.Context, familyID string) ([]*model.List, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, family_id, name, created_at FROM lists WHERE family_id = $1 ORDER BY created_at`,
+		`SELECT id, family_id, name, position, created_at FROM lists WHERE family_id = $1 ORDER BY position, created_at`,
 		familyID,
 	)
 	if err != nil {
@@ -36,7 +37,7 @@ func (r *ListRepository) ListsByFamilyID(ctx context.Context, familyID string) (
 	lists := make([]*model.List, 0)
 	for rows.Next() {
 		l := &model.List{}
-		if err := rows.Scan(&l.ID, &l.FamilyID, &l.Name, &l.CreatedAt); err != nil {
+		if err := rows.Scan(&l.ID, &l.FamilyID, &l.Name, &l.Position, &l.CreatedAt); err != nil {
 			return nil, err
 		}
 		lists = append(lists, l)
@@ -52,6 +53,23 @@ func (r *ListRepository) DeleteList(ctx context.Context, listID, familyID string
 func (r *ListRepository) RenameList(ctx context.Context, listID, familyID, name string) error {
 	_, err := r.pool.Exec(ctx, `UPDATE lists SET name = $1 WHERE id = $2 AND family_id = $3`, name, listID, familyID)
 	return err
+}
+
+func (r *ListRepository) ReorderLists(ctx context.Context, familyID string, orderedIDs []string) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	for i, id := range orderedIDs {
+		if _, err := tx.Exec(ctx,
+			`UPDATE lists SET position = $1 WHERE id = $2 AND family_id = $3`,
+			i, id, familyID,
+		); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
 }
 
 func (r *ListRepository) CreateItem(ctx context.Context, item *model.ListItem) error {

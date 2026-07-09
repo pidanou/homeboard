@@ -5,7 +5,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { X, Plus, Pencil, CornerDownLeft, Trash2 } from 'lucide-svelte';
+	import { X, Plus, Pencil, CornerDownLeft, Trash2, GripVertical } from 'lucide-svelte';
 	import type { AppList, AppListItem } from '$lib/types';
 
 	const familyID = $derived($page.params.id ?? '');
@@ -21,6 +21,7 @@
 	let renamingItem = $state<{ listID: string; itemID: string } | null>(null);
 	let renameItemValue = $state('');
 	let activeListID = $state<string | null>(null);
+	let dragListID = $state<string | null>(null);
 
 	let es: EventSource | null = null;
 
@@ -144,6 +145,46 @@
 			.filter(i => i.checked)
 			.sort((a, b) => new Date(b.checked_at ?? b.created_at).getTime() - new Date(a.checked_at ?? a.created_at).getTime());
 	}
+
+	function itemCount(listID: string): number {
+		return (itemsByList[listID] ?? []).length;
+	}
+
+	async function persistListOrder() {
+		try {
+			await api.patch(`/api/v1/households/${familyID}/lists/reorder`, { list_ids: lists.map(l => l.id) });
+		} catch {}
+	}
+
+	function startListDrag(e: PointerEvent, listID: string) {
+		e.preventDefault();
+		const handle = e.currentTarget as HTMLElement;
+		handle.setPointerCapture(e.pointerId);
+		dragListID = listID;
+
+		function onMove(ev: PointerEvent) {
+			const over = (document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest<HTMLElement>('[data-list-id]');
+			const overID = over?.dataset.listId;
+			if (!overID || overID === dragListID) return;
+			const fromIndex = lists.findIndex(l => l.id === dragListID);
+			const toIndex = lists.findIndex(l => l.id === overID);
+			if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
+			const next = [...lists];
+			const [moved] = next.splice(fromIndex, 1);
+			next.splice(toIndex, 0, moved);
+			lists = next;
+		}
+
+		function onUp() {
+			window.removeEventListener('pointermove', onMove);
+			window.removeEventListener('pointerup', onUp);
+			dragListID = null;
+			persistListOrder();
+		}
+
+		window.addEventListener('pointermove', onMove);
+		window.addEventListener('pointerup', onUp);
+	}
 </script>
 
 <!-- ===================== MOBILE ===================== -->
@@ -192,9 +233,25 @@
 		{#if lists.length > 0}
 			<div class="flex items-center gap-1.5 overflow-x-auto py-1 -my-1">
 				{#each lists as list (list.id)}
-					{#if activeListID === list.id}
-						<div class="flex items-center gap-1 pl-3 pr-1.5 py-1.5 rounded-full bg-primary text-primary-foreground shrink-0">
-							<span class="text-sm font-medium whitespace-nowrap">{list.name}</span>
+					<div
+						data-list-id={list.id}
+						class={`flex items-center gap-0.5 pl-1 pr-1.5 py-1 rounded-full shrink-0 transition-opacity ${activeListID === list.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'} ${dragListID === list.id ? 'opacity-50' : ''}`}
+					>
+						<button
+							onpointerdown={(e) => startListDrag(e, list.id)}
+							class="flex items-center justify-center w-6 h-6 rounded-full touch-none cursor-grab active:cursor-grabbing opacity-70 hover:opacity-100 transition-opacity"
+							aria-label="Drag to reorder list"
+						>
+							<GripVertical class="w-3.5 h-3.5" />
+						</button>
+						<button
+							onclick={() => (activeListID = list.id)}
+							class="text-sm font-medium whitespace-nowrap"
+						>{list.name}</button>
+						{#if itemCount(list.id) > 0}
+							<span class={`text-[11px] font-medium rounded-full px-1.5 leading-4 shrink-0 ${activeListID === list.id ? 'bg-primary-foreground/20' : 'bg-background/70'}`}>{itemCount(list.id)}</span>
+						{/if}
+						{#if activeListID === list.id}
 							<button
 								onclick={() => (confirmDeleteListID = list.id)}
 								class="flex items-center justify-center w-5 h-5 rounded-full hover:bg-primary-foreground/20 transition-colors"
@@ -202,13 +259,8 @@
 							>
 								<X class="w-3 h-3" />
 							</button>
-						</div>
-					{:else}
-						<button
-							onclick={() => (activeListID = list.id)}
-							class="px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap bg-muted text-muted-foreground hover:bg-muted/80 transition-colors shrink-0"
-						>{list.name}</button>
-					{/if}
+						{/if}
+					</div>
 				{/each}
 			</div>
 		{/if}
@@ -330,10 +382,20 @@
 			{#each lists as list (list.id)}
 				{@const uncheckedItems = unchecked(list.id)}
 				{@const checkedItems = checked(list.id)}
-				<div class="w-72 flex flex-col rounded-xl border border-border bg-card overflow-hidden shrink-0">
+				<div
+					data-list-id={list.id}
+					class={`w-72 flex flex-col rounded-xl border border-border bg-card overflow-hidden shrink-0 transition-opacity ${dragListID === list.id ? 'opacity-50' : ''}`}
+				>
 
 					<!-- Column header -->
-					<div class="flex items-center gap-1 px-4 h-14 border-b border-border bg-muted/50">
+					<div class="flex items-center gap-1 px-2 h-14 border-b border-border bg-muted/50">
+						<button
+							onpointerdown={(e) => startListDrag(e, list.id)}
+							class="p-1.5 rounded-lg text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted transition-colors touch-none cursor-grab active:cursor-grabbing shrink-0"
+							aria-label="Drag to reorder list"
+						>
+							<GripVertical class="w-3.5 h-3.5" />
+						</button>
 						{#if renamingListID === list.id}
 							<input
 								class="flex-1 text-sm font-semibold bg-transparent border-none outline-none border-b border-primary"
@@ -344,6 +406,9 @@
 							/>
 						{:else}
 							<span class="flex-1 text-sm font-semibold truncate">{list.name}</span>
+							{#if itemCount(list.id) > 0}
+								<span class="text-xs font-medium text-muted-foreground bg-background rounded-full px-1.5 shrink-0">{itemCount(list.id)}</span>
+							{/if}
 							{#if confirmDeleteListID === list.id}
 								<span class="text-xs text-muted-foreground shrink-0">Delete?</span>
 								<Button size="sm" variant="destructive" onclick={() => deleteList(list.id)} class="h-6 px-2 text-xs shrink-0">Yes</Button>

@@ -11,6 +11,7 @@ type ListRepository interface {
 	ListsByFamilyID(ctx context.Context, familyID string) ([]*model.List, error)
 	DeleteList(ctx context.Context, listID, familyID string) error
 	RenameList(ctx context.Context, listID, familyID, name string) error
+	ReorderLists(ctx context.Context, familyID string, orderedIDs []string) error
 	CreateItem(ctx context.Context, item *model.ListItem) error
 	ItemsByListID(ctx context.Context, listID string) ([]*model.ListItem, error)
 	UpdateItem(ctx context.Context, item *model.ListItem, familyID string) error

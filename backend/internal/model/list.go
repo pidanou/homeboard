@@ -6,6 +6,7 @@ type List struct {
 	ID        string    `json:"id"`
 	FamilyID  string    `json:"family_id"`
 	Name      string    `json:"name"`
+	Position  float64   `json:"position"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
