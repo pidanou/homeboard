@@ -441,23 +441,23 @@
 
 <!-- Header -->
 <div class="shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-2">
-<div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
-	<div class="flex items-center gap-2 flex-wrap">
-		<div class="flex rounded-md border border-border overflow-hidden text-sm shrink-0">
-			{#each [['month','M',msg.cal_view_month()],['week','W',msg.cal_view_week()],['day','D',msg.cal_view_day()],['agenda','A',msg.cal_view_agenda()]] as [v, short, long]}
-				<button
-					onclick={() => switchView(v as AppView)}
-					class="px-2.5 py-1.5 transition-colors cursor-pointer {appView === v ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}"
-				>
-					<span class="sm:hidden">{short}</span>
-					<span class="hidden sm:inline">{long}</span>
-				</button>
-			{/each}
-		</div>
+<div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+	<div class="flex rounded-md border border-border overflow-hidden text-sm shrink-0 self-start">
+		{#each [['month','M',msg.cal_view_month()],['week','W',msg.cal_view_week()],['day','D',msg.cal_view_day()],['agenda','A',msg.cal_view_agenda()]] as [v, short, long]}
+			<button
+				onclick={() => switchView(v as AppView)}
+				class="px-2.5 py-1.5 transition-colors cursor-pointer {appView === v ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}"
+			>
+				<span class="sm:hidden">{short}</span>
+				<span class="hidden sm:inline">{long}</span>
+			</button>
+		{/each}
+	</div>
 
-		<div class="w-px h-5 bg-border shrink-0"></div>
+	<div class="hidden sm:block w-px h-5 bg-border shrink-0"></div>
 
-		{#if appView !== 'agenda'}
+	{#if appView !== 'agenda'}
+		<div class="flex items-center gap-2">
 			<Button variant="outline" size="sm" onclick={jumpToToday}>{msg.nav_today()}</Button>
 			<div class="flex items-center rounded-md border border-border overflow-hidden shrink-0">
 				<button onclick={prevPeriod} aria-label={msg.cal_previous_aria()} class="h-8 w-8 flex items-center justify-center hover:bg-muted transition-colors cursor-pointer">‹</button>
@@ -473,10 +473,10 @@
 					<DatePicker type="single" value={jumpValue} onValueChange={jumpTo} captionLayout="dropdown" />
 				</Popover.Content>
 			</Popover.Root>
-		{:else}
-			<Button variant="outline" size="sm" onclick={scrollToToday}>{msg.nav_today()}</Button>
-		{/if}
-	</div>
+		</div>
+	{:else}
+		<Button variant="outline" size="sm" onclick={scrollToToday} class="self-start">{msg.nav_today()}</Button>
+	{/if}
 </div>
 
 <!-- Legend / filter bar -->
