@@ -52,7 +52,7 @@ family-board/
 - All dates stored as UTC, ISO 8601
 
 ### Auth
-- Custom JWT auth in Go (email/password + OAuth: Google, Apple)
+- Custom JWT auth in Go: email/password (optional, can be disabled via `ALLOW_PASSWORD_LOGIN`) + generic OIDC SSO (single configurable issuer, works with any OIDC-compliant IdP — see `docs/specs/auth.md`)
 - JWTs verified server-side on every request
 
 ### Deployment

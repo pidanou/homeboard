@@ -15,16 +15,24 @@ import (
 )
 
 type AuthService struct {
-	users     repository.UserRepository
-	jwtSecret []byte
-	mailer    *EmailService
+	users              repository.UserRepository
+	jwtSecret          []byte
+	mailer             *EmailService
+	allowPasswordLogin bool
 }
 
 func NewAuthService(users repository.UserRepository, jwtSecret string, mailer *EmailService) *AuthService {
-	return &AuthService{users: users, jwtSecret: []byte(jwtSecret), mailer: mailer}
+	return &AuthService{users: users, jwtSecret: []byte(jwtSecret), mailer: mailer, allowPasswordLogin: true}
+}
+
+// SetAllowPasswordLogin toggles whether password-based register/login are accepted.
+// Defaults to true; set to false to run OIDC-only.
+func (s *AuthService) SetAllowPasswordLogin(allow bool) {
+	s.allowPasswordLogin = allow
 }
 
 var ErrRegistrationClosed = errors.New("registration is closed")
+var ErrPasswordLoginDisabled = errors.New("password login is disabled")
 
 // CreateUser creates an account without checking the registration lock.
 // Used by the invite flow to allow new users to join via an invite link.
@@ -33,10 +41,11 @@ func (s *AuthService) CreateUser(ctx context.Context, email, password, name stri
 	if err != nil {
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
+	hashStr := string(hash)
 	user := &model.User{
 		ID:           uuid.NewString(),
 		Email:        email,
-		PasswordHash: string(hash),
+		PasswordHash: &hashStr,
 		Name:         name,
 		Locale:       "en",
 		CreatedAt:    time.Now().UTC(),
@@ -62,25 +71,41 @@ func (s *AuthService) IssueToken(userID string) (string, error) {
 	return t.SignedString(s.jwtSecret)
 }
 
+// CheckRegistrationOpen applies the ALLOW_REGISTRATION gate (open, or locked
+// after the first user exists — the self-host single-tenant bootstrap
+// pattern). Shared by password registration and OIDC first-login signup so
+// both respect the same policy.
+func (s *AuthService) CheckRegistrationOpen(ctx context.Context) error {
+	if os.Getenv("ALLOW_REGISTRATION") == "true" {
+		return nil
+	}
+	exists, err := s.users.Exists(ctx)
+	if err != nil {
+		return fmt.Errorf("check users: %w", err)
+	}
+	if exists {
+		return ErrRegistrationClosed
+	}
+	return nil
+}
+
 func (s *AuthService) Register(ctx context.Context, email, password, name string) (*model.User, error) {
-	if os.Getenv("ALLOW_REGISTRATION") != "true" {
-		exists, err := s.users.Exists(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("check users: %w", err)
-		}
-		if exists {
-			return nil, ErrRegistrationClosed
-		}
+	if !s.allowPasswordLogin {
+		return nil, ErrPasswordLoginDisabled
+	}
+	if err := s.CheckRegistrationOpen(ctx); err != nil {
+		return nil, err
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
+	hashStr := string(hash)
 	user := &model.User{
 		ID:           uuid.NewString(),
 		Email:        email,
-		PasswordHash: string(hash),
+		PasswordHash: &hashStr,
 		Name:         name,
 		Locale:       "en",
 		CreatedAt:    time.Now().UTC(),
@@ -98,11 +123,17 @@ func (s *AuthService) Register(ctx context.Context, email, password, name string
 }
 
 func (s *AuthService) Login(ctx context.Context, email, password string) (string, error) {
+	if !s.allowPasswordLogin {
+		return "", ErrPasswordLoginDisabled
+	}
 	user, err := s.users.GetByEmail(ctx, email)
 	if err != nil {
 		return "", errors.New("invalid credentials")
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+	if user.PasswordHash == nil {
+		return "", errors.New("invalid credentials")
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(password)); err != nil {
 		return "", errors.New("invalid credentials")
 	}
 
@@ -141,14 +172,18 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID, currentPasswor
 	if err != nil {
 		return err
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(currentPassword)); err != nil {
+	if user.PasswordHash == nil {
+		return errors.New("account has no password set")
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(currentPassword)); err != nil {
 		return errors.New("invalid current password")
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("hash password: %w", err)
 	}
-	user.PasswordHash = string(hash)
+	hashStr := string(hash)
+	user.PasswordHash = &hashStr
 	if err := s.users.Update(ctx, user); err != nil {
 		return err
 	}
