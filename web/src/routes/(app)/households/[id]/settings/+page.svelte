@@ -9,6 +9,7 @@
     import AvatarCrop from "$lib/components/AvatarCrop.svelte";
     import WallpaperCrop from "$lib/components/WallpaperCrop.svelte";
     import AuthImage from "$lib/components/AuthImage.svelte";
+    import CalendarSyncSettings from "$lib/components/CalendarSyncSettings.svelte";
     import { currentUser } from "$lib/stores/user";
     import { households, updateHouseholdName, updateHouseholdPhoto, updateHouseholdWallpaper } from "$lib/stores/households";
     import * as msg from "$lib/paraglide/messages.js";
@@ -402,7 +403,7 @@
     }
 </script>
 
-<div class="px-4 md:px-6 pt-4 md:pt-6 pb-12">
+<div class="h-full overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-12">
     <div class="max-w-xl mx-auto flex flex-col gap-0 divide-y divide-border">
         <div class="pb-4">
             <h1 class="text-xl font-semibold">{msg.nav_settings()}</h1>
@@ -884,5 +885,7 @@
                 {/if}
             </section>
         {/if}
-</div>
+
+        <CalendarSyncSettings {familyID} {isAdmin} />
+    </div>
 </div>

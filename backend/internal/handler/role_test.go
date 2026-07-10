@@ -49,18 +49,29 @@ func newTestEnv(t *testing.T) *testEnv {
 	inviteRepo := pgRepo.NewInviteRepository(pool)
 	labelRepo := pgRepo.NewCategoryRepository(pool)
 	userRepo := pgRepo.NewUserRepository(pool)
+	eventRepo := pgRepo.NewEventRepository(pool)
+	calendarExportTokenRepo := pgRepo.NewCalendarExportTokenRepository(pool)
+	calendarSubscriptionRepo := pgRepo.NewCalendarSubscriptionRepository(pool)
 
 	householdSvc := service.NewHouseholdService(householdRepo)
 	inviteSvc := service.NewInviteService(inviteRepo, householdRepo)
 	labelSvc := service.NewCategoryService(labelRepo)
 	authSvc := service.NewAuthService(userRepo, testJWTSecret, nil)
+	eventSvc := service.NewEventService(eventRepo)
+	calendarExportSvc := service.NewCalendarExportService(calendarExportTokenRepo, eventRepo, householdRepo)
+	calendarImportSvc := service.NewCalendarImportService(eventSvc)
+	calendarSyncSvc := service.NewCalendarSyncService(calendarSubscriptionRepo, eventRepo)
 	hub := handler.NewHub()
 
 	householdH := handler.NewHouseholdHandler(householdSvc, t.TempDir(), "http://localhost")
 	inviteH := handler.NewInviteHandler(inviteSvc, householdSvc, authSvc, testJWTSecret)
 	labelH := handler.NewCategoryHandler(labelSvc, householdSvc, hub)
+	calendarExportH := handler.NewCalendarExportHandler(calendarExportSvc, householdSvc)
+	calendarImportH := handler.NewCalendarImportHandler(calendarImportSvc, householdSvc)
+	calendarSubscriptionH := handler.NewCalendarSubscriptionHandler(calendarSyncSvc, householdSvc)
 
 	r := chi.NewRouter()
+	r.Mount("/calendar", calendarExportH.PublicRoutes())
 	r.Group(func(r chi.Router) {
 		r.Use(handler.AuthMiddleware(testJWTSecret))
 		r.Mount("/families", householdH.Routes())
@@ -69,6 +80,15 @@ func newTestEnv(t *testing.T) *testEnv {
 		})
 		r.Route("/households/{familyID}/categories", func(r chi.Router) {
 			r.Mount("/", labelH.Routes())
+		})
+		r.Route("/households/{familyID}/calendar/export-token", func(r chi.Router) {
+			r.Mount("/", calendarExportH.Routes())
+		})
+		r.Route("/households/{familyID}/calendar/import", func(r chi.Router) {
+			r.Mount("/", calendarImportH.Routes())
+		})
+		r.Route("/households/{familyID}/calendar/subscriptions", func(r chi.Router) {
+			r.Mount("/", calendarSubscriptionH.Routes())
 		})
 	})
 

@@ -24,4 +24,6 @@ type Event struct {
 	CreatedAt          time.Time  `json:"created_at"`
 	UpdatedAt          time.Time  `json:"updated_at"`
 	AttendeeIDs        []string   `json:"attendee_ids"`
+	SubscriptionID     *string    `json:"subscription_id,omitempty"`
+	ExternalUID        *string    `json:"external_uid,omitempty"`
 }

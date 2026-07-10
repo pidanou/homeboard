@@ -48,6 +48,7 @@ export type CalEvent = {
 	type?: string;
 	important?: boolean;
 	birthday_of?: string | null;
+	subscription_id?: string | null;
 };
 
 export type Filter = 'all' | 'tasks' | 'events' | 'done' | 'birthdays';
@@ -66,4 +67,22 @@ export type AppListItem = {
 	checked: boolean;
 	created_at: string;
 	checked_at?: string;
+};
+
+export type CalendarExportToken = {
+	token: string;
+	family_id: string;
+	created_by: string;
+	created_at: string;
+};
+
+export type CalendarSubscription = {
+	id: string;
+	family_id: string;
+	name: string;
+	url: string;
+	created_by: string;
+	created_at: string;
+	last_synced_at?: string | null;
+	last_sync_error?: string | null;
 };

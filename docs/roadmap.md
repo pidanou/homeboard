@@ -232,6 +232,19 @@ One focused sweep to reconcile the full UI against `docs/specs/design.md`.
 
 ---
 
+## M20 — Calendar import/export/sync ✅
+
+- ✅ Dependency: `github.com/arran4/golang-ical` for ICS parsing/generation
+- ✅ ICS export: per-household token-authenticated public `.ics` URL (`GET /api/v1/calendar/export/{token}.ics`); admin-managed generate/regenerate/revoke (migration 000031)
+- ✅ ICS import: one-time `.ics` file upload creating real household events (`POST /households/{familyID}/calendar/import`)
+- ✅ One-way subscription sync: household adds an external `.ics` URL; backend re-fetches on `CALENDAR_SYNC_INTERVAL` (default 1h, 5m floor) and reconciles create/update/delete, keyed by `(subscription_id, external_uid)` (migration 000032)
+- ✅ Synced events are read-only in the UI: edit/drag/resize blocked, informational toast shown instead
+- ✅ Settings page: `CalendarSyncSettings.svelte` (export/import/subscriptions sections, admin-gated)
+- ✅ Backend integration + unit tests: role enforcement, public ICS serving, sync reconciliation, export→import round-trip
+- ⬜ CalDAV, Google Calendar OAuth API, two-way sync — see `docs/specs/calendar.md` out-of-scope
+
+---
+
 ## Deferred / no milestone yet
 
 These are captured in spec out-of-scope tables. Promote to a milestone when prioritised.
@@ -243,7 +256,8 @@ These are captured in spec out-of-scope tables. Promote to a milestone when prio
 | ~~Birthday reminders~~ | ✅ M17 |
 | ~~Emoji icons on tasks/events~~ | ✅ M17 |
 | ~~Inline list rename~~ | ✅ done |
-| External calendar sync (iCal, Google, CalDAV) | `calendar.md` |
+| ~~External calendar sync (ICS export/import/one-way subscription)~~ | ✅ M20 |
+| External calendar sync — CalDAV, Google Calendar OAuth API, two-way sync | `calendar.md` |
 | Push notifications | `calendar.md`, `app.md` |
 | Search / full-text filter | `board.md` |
 | Bulk actions (select multiple, bulk delete/assign) | `board.md` |

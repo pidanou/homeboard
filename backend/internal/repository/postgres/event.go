@@ -230,6 +230,71 @@ func (r *EventRepository) Delete(ctx context.Context, eventID, familyID string) 
 	return err
 }
 
+// UpsertExternal creates or updates an event sourced from a calendar subscription,
+// keyed by (subscription_id, external_uid). id/created_by/created_at are preserved
+// across updates (excluded from the SET clause).
+func (r *EventRepository) UpsertExternal(ctx context.Context, event *model.Event) (string, error) {
+	var id string
+	err := r.pool.QueryRow(ctx,
+		`INSERT INTO events (id, family_id, title, description, location, start_at, end_at, all_day,
+		  category_id, recurrence_rule, recurrence_parent_id, recurrence_date, cancelled, created_by, created_at, updated_at, type, birthday_of, important, subscription_id, external_uid)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+		 ON CONFLICT (subscription_id, external_uid) WHERE subscription_id IS NOT NULL DO UPDATE SET
+		   title=EXCLUDED.title, description=EXCLUDED.description, location=EXCLUDED.location,
+		   start_at=EXCLUDED.start_at, end_at=EXCLUDED.end_at, all_day=EXCLUDED.all_day,
+		   recurrence_rule=EXCLUDED.recurrence_rule, updated_at=EXCLUDED.updated_at
+		 RETURNING id`,
+		event.ID, event.FamilyID, event.Title, event.Description, event.Location,
+		event.StartAt, event.EndAt, event.AllDay, event.CategoryID,
+		event.RecurrenceRule, event.RecurrenceParentID, event.RecurrenceDate, event.Cancelled,
+		event.CreatedBy, event.CreatedAt, event.UpdatedAt, event.Type, event.BirthdayOf, event.Important,
+		event.SubscriptionID, event.ExternalUID,
+	).Scan(&id)
+	return id, err
+}
+
+// DeleteStaleExternal removes events sourced from a subscription whose external_uid
+// is no longer present in the feed. Exception rows cascade via recurrence_parent_id ON DELETE CASCADE.
+func (r *EventRepository) DeleteStaleExternal(ctx context.Context, subscriptionID string, keepUIDs []string) error {
+	_, err := r.pool.Exec(ctx,
+		`DELETE FROM events WHERE subscription_id = $1 AND NOT (external_uid = ANY($2))`,
+		subscriptionID, keepUIDs,
+	)
+	return err
+}
+
+// ListAllForExport returns every household-owned event (parents and exceptions),
+// excluding events sourced from a calendar subscription.
+func (r *EventRepository) ListAllForExport(ctx context.Context, familyID string) ([]*model.Event, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT e.id, e.family_id, e.title, COALESCE(e.description,''), COALESCE(e.location,''),
+		        e.start_at, e.end_at, e.all_day, e.category_id,
+		        e.recurrence_rule, e.recurrence_parent_id, e.recurrence_date, e.cancelled,
+		        e.created_by, e.created_at, e.updated_at, e.type, e.birthday_of, e.important,
+		        COALESCE(array_agg(DISTINCT ea.user_id) FILTER (WHERE ea.user_id IS NOT NULL), ARRAY[]::text[])
+		 FROM events e
+		 LEFT JOIN event_attendees ea ON ea.event_id = e.id
+		 WHERE e.family_id = $1 AND e.subscription_id IS NULL
+		 GROUP BY e.id
+		 ORDER BY e.start_at`,
+		familyID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list events for export: %w", err)
+	}
+	defer rows.Close()
+
+	var result []*model.Event
+	for rows.Next() {
+		e := &model.Event{}
+		if err := scanEvent(rows, e); err != nil {
+			return nil, err
+		}
+		result = append(result, e)
+	}
+	return result, rows.Err()
+}
+
 func (r *EventRepository) syncAttendees(ctx context.Context, eventID string, userIDs []string) error {
 	if _, err := r.pool.Exec(ctx, `DELETE FROM event_attendees WHERE event_id=$1`, eventID); err != nil {
 		return err
