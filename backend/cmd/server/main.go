@@ -17,6 +17,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pidanou/homeboard/internal/config"
 	"github.com/pidanou/homeboard/internal/handler"
 	"github.com/pidanou/homeboard/internal/repository/postgres"
 	"github.com/pidanou/homeboard/internal/service"
@@ -57,6 +58,7 @@ func main() {
 
 	// Repositories
 	userRepo := postgres.NewUserRepository(pool)
+	oidcIdentityRepo := postgres.NewOIDCIdentityRepository(pool)
 	householdRepo := postgres.NewHouseholdRepository(pool)
 	inviteRepo := postgres.NewInviteRepository(pool)
 	taskRepo := postgres.NewTaskRepository(pool)
@@ -74,7 +76,23 @@ func main() {
 		os.Getenv("SMTP_FROM"),
 		os.Getenv("SMTP_TLS") == "true",
 	)
-	authService := service.NewAuthService(userRepo, os.Getenv("JWT_SECRET"), mailer)
+	authConfig := config.LoadAuth()
+	authService := service.NewAuthService(userRepo, authConfig.JWTSecret, mailer)
+	authService.SetAllowPasswordLogin(authConfig.AllowPasswordLogin)
+
+	var oidcHandler *handler.OIDCHandler
+	oidcProviderName := ""
+	if authConfig.OIDC != nil {
+		oidcService, err := service.NewOIDCService(context.Background(), *authConfig.OIDC, userRepo, oidcIdentityRepo, authService.IssueToken, authService.CheckRegistrationOpen)
+		if err != nil {
+			slog.Warn("oidc discovery failed, starting with OIDC disabled", "issuer", authConfig.OIDC.IssuerURL, "err", err)
+		} else {
+			handoffStore := service.NewOIDCHandoffStore()
+			oidcHandler = handler.NewOIDCHandler(oidcService, handoffStore, authConfig.JWTSecret, os.Getenv("APP_BASE_URL"), authConfig.OIDC.RedirectURL)
+			oidcProviderName = authConfig.OIDC.ProviderName
+		}
+	}
+
 	householdService := service.NewHouseholdService(householdRepo)
 	inviteService := service.NewInviteService(inviteRepo, householdRepo)
 	taskService := service.NewTaskService(taskRepo)
@@ -135,9 +153,15 @@ func main() {
 			json.NewEncoder(w).Encode(map[string]any{
 				"allowMultiHousehold": os.Getenv("ALLOW_MULTI_HOUSEHOLD") == "true",
 				"supportedLocales":    []string{"en", "fr", "es"},
+				"oidcEnabled":         oidcHandler != nil,
+				"oidcProviderName":    oidcProviderName,
+				"allowPasswordLogin":  authConfig.AllowPasswordLogin,
 			})
 		})
 		r.Mount("/auth", authHandler.Routes())
+		if oidcHandler != nil {
+			r.Mount("/auth/oidc", oidcHandler.Routes())
+		}
 		r.Mount("/invites", inviteHandler.PublicRoutes())
 		// SSE stream: does its own JWT auth via ?token= (EventSource can't set headers)
 		r.Route("/households/{familyID}/stream", func(r chi.Router) {

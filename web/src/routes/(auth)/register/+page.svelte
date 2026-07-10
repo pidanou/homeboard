@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { api } from '$lib/api/client';
@@ -7,6 +8,14 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import * as m from '$lib/paraglide/messages.js';
+	import { allowPasswordLogin } from '$lib/stores/config';
+
+	onMount(() => {
+		const unsubscribe = allowPasswordLogin.subscribe((allowed) => {
+			if (!allowed) goto(`${base}/login`);
+		});
+		return unsubscribe;
+	});
 
 	let name = $state('');
 	let email = $state('');

@@ -41,6 +41,10 @@ func (h *AuthHandler) register(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "registration is closed", http.StatusForbidden)
 			return
 		}
+		if errors.Is(err, service.ErrPasswordLoginDisabled) {
+			http.Error(w, "password login is disabled", http.StatusForbidden)
+			return
+		}
 		http.Error(w, "registration failed", http.StatusInternalServerError)
 		return
 	}
@@ -62,6 +66,10 @@ func (h *AuthHandler) login(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.auth.Login(r.Context(), body.Email, body.Password)
 	if err != nil {
+		if errors.Is(err, service.ErrPasswordLoginDisabled) {
+			http.Error(w, "password login is disabled", http.StatusForbidden)
+			return
+		}
 		http.Error(w, "invalid credentials", http.StatusUnauthorized)
 		return
 	}

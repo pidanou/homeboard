@@ -1,7 +1,13 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
+	import { loadConfig } from '$lib/stores/config';
 
 	let { children } = $props();
+
+	onMount(() => {
+		loadConfig();
+	});
 </script>
 
 <div class="min-h-screen flex items-center justify-center bg-background px-4 py-12">
