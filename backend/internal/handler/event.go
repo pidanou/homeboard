@@ -150,6 +150,7 @@ func (h *EventHandler) update(w http.ResponseWriter, r *http.Request) {
 			Title: body.Title, Description: body.Description, Location: body.Location,
 			StartAt: startAt.UTC(), EndAt: endAt.UTC(), AllDay: body.AllDay,
 			AttendeeIDs: body.AttendeeIDs, CategoryID: body.CategoryID,
+			BirthdayOf: body.BirthdayOf, Important: body.Important,
 		}
 		if err := h.events.UpdateOccurrence(r.Context(), parentID, familyID, userID, *occDate, exc); err != nil {
 			http.Error(w, "failed to update occurrence", http.StatusInternalServerError)

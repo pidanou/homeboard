@@ -235,7 +235,8 @@
 					start: ev.all_day ? ev.start_at : new Date(ev.start_at),
 					end: ev.all_day ? ev.end_at : new Date(ev.end_at),
 					allDay: ev.all_day,
-					editable: true,
+					startEditable: !ev.birthday_of,
+					durationEditable: !ev.birthday_of,
 					...(hex ? { backgroundColor: hex, borderColor: hex, textColor: '#fff' } : {}),
 					extendedProps: { type: 'event', data: ev },
 				};
@@ -388,7 +389,8 @@
 	async function patchEvent(ev: CalEvent, start: Date, end: Date, allDay: boolean) {
 		await api.patch(`/api/v1/households/${familyID}/events/${ev.id}`, {
 			title: ev.title, description: ev.description ?? '', location: ev.location ?? '',
-			start_at: start.toISOString(), end_at: end.toISOString(),
+			start_at: allDay ? toDateISO(start) : start.toISOString(),
+			end_at: allDay ? toDateISO(end) : end.toISOString(),
 			all_day: allDay, attendee_ids: ev.attendee_ids ?? [], category_id: ev.category_id,
 		});
 	}
