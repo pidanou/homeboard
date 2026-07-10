@@ -76,6 +76,7 @@ func (s *EventService) Update(ctx context.Context, event *model.Event) error {
 
 // UpdateOccurrence creates an exception row for a single occurrence.
 func (s *EventService) UpdateOccurrence(ctx context.Context, parentID, familyID, userID string, occDate time.Time, event *model.Event) error {
+	normalizeBirthday(event)
 	now := time.Now().UTC()
 	event.ID = fmt.Sprintf("%s::%s", parentID, occDate.Format("20060102"))
 	event.FamilyID = familyID

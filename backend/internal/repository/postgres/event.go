@@ -171,12 +171,17 @@ func expandRecurrences(e *model.Event, from, to time.Time) []*model.Event {
 func (r *EventRepository) CreateException(ctx context.Context, event *model.Event) error {
 	_, err := r.pool.Exec(ctx,
 		`INSERT INTO events (id, family_id, title, description, location, start_at, end_at, all_day,
-		  category_id, recurrence_rule, recurrence_parent_id, recurrence_date, cancelled, created_by, created_at, updated_at, type)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+		  category_id, recurrence_rule, recurrence_parent_id, recurrence_date, cancelled, created_by, created_at, updated_at, type, birthday_of, important)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+		 ON CONFLICT (id) DO UPDATE SET
+		   title=EXCLUDED.title, description=EXCLUDED.description, location=EXCLUDED.location,
+		   start_at=EXCLUDED.start_at, end_at=EXCLUDED.end_at, all_day=EXCLUDED.all_day,
+		   category_id=EXCLUDED.category_id, cancelled=EXCLUDED.cancelled, updated_at=EXCLUDED.updated_at,
+		   birthday_of=EXCLUDED.birthday_of, important=EXCLUDED.important`,
 		event.ID, event.FamilyID, event.Title, event.Description, event.Location,
 		event.StartAt, event.EndAt, event.AllDay, event.CategoryID,
 		nil, event.RecurrenceParentID, event.RecurrenceDate, false,
-		event.CreatedBy, event.CreatedAt, event.UpdatedAt, "default",
+		event.CreatedBy, event.CreatedAt, event.UpdatedAt, "default", event.BirthdayOf, event.Important,
 	)
 	if err != nil {
 		return err
