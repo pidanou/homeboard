@@ -212,11 +212,11 @@
 						</FormRow>
 					{/if}
 
-					<FormRow icon={Tag} align="start">
+					<FormRow icon={Tag}>
 						<CategoryPicker {familyID} {categories} bind:selectedID={efCategoryID} />
 					</FormRow>
 
-					<FormRow icon={AlignLeft} align="start">
+					<FormRow icon={AlignLeft}>
 						<Textarea bind:value={ef.description} placeholder={msg.dialog_notes_placeholder()} rows={2} />
 					</FormRow>
 				{:else if efBirthdayOf !== undefined}
@@ -291,7 +291,7 @@
 					</FormRow>
 
 					{#if members.length > 0}
-						<FormRow icon={Users} align="start">
+						<FormRow icon={Users}>
 							<div class="flex flex-col gap-1.5">
 								{#each members as mem}
 									<label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -306,11 +306,11 @@
 						</FormRow>
 					{/if}
 
-					<FormRow icon={Tag} align="start">
+					<FormRow icon={Tag}>
 						<CategoryPicker {familyID} {categories} bind:selectedID={efCategoryID} />
 					</FormRow>
 
-					<FormRow icon={AlignLeft} align="start">
+					<FormRow icon={AlignLeft}>
 						<Textarea bind:value={ef.description} placeholder={msg.dialog_notes_placeholder()} rows={2} />
 					</FormRow>
 				{/if}
