@@ -32,7 +32,9 @@
 			const star = ev.important ? '★ ' : '';
 			return {
 				id: ev.id, title: star + prefix + ev.title,
-				start: ev.start_at, end: ev.end_at, allDay: ev.all_day,
+				start: ev.all_day ? ev.start_at : new Date(ev.start_at),
+				end: ev.all_day ? ev.end_at : new Date(ev.end_at),
+				allDay: ev.all_day,
 				...(hex ? { backgroundColor: hex, borderColor: hex, textColor: '#fff' } : {}),
 				extendedProps: { type: 'event', data: ev },
 			};
