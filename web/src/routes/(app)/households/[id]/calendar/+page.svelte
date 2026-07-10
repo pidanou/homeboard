@@ -6,6 +6,9 @@
 	import { api, sseUrl } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
+	import * as Popover from '$lib/components/ui/popover';
+	import { Calendar as DatePicker } from '$lib/components/ui/calendar';
+	import { CalendarDate, type DateValue } from '@internationalized/date';
 	import { X, CalendarDays } from 'lucide-svelte';
 	import type { CalEvent, Task, Member, AppCategory } from '$lib/types';
 	import { dotClass, CATEGORY_HEX } from '$lib/categories';
@@ -401,6 +404,16 @@
 	}
 	function jumpToToday() { ecOptions.date = new Date(today); }
 
+	let jumpOpen = $state(false);
+	const jumpValue = $derived<DateValue>(
+		new CalendarDate(currentStart.getFullYear(), currentStart.getMonth() + 1, currentStart.getDate())
+	);
+	function jumpTo(v: DateValue | undefined) {
+		if (!v) return;
+		ecOptions.date = new Date(v.year, v.month - 1, v.day);
+		jumpOpen = false;
+	}
+
 	// ── Event / Task CRUD ──────────────────────────────────────────────────────
 	async function patchEvent(ev: CalEvent, start: Date, end: Date, allDay: boolean) {
 		await api.patch(`/api/v1/households/${familyID}/events/${ev.id}`, {
@@ -444,7 +457,14 @@
 
 		{#if appView !== 'agenda'}
 			<Button variant="outline" size="sm" onclick={prevPeriod} aria-label={msg.cal_previous_aria()}>‹</Button>
-			<span class="text-sm font-medium max-w-40 truncate text-center">{periodLabel}</span>
+			<Popover.Root bind:open={jumpOpen}>
+				<Popover.Trigger>
+					<span class="inline-block w-32 sm:w-40 truncate text-center text-sm font-medium hover:text-primary cursor-pointer">{periodLabel}</span>
+				</Popover.Trigger>
+				<Popover.Content class="w-auto p-0" align="center">
+					<DatePicker type="single" value={jumpValue} onValueChange={jumpTo} captionLayout="dropdown" />
+				</Popover.Content>
+			</Popover.Root>
 			<Button variant="outline" size="sm" onclick={nextPeriod} aria-label={msg.cal_next_aria()}>›</Button>
 			<Button variant="outline" size="sm" onclick={jumpToToday}>{msg.nav_today()}</Button>
 		{:else}
