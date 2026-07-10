@@ -456,17 +456,20 @@
 		</div>
 
 		{#if appView !== 'agenda'}
-			<Button variant="outline" size="sm" onclick={prevPeriod} aria-label={msg.cal_previous_aria()}>‹</Button>
+			<Button variant="outline" size="sm" onclick={jumpToToday}>{msg.nav_today()}</Button>
+			<div class="flex items-center rounded-md border border-border overflow-hidden shrink-0">
+				<button onclick={prevPeriod} aria-label={msg.cal_previous_aria()} class="h-8 w-8 flex items-center justify-center hover:bg-muted transition-colors cursor-pointer">‹</button>
+				<div class="w-px self-stretch bg-border"></div>
+				<button onclick={nextPeriod} aria-label={msg.cal_next_aria()} class="h-8 w-8 flex items-center justify-center hover:bg-muted transition-colors cursor-pointer">›</button>
+			</div>
 			<Popover.Root bind:open={jumpOpen}>
-				<Popover.Trigger>
-					<span class="inline-block w-32 sm:w-40 truncate text-center text-sm font-medium hover:text-primary cursor-pointer">{periodLabel}</span>
+				<Popover.Trigger class="h-8 px-2 flex items-center rounded-md text-sm font-medium hover:bg-muted transition-colors cursor-pointer">
+					<span class="w-32 sm:w-40 truncate text-left">{periodLabel}</span>
 				</Popover.Trigger>
-				<Popover.Content class="w-auto p-0" align="center">
+				<Popover.Content class="w-auto p-0" align="start">
 					<DatePicker type="single" value={jumpValue} onValueChange={jumpTo} captionLayout="dropdown" />
 				</Popover.Content>
 			</Popover.Root>
-			<Button variant="outline" size="sm" onclick={nextPeriod} aria-label={msg.cal_next_aria()}>›</Button>
-			<Button variant="outline" size="sm" onclick={jumpToToday}>{msg.nav_today()}</Button>
 		{:else}
 			<Button variant="outline" size="sm" onclick={scrollToToday}>{msg.nav_today()}</Button>
 		{/if}
