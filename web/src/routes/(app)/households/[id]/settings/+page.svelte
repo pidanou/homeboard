@@ -403,7 +403,7 @@
     }
 </script>
 
-<div class="px-4 md:px-6 pt-4 md:pt-6 pb-12">
+<div class="h-full overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-12">
     <div class="max-w-xl mx-auto flex flex-col gap-0 divide-y divide-border">
         <div class="pb-4">
             <h1 class="text-xl font-semibold">{msg.nav_settings()}</h1>
