@@ -82,5 +82,6 @@ func (h *CalendarExportHandler) serveICS(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
+	w.Header().Set("Content-Disposition", `attachment; filename="calendar.ics"`)
 	w.Write(data)
 }

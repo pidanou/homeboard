@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { api } from "$lib/api/client";
+    import { api, getBaseOrigin } from "$lib/api/client";
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
     import { X, RefreshCw } from "lucide-svelte";
@@ -19,23 +18,26 @@
     let newSubName = $state("");
     let newSubUrl = $state("");
     let syncingId = $state<string | null>(null);
+    let loaded = false;
 
-    onMount(async () => {
-        if (!isAdmin || !familyID) return;
-        const [tokenResult, subsResult] = await Promise.allSettled([
+    $effect(() => {
+        if (!isAdmin || !familyID || loaded) return;
+        loaded = true;
+        Promise.allSettled([
             api.get<CalendarExportToken | null>(
                 `/api/v1/households/${familyID}/calendar/export-token`,
             ),
             api.get<CalendarSubscription[]>(
                 `/api/v1/households/${familyID}/calendar/subscriptions`,
             ),
-        ]);
-        if (tokenResult.status === "fulfilled") exportToken = tokenResult.value;
-        if (subsResult.status === "fulfilled") subscriptions = subsResult.value ?? [];
+        ]).then(([tokenResult, subsResult]) => {
+            if (tokenResult.status === "fulfilled") exportToken = tokenResult.value;
+            if (subsResult.status === "fulfilled") subscriptions = subsResult.value ?? [];
+        });
     });
 
     function feedUrl(token: string) {
-        return `${location.origin}/api/v1/calendar/export/${token}.ics`;
+        return `${getBaseOrigin()}/api/v1/calendar/export/${token}.ics`;
     }
 
     async function generateExportToken() {
