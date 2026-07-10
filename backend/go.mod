@@ -4,6 +4,7 @@ go 1.25.5
 
 require (
 	github.com/SherClockHolmes/webpush-go v1.3.0
+	github.com/arran4/golang-ical v0.3.5
 	github.com/coreos/go-oidc/v3 v3.20.0
 	github.com/go-chi/chi/v5 v5.3.0
 	github.com/go-chi/cors v1.2.2

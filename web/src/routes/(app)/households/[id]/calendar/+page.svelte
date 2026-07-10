@@ -4,6 +4,7 @@
 	import { onMount, onDestroy, tick } from 'svelte';
 	import { Calendar, DayGrid, TimeGrid, Interaction } from '@event-calendar/core';
 	import { api, sseUrl } from '$lib/api/client';
+	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
 	import { X, CalendarDays } from 'lucide-svelte';
 	import type { CalEvent, Task, Member, AppCategory } from '$lib/types';
@@ -292,11 +293,22 @@
 			loadData(view.activeStart, view.activeEnd);
 		},
 		eventClick: ({ event }: any) => {
-			if (event.extendedProps.type === 'event') editDialog?.openEvent(event.extendedProps.data as CalEvent);
+			if (event.extendedProps.type === 'event') {
+				const data = event.extendedProps.data as CalEvent;
+				if (data.subscription_id) {
+					toast.info(msg.calendar_synced_readonly());
+					return;
+				}
+				editDialog?.openEvent(data);
+			}
 			else if (event.extendedProps.type === 'task') editDialog?.openTask(event.extendedProps.data as Task);
 		},
 		eventDrop: async ({ event, revert }: any) => {
 			try {
+				if (event.extendedProps.type === 'event' && (event.extendedProps.data as CalEvent).subscription_id) {
+					revert();
+					return;
+				}
 				if (event.extendedProps.type === 'task') {
 					const t = event.extendedProps.data as Task;
 					const newDate = event.allDay ? toDateISO(event.start as Date) : (event.start as Date).toISOString();
@@ -313,6 +325,10 @@
 			} catch { revert(); }
 		},
 		eventResize: async ({ event, revert }: any) => {
+			if (event.extendedProps.type === 'event' && (event.extendedProps.data as CalEvent).subscription_id) {
+				revert();
+				return;
+			}
 			try {
 				await patchEvent(event.extendedProps.data as CalEvent, event.start, event.end, event.allDay);
 				await loadData(viewStart, viewEnd);

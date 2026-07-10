@@ -14,4 +14,8 @@ type EventRepository interface {
 	Delete(ctx context.Context, eventID, familyID string) error
 	CreateException(ctx context.Context, event *model.Event) error
 	CancelOccurrence(ctx context.Context, parentID, familyID string, date time.Time) error
+	// UpsertExternal returns the row's actual id (pre-existing id on update, event.ID on insert).
+	UpsertExternal(ctx context.Context, event *model.Event) (string, error)
+	DeleteStaleExternal(ctx context.Context, subscriptionID string, keepUIDs []string) error
+	ListAllForExport(ctx context.Context, familyID string) ([]*model.Event, error)
 }

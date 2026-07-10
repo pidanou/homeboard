@@ -159,13 +159,22 @@ Full recurrence is out of scope for v1 but the data model should not preclude it
 
 ---
 
-## External calendar sync *(deferred)*
+## Calendar import / export / one-way sync
 
-| Feature | Notes |
+| Feature | Behavior |
 |---|---|
-| iCal export (.ics) | Per-family export URL, token-authenticated |
-| Google Calendar import | One-way pull of external events as read-only |
-| CalDAV server | Full two-way sync; requires significant backend work |
+| ICS export | Per-household, token-authenticated public `.ics` URL (`GET /api/v1/calendar/export/{token}.ics`), subscribable from Google/Apple/Outlook. Admin-managed: generate/regenerate/revoke from Settings. Exports every non-synced household event (recurrence rules and `EXDATE`/override exceptions carried over); does not export tasks. |
+| ICS import | One-time `.ics` file upload (Settings → Import calendar), parsed into real household events. Events missing a title or usable start time are skipped, not failed; the import reports `{imported, skipped}` counts. |
+| Subscription sync (one-way pull) | Household admin adds an external `.ics` URL as a subscription. The backend re-fetches it on a fixed interval (`CALENDAR_SYNC_INTERVAL`, default 1h) and reconciles: new feed VEVENTs create events, changed ones update in place (matched by `subscription_id` + the feed's `UID`), and VEVENTs no longer in the feed are deleted. Only `EXDATE` (occurrence cancellation) is honored from the feed. Events sourced from a subscription are read-only in the UI — editing/dragging is blocked; removing the subscription removes its events. |
+
+### Out of scope
+
+- CalDAV server (full two-way sync)
+- Google Calendar OAuth API integration (only generic `.ics` URL subscriptions are supported)
+- Two-way sync — subscribed events are pull-only and never written back to the source
+- `RECURRENCE-ID` overrides *from* an external feed — only `EXDATE` cancellation is honored; per-occurrence edits on the source calendar don't propagate as overrides
+- Exporting tasks via ICS (events only)
+- Per-user reminders on synced/imported events
 
 ---
 
@@ -190,3 +199,4 @@ Full recurrence is out of scope for v1 but the data model should not preclude it
 | No filter UI on calendar | Port filter panel from Board (by member, by label) |
 | No "Today" button | Add jump-to-today |
 | Swipe not implemented | Add swipe navigation for month/week |
+| No calendar import/export/sync | ✅ ICS export, ICS import, one-way subscription sync (see above) |

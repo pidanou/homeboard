@@ -66,6 +66,8 @@ func main() {
 	labelRepo := postgres.NewCategoryRepository(pool)
 	listRepo := postgres.NewListRepository(pool)
 	pushRepo := postgres.NewPushRepository(pool)
+	calendarExportTokenRepo := postgres.NewCalendarExportTokenRepository(pool)
+	calendarSubscriptionRepo := postgres.NewCalendarSubscriptionRepository(pool)
 
 	// Services
 	mailer := service.NewEmailService(
@@ -100,6 +102,9 @@ func main() {
 	labelService := service.NewCategoryService(labelRepo)
 	listService := service.NewListService(listRepo)
 	pushService := service.NewPushService(pushRepo, os.Getenv("VAPID_PRIVATE_KEY"), os.Getenv("VAPID_PUBLIC_KEY"), os.Getenv("VAPID_SUBJECT"))
+	calendarExportService := service.NewCalendarExportService(calendarExportTokenRepo, eventRepo, householdRepo)
+	calendarImportService := service.NewCalendarImportService(eventService)
+	calendarSyncService := service.NewCalendarSyncService(calendarSubscriptionRepo, eventRepo)
 
 	// SSE hub
 	hub := handler.NewHub()
@@ -119,6 +124,9 @@ func main() {
 	listHandler := handler.NewListHandler(listService, hub)
 	sseHandler := handler.NewSSEHandler(hub, os.Getenv("JWT_SECRET"), householdService)
 	pushHandler := handler.NewPushHandler(pushService, os.Getenv("VAPID_PUBLIC_KEY"))
+	calendarExportHandler := handler.NewCalendarExportHandler(calendarExportService, householdService)
+	calendarImportHandler := handler.NewCalendarImportHandler(calendarImportService, householdService)
+	calendarSubscriptionHandler := handler.NewCalendarSubscriptionHandler(calendarSyncService, householdService)
 
 	allowedOrigins := []string{"http://localhost:5173"}
 	if extra := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS")); extra == "*" {
@@ -163,6 +171,7 @@ func main() {
 			r.Mount("/auth/oidc", oidcHandler.Routes())
 		}
 		r.Mount("/invites", inviteHandler.PublicRoutes())
+		r.Mount("/calendar", calendarExportHandler.PublicRoutes())
 		// SSE stream: does its own JWT auth via ?token= (EventSource can't set headers)
 		r.Route("/households/{familyID}/stream", func(r chi.Router) {
 			r.Mount("/", sseHandler.Routes())
@@ -193,9 +202,40 @@ func main() {
 				r.Use(handler.RequireFamilyMember(householdService))
 				r.Mount("/", listHandler.Routes())
 			})
+			r.Route("/households/{familyID}/calendar/export-token", func(r chi.Router) {
+				r.Use(handler.RequireFamilyMember(householdService))
+				r.Mount("/", calendarExportHandler.Routes())
+			})
+			r.Route("/households/{familyID}/calendar/import", func(r chi.Router) {
+				r.Use(handler.RequireFamilyMember(householdService))
+				r.Mount("/", calendarImportHandler.Routes())
+			})
+			r.Route("/households/{familyID}/calendar/subscriptions", func(r chi.Router) {
+				r.Use(handler.RequireFamilyMember(householdService))
+				r.Mount("/", calendarSubscriptionHandler.Routes())
+			})
 			r.Mount("/push", pushHandler.Routes())
 		})
 	})
+
+	syncInterval := 1 * time.Hour
+	if v := os.Getenv("CALENDAR_SYNC_INTERVAL"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			syncInterval = d
+		} else {
+			slog.Warn("invalid CALENDAR_SYNC_INTERVAL, using default", "value", v, "err", err)
+		}
+	}
+	if syncInterval < 5*time.Minute {
+		syncInterval = 5 * time.Minute
+	}
+	go func() {
+		ticker := time.NewTicker(syncInterval)
+		defer ticker.Stop()
+		for range ticker.C {
+			calendarSyncService.SyncAll(context.Background())
+		}
+	}()
 
 	port := os.Getenv("PORT")
 	if port == "" {
