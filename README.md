@@ -48,6 +48,7 @@ Real-time sync across every device. Install as a PWA or native iOS/Android app.
 | ⚡ **Real-time sync** | All changes pushed instantly to every family member via SSE |
 | 👶 **Virtual members** | Add kids or non-app members; link to a real account later |
 | 🔐 **Roles** | Admin and member roles with access control |
+| 🔑 **SSO / OIDC** | Sign in with any OIDC-compliant provider (Authentik, Keycloak, Authelia, Zitadel, ...) |
 | 📱 **PWA** | Installable on iOS, Android, and desktop — no app store needed |
 | 🔔 **Push notifications** | Get notified when events or tasks are added — Chrome, Firefox, Edge, Android |
 
@@ -86,6 +87,12 @@ Config is split into two files: `back.env` (backend + database) and `front.env` 
 | `UPLOAD_DIR` | | Directory for avatar uploads (defaults to `./uploads`) |
 | `ALLOW_REGISTRATION` | | Set to `true` to re-open registration after the first user exists |
 | `ALLOW_MULTI_HOUSEHOLD` | | Set to `true` to allow multiple households per user |
+| `ALLOW_PASSWORD_LOGIN` | | Set to `false` to disable email/password login and require OIDC (default `true`) |
+| `OIDC_ISSUER_URL` | for OIDC | Issuer URL of your OIDC provider, e.g. `https://auth.example.com/application/o/homeboard/` |
+| `OIDC_CLIENT_ID` | for OIDC | OIDC client ID |
+| `OIDC_CLIENT_SECRET` | for OIDC | OIDC client secret |
+| `OIDC_REDIRECT_URL` | | Override the callback URL — defaults to `${API_BASE_URL}/api/v1/auth/oidc/callback` |
+| `OIDC_PROVIDER_NAME` | | Name shown on the login button, e.g. "Authentik" (default `SSO`) |
 | `SMTP_HOST` | | SMTP server hostname — leave empty to disable email notifications |
 | `SMTP_PORT` | | SMTP port (default: `587`) |
 | `SMTP_USER` | | SMTP username |
@@ -158,6 +165,33 @@ SMTP_PASS=yourpassword
 SMTP_FROM=noreply@example.com   # optional, falls back to SMTP_USER
 SMTP_TLS=false
 ```
+
+### Single sign-on (OIDC, optional)
+
+Homeboard works with any OIDC-compliant identity provider (Authentik, Keycloak, Authelia, Zitadel, ...) — there's no per-provider integration, just a standard OIDC client. Set all three of `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, and `OIDC_CLIENT_SECRET` to enable it; leave any one empty to keep it disabled.
+
+1. In your IdP, create a new OIDC/OAuth2 application with:
+   - **Redirect URI**: `${API_BASE_URL}/api/v1/auth/oidc/callback` (e.g. `https://api.yourdomain.com/api/v1/auth/oidc/callback`)
+   - **Grant type**: Authorization Code (with PKCE if your IdP requires opting in)
+   - **Scopes**: `openid email profile`
+2. Copy the issuer URL, client ID, and client secret into your `.env`:
+
+```env
+OIDC_ISSUER_URL=https://auth.yourdomain.com/application/o/homeboard/
+OIDC_CLIENT_ID=your-client-id
+OIDC_CLIENT_SECRET=your-client-secret
+OIDC_PROVIDER_NAME=Authentik   # shown on the login button, e.g. "Sign in with Authentik"
+```
+
+3. Restart the backend — a "Sign in with {provider}" button appears on the login page automatically once discovery succeeds.
+
+Notes:
+- The IdP must assert `email_verified: true` — logins with an unverified email are rejected outright, and an existing password account is only auto-linked to an OIDC identity on a verified-email match.
+- New OIDC users are still subject to `ALLOW_REGISTRATION` — if registration is closed, only already-known users (or verified-email matches to an existing account) can log in via OIDC.
+- Set `ALLOW_PASSWORD_LOGIN=false` to hide the email/password form entirely and go OIDC-only.
+- If your reverse proxy rewrites paths (e.g. the API isn't served at the root of its domain), set `OIDC_REDIRECT_URL` explicitly to match what you registered with the IdP.
+
+See `docs/specs/auth.md` for the full flow (PKCE, nonce/state handling, account-linking rules).
 
 ### Reverse proxy
 
