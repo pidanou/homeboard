@@ -22,3 +22,6 @@ Thumbs.db
 # Android Studio
 web/android/.idea/deploymentTargetSelector.xml
 web/android/.idea/
+
+# tokensave (local code-graph cache)
+.tokensave/
