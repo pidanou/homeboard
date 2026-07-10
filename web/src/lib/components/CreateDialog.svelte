@@ -13,8 +13,9 @@
 	import { RangeCalendar } from '$lib/components/ui/range-calendar';
 	import type { DateRange } from 'bits-ui';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
-	import { CalendarDays } from 'lucide-svelte';
+	import { CalendarDays, Clock, User, Users, MapPin, Repeat, Tag, AlignLeft } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
+	import FormRow from '$lib/components/FormRow.svelte';
 	import * as msg from '$lib/paraglide/messages.js';
 	let { familyID, members, categories, onCreated }: {
 		familyID: string;
@@ -38,7 +39,6 @@
 	let cfEventPickerOpen = $state(false);
 	let cfCategoryID = $state<string | undefined>(undefined);
 	let cfBirthdayOf = $state('');
-	let cfShowMore = $state(false);
 
 	const REPEAT_LABELS: Record<string, string> = $derived({
 		none: msg.repeat_none(), daily: msg.repeat_daily(), weekly: msg.repeat_weekly(), monthly: msg.repeat_monthly(), yearly: msg.repeat_yearly()
@@ -70,7 +70,6 @@
 		cfCategoryID = undefined;
 		cfBirthdayOf = '';
 		cfRepeat = 'none';
-		cfShowMore = false;
 		isOpen = true;
 	}
 
@@ -157,17 +156,16 @@
 				{/if}
 
 				{#if createType === 'task'}
-					<!-- Task primary: important + due date -->
-					<div class="flex flex-col gap-2">
-						<label class="flex items-center gap-2 text-sm cursor-pointer">
-							<Checkbox bind:checked={cf.important} />
-							{msg.dialog_important()}
-						</label>
+					<label class="flex items-center gap-2 text-sm cursor-pointer">
+						<Checkbox bind:checked={cf.important} />
+						{msg.dialog_important()}
+					</label>
+
+					<FormRow icon={CalendarDays}>
 						<div class="flex items-center gap-2">
 							<Popover.Root bind:open={cfDueOpen}>
 								<Popover.Trigger class="flex-1">
-									<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
-										<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
+									<Button variant="outline" class="w-full justify-start font-normal text-sm">
 										{cfDueDate ? fmtCalDate(cfDueDate) : msg.dialog_no_due_date()}
 									</Button>
 								</Popover.Trigger>
@@ -179,13 +177,12 @@
 								<Input type="time" bind:value={cfDueTime} class="w-32 shrink-0" />
 							{/if}
 						</div>
-					</div>
+					</FormRow>
 
-					<!-- Task secondary -->
-					{#if cfShowMore}
-						{#if members.length > 0}
+					{#if members.length > 0}
+						<FormRow icon={User}>
 							<Select.Root type="single" bind:value={cf.assignedTo}>
-							<Select.Trigger class="w-full">{members.find(mem => mem.user_id === cf.assignedTo)?.name ?? msg.dialog_unassigned()}</Select.Trigger>
+								<Select.Trigger class="w-full">{members.find(mem => mem.user_id === cf.assignedTo)?.name ?? msg.dialog_unassigned()}</Select.Trigger>
 								<Select.Content>
 									<Select.Item value="">{msg.dialog_unassigned()}</Select.Item>
 									{#each members as mem}
@@ -193,58 +190,67 @@
 									{/each}
 								</Select.Content>
 							</Select.Root>
-						{/if}
-						<Textarea bind:value={cf.description} placeholder={msg.dialog_notes_placeholder()} rows={2} />
-						<CategoryPicker {familyID} {categories} bind:selectedID={cfCategoryID} />
-					{/if}
-				{:else if createType === 'birthday'}
-					<!-- Birthday: single date picker -->
-					<Popover.Root bind:open={cfDueOpen}>
-						<Popover.Trigger class="flex-1">
-							<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
-								<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
-								{cfDueDate ? fmtCalDate(cfDueDate) : msg.dialog_birthday_date_placeholder()}
-							</Button>
-						</Popover.Trigger>
-						<Popover.Content class="w-auto p-0" align="start">
-							<Calendar type="single" bind:value={cfDueDate} onValueChange={() => (cfDueOpen = false)} />
-						</Popover.Content>
-					</Popover.Root>
-				{:else}
-					<!-- Event primary: dates, all day, times -->
-					<Popover.Root bind:open={cfEventPickerOpen}>
-						<Popover.Trigger>
-							<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
-								<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
-								{rangeLabelFor(cfEventRange)}
-							</Button>
-						</Popover.Trigger>
-						<Popover.Content class="w-auto p-0" align="start">
-							<RangeCalendar
-								bind:value={cfEventRange}
-								onValueChange={() => { if (cfEventRange.start && cfEventRange.end) cfEventPickerOpen = false; }}
-							/>
-						</Popover.Content>
-					</Popover.Root>
-					<div class="flex items-center gap-4">
-						<label class="flex items-center gap-2 text-sm cursor-pointer">
-							<Checkbox bind:checked={cf.allDay} />
-							{msg.dialog_all_day()}
-						</label>
-						<label class="flex items-center gap-2 text-sm cursor-pointer">
-							<Checkbox bind:checked={cf.important} />
-							{msg.dialog_important()}
-						</label>
-					</div>
-					{#if !cf.allDay}
-						<div class="flex gap-2">
-							<Input type="time" bind:value={cfStartTime} class="flex-1" />
-							<Input type="time" bind:value={cfEndTime} class="flex-1" />
-						</div>
+						</FormRow>
 					{/if}
 
-					<!-- Event secondary -->
-					{#if cfShowMore}
+					<FormRow icon={Tag} align="start">
+						<CategoryPicker {familyID} {categories} bind:selectedID={cfCategoryID} />
+					</FormRow>
+
+					<FormRow icon={AlignLeft} align="start">
+						<Textarea bind:value={cf.description} placeholder={msg.dialog_notes_placeholder()} rows={2} />
+					</FormRow>
+				{:else if createType === 'birthday'}
+					<!-- Birthday: single date picker -->
+					<FormRow icon={CalendarDays}>
+						<Popover.Root bind:open={cfDueOpen}>
+							<Popover.Trigger class="flex-1">
+								<Button variant="outline" class="w-full justify-start font-normal text-sm">
+									{cfDueDate ? fmtCalDate(cfDueDate) : msg.dialog_birthday_date_placeholder()}
+								</Button>
+							</Popover.Trigger>
+							<Popover.Content class="w-auto p-0" align="start">
+								<Calendar type="single" bind:value={cfDueDate} onValueChange={() => (cfDueOpen = false)} />
+							</Popover.Content>
+						</Popover.Root>
+					</FormRow>
+				{:else}
+					<FormRow icon={CalendarDays}>
+						<Popover.Root bind:open={cfEventPickerOpen}>
+							<Popover.Trigger class="w-full">
+								<Button variant="outline" class="w-full justify-start font-normal text-sm">
+									{rangeLabelFor(cfEventRange)}
+								</Button>
+							</Popover.Trigger>
+							<Popover.Content class="w-auto p-0" align="start">
+								<RangeCalendar
+									bind:value={cfEventRange}
+									onValueChange={() => { if (cfEventRange.start && cfEventRange.end) cfEventPickerOpen = false; }}
+								/>
+							</Popover.Content>
+						</Popover.Root>
+					</FormRow>
+
+					<FormRow icon={Clock}>
+						<div class="flex items-center gap-3 flex-wrap">
+							<label class="flex items-center gap-2 text-sm cursor-pointer">
+								<Checkbox bind:checked={cf.allDay} />
+								{msg.dialog_all_day()}
+							</label>
+							{#if !cf.allDay}
+								<Input type="time" bind:value={cfStartTime} class="w-28" />
+								<span class="text-muted-foreground text-sm">–</span>
+								<Input type="time" bind:value={cfEndTime} class="w-28" />
+							{/if}
+						</div>
+					</FormRow>
+
+					<label class="flex items-center gap-2 text-sm cursor-pointer">
+						<Checkbox bind:checked={cf.important} />
+						{msg.dialog_important()}
+					</label>
+
+					<FormRow icon={Repeat}>
 						<Select.Root type="single" bind:value={cfRepeat}>
 							<Select.Trigger class="w-full">{REPEAT_LABELS[cfRepeat] ?? msg.repeat_none()}</Select.Trigger>
 							<Select.Content>
@@ -255,8 +261,14 @@
 								<Select.Item value="yearly">{msg.repeat_yearly()}</Select.Item>
 							</Select.Content>
 						</Select.Root>
+					</FormRow>
+
+					<FormRow icon={MapPin}>
 						<Input bind:value={cf.location} placeholder={msg.dialog_location_placeholder()} />
-						{#if members.length > 0}
+					</FormRow>
+
+					{#if members.length > 0}
+						<FormRow icon={Users} align="start">
 							<div class="flex flex-col gap-1.5">
 								{#each members as mem}
 									<label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -268,16 +280,17 @@
 									</label>
 								{/each}
 							</div>
-						{/if}
-						<Textarea bind:value={cf.description} placeholder={msg.dialog_notes_placeholder()} rows={2} />
-						<CategoryPicker {familyID} {categories} bind:selectedID={cfCategoryID} />
+						</FormRow>
 					{/if}
-				{/if}
 
-				<button
-					class="text-xs text-muted-foreground hover:text-foreground transition-colors text-left w-fit"
-					onclick={() => (cfShowMore = !cfShowMore)}
-				>{cfShowMore ? msg.dialog_less_options() : msg.dialog_more_options()}</button>
+					<FormRow icon={Tag} align="start">
+						<CategoryPicker {familyID} {categories} bind:selectedID={cfCategoryID} />
+					</FormRow>
+
+					<FormRow icon={AlignLeft} align="start">
+						<Textarea bind:value={cf.description} placeholder={msg.dialog_notes_placeholder()} rows={2} />
+					</FormRow>
+				{/if}
 			</div>
 
 			<Dialog.Footer class="gap-2">
