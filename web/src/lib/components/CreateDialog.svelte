@@ -268,7 +268,7 @@
 					</FormRow>
 
 					{#if members.length > 0}
-						<FormRow icon={Users}>
+						<FormRow icon={Users} compact>
 							<div class="flex flex-col gap-1.5">
 								{#each members as mem}
 									<label class="flex items-center gap-2 text-sm cursor-pointer">
