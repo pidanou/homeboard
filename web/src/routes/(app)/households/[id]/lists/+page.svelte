@@ -29,6 +29,8 @@
 
 	function focusSelect(el: HTMLElement) { (el as HTMLInputElement).focus(); (el as HTMLInputElement).select(); }
 
+	function capitalize(s: string): string { return s.charAt(0).toUpperCase() + s.slice(1); }
+
 	async function loadAll() {
 		const res = await api.get<AppList[]>(`/api/v1/households/${familyID}/lists`);
 		lists = res ?? [];
@@ -56,7 +58,7 @@
 	async function createList() {
 		if (!newListName.trim()) return;
 		try {
-			const list = await api.post<AppList>(`/api/v1/households/${familyID}/lists`, { name: newListName.trim() });
+			const list = await api.post<AppList>(`/api/v1/households/${familyID}/lists`, { name: capitalize(newListName.trim()) });
 			lists = [...lists, list];
 			itemsByList = { ...itemsByList, [list.id]: [] };
 			activeListID = list.id;
@@ -77,7 +79,7 @@
 	}
 
 	async function addItem(listID: string) {
-		const name = (newItemByList[listID] ?? '').trim();
+		const name = capitalize((newItemByList[listID] ?? '').trim());
 		if (!name) return;
 		try {
 			const item = await api.post<AppListItem>(`/api/v1/households/${familyID}/lists/${listID}/items`, { name });
@@ -126,9 +128,10 @@
 
 	async function submitRenameList() {
 		if (!renamingListID || !renameListValue.trim()) { renamingListID = null; return; }
+		const name = capitalize(renameListValue.trim());
 		try {
-			await api.patch(`/api/v1/households/${familyID}/lists/${renamingListID}`, { name: renameListValue.trim() });
-			lists = lists.map(l => l.id === renamingListID ? { ...l, name: renameListValue.trim() } : l);
+			await api.patch(`/api/v1/households/${familyID}/lists/${renamingListID}`, { name });
+			lists = lists.map(l => l.id === renamingListID ? { ...l, name } : l);
 		} catch {}
 		renamingListID = null;
 	}
@@ -138,11 +141,12 @@
 		const { listID, itemID } = renamingItem;
 		const item = (itemsByList[listID] ?? []).find(i => i.id === itemID);
 		if (!item) { renamingItem = null; return; }
+		const name = capitalize(renameItemValue.trim());
 		try {
-			await api.patch(`/api/v1/households/${familyID}/lists/${listID}/items/${itemID}`, { name: renameItemValue.trim(), checked: item.checked });
+			await api.patch(`/api/v1/households/${familyID}/lists/${listID}/items/${itemID}`, { name, checked: item.checked });
 			itemsByList = {
 				...itemsByList,
-				[listID]: (itemsByList[listID] ?? []).map(i => i.id === itemID ? { ...i, name: renameItemValue.trim() } : i),
+				[listID]: (itemsByList[listID] ?? []).map(i => i.id === itemID ? { ...i, name } : i),
 			};
 		} catch {}
 		renamingItem = null;

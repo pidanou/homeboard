@@ -216,6 +216,14 @@
 	let previewAnchor = $state<{ getBoundingClientRect: () => DOMRect } | null>(null);
 	let previewItem = $state<{ kind: 'task'; data: Task } | { kind: 'event'; data: CalEvent } | null>(null);
 
+	// Dismissing the preview via an outside click still lets that same click
+	// bubble to the calendar's own dateClick/select handler. Swallow the next one.
+	let suppressNextCalendarClick = false;
+	function onPreviewInteractOutside() {
+		suppressNextCalendarClick = true;
+		setTimeout(() => (suppressNextCalendarClick = false), 0);
+	}
+
 	function showPreview(kind: 'task' | 'event', data: Task | CalEvent, jsEvent: MouseEvent) {
 		const { clientX, clientY } = jsEvent;
 		previewAnchor = { getBoundingClientRect: () => new DOMRect(clientX, clientY, 0, 0) };
@@ -353,8 +361,12 @@
 				await loadData(viewStart, viewEnd);
 			} catch { revert(); }
 		},
-		dateClick: ({ date, allDay }: any) => { createDialog?.open('event', date, date, allDay); },
+		dateClick: ({ date, allDay }: any) => {
+			if (suppressNextCalendarClick) { suppressNextCalendarClick = false; return; }
+			createDialog?.open('event', date, date, allDay);
+		},
 		select: ({ start, end, allDay }: any) => {
+			if (suppressNextCalendarClick) { suppressNextCalendarClick = false; return; }
 			const s = start as Date;
 			// allDay select: end is exclusive (next day), clamp back one ms
 			const e = allDay ? new Date((end as Date).getTime() - 1) : end as Date;
@@ -676,7 +688,11 @@
 />
 
 <Popover.Root bind:open={previewOpen}>
-	<Popover.Content customAnchor={previewAnchor} class="w-80 relative">
+	<Popover.Content
+		customAnchor={previewAnchor}
+		class="w-80 relative"
+		onInteractOutside={onPreviewInteractOutside}
+	>
 		{#if previewItem}
 			{@const openEdit = () => {
 				previewOpen = false;
