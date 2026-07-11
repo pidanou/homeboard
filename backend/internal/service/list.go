@@ -64,3 +64,7 @@ func (s *ListService) DeleteItem(ctx context.Context, itemID, listID, familyID s
 func (s *ListService) ClearChecked(ctx context.Context, listID, familyID string) error {
 	return s.lists.DeleteCheckedItems(ctx, listID, familyID)
 }
+
+func (s *ListService) ReorderItems(ctx context.Context, listID, familyID string, orderedIDs []string) error {
+	return s.lists.ReorderItems(ctx, listID, familyID, orderedIDs)
+}

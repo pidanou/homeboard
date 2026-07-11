@@ -17,4 +17,5 @@ type ListRepository interface {
 	UpdateItem(ctx context.Context, item *model.ListItem, familyID string) error
 	DeleteItem(ctx context.Context, itemID, listID, familyID string) error
 	DeleteCheckedItems(ctx context.Context, listID, familyID string) error
+	ReorderItems(ctx context.Context, listID, familyID string, orderedIDs []string) error
 }

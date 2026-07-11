@@ -182,6 +182,7 @@
 	"lists_delete_question": "Supprimer ?",
 	"lists_rename_aria": "Renommer la liste",
 	"lists_drag_aria": "Faire glisser pour réorganiser",
+	"lists_drag_item_aria": "Faire glisser pour réorganiser l'article",
 	"lists_delete_list_aria": "Supprimer la liste",
 	"lists_add_item_placeholder": "Ajouter un article…",
 	"lists_add_item_aria": "Ajouter un article",

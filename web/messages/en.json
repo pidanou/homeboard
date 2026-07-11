@@ -182,6 +182,7 @@
 	"lists_delete_question": "Delete?",
 	"lists_rename_aria": "Rename list",
 	"lists_drag_aria": "Drag to reorder list",
+	"lists_drag_item_aria": "Drag to reorder item",
 	"lists_delete_list_aria": "Delete list",
 	"lists_add_item_placeholder": "Add item…",
 	"lists_add_item_aria": "Add item",
