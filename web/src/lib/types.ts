@@ -67,6 +67,7 @@ export type AppListItem = {
 	checked: boolean;
 	created_at: string;
 	checked_at?: string;
+	manual_order?: number | null;
 };
 
 export type CalendarExportToken = {

@@ -26,6 +26,7 @@ func (h *ListHandler) Routes() http.Handler {
 	r.Delete("/{listID}", h.deleteList)
 	r.Get("/{listID}/items", h.listItems)
 	r.Post("/{listID}/items", h.addItem)
+	r.Patch("/{listID}/items/reorder", h.reorderItems) // static route, must precede /{itemID}
 	r.Patch("/{listID}/items/{itemID}", h.updateItem)
 	r.Delete("/{listID}/items/checked", h.clearChecked) // must precede /{itemID}
 	r.Delete("/{listID}/items/{itemID}", h.deleteItem)
@@ -172,6 +173,24 @@ func (h *ListHandler) clearChecked(w http.ResponseWriter, r *http.Request) {
 	listID := chi.URLParam(r, "listID")
 	if err := h.lists.ClearChecked(r.Context(), listID, familyID); err != nil {
 		http.Error(w, "failed to clear checked items", http.StatusInternalServerError)
+		return
+	}
+	h.hub.Broadcast(familyID)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *ListHandler) reorderItems(w http.ResponseWriter, r *http.Request) {
+	familyID := chi.URLParam(r, "familyID")
+	listID := chi.URLParam(r, "listID")
+	var body struct {
+		IDs []string `json:"ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || len(body.IDs) == 0 {
+		http.Error(w, "ids is required", http.StatusBadRequest)
+		return
+	}
+	if err := h.lists.ReorderItems(r.Context(), listID, familyID, body.IDs); err != nil {
+		http.Error(w, "failed to reorder items", http.StatusInternalServerError)
 		return
 	}
 	h.hub.Broadcast(familyID)

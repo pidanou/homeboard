@@ -46,6 +46,11 @@ A **List** is a named checklist scoped to the family. The canonical use case is 
 - Tap × icon → immediate delete, no confirmation
 - Rationale: grocery items are low-stakes, undo is not needed
 
+### Reordering items
+- Drag handle on unchecked ("To buy") items only — grip icon, drag via pointer events (same mechanism as list tab reordering)
+- New items still default to the top (newest first) until manually reordered
+- Checked ("In cart") items are not reorderable — they stay ordered by `checked_at DESC`
+
 ### Renaming an item *(not yet implemented)*
 - Tap the item's text (not the checkbox) → inline edit
 - Confirm on Enter or blur, cancel on Escape
@@ -102,7 +107,6 @@ A **List** is a named checklist scoped to the family. The canonical use case is 
 |---|---|
 | Item categories / aisle grouping | Useful but complex; solves a problem only on long lists |
 | Quantity + unit (e.g. "2× Milk") | Nice to have, adds friction to quick-add flow |
-| Drag to reorder | Complex on mobile; creation-order is good enough |
 | Shared link / guest access | Not v1 |
 | Recurring items ("always buy milk") | Requires a different data model |
 | List templates | YAGNI until users request it |
@@ -119,4 +123,5 @@ A **List** is a named checklist scoped to the family. The canonical use case is 
 | ✅ "In cart" hidden when empty | — |
 | ✅ Section headers show count | — |
 | ✅ "All done!" nudge when to-buy empty but cart has items | — |
+| ✅ Drag-to-reorder unchecked items (grip handle, `manual_order` column) | — |
 | Not implemented: inline item rename | Tap item text → inline edit |

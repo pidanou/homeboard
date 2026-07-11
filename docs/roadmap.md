@@ -68,6 +68,7 @@ Full UI structure.
 - ✅ Delete list: inline confirmation banner showing item count
 - ✅ Active list ID persisted to `localStorage` (per family)
 - ✅ "All done! Tap Clear all when you're home." nudge when to-buy is empty but cart has items
+- ✅ Drag-to-reorder items within "To buy" (`manual_order` column, migration 000033, `PATCH .../items/reorder`)
 
 ---
 

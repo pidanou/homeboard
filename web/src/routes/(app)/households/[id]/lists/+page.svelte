@@ -8,6 +8,7 @@
 	import { X, Plus, Pencil, CornerDownLeft, Trash2, GripVertical } from 'lucide-svelte';
 	import type { AppList, AppListItem } from '$lib/types';
 	import * as msg from '$lib/paraglide/messages.js';
+	import { sortable } from '$lib/sortable';
 
 	const familyID = $derived($page.params.id ?? '');
 
@@ -111,6 +112,18 @@
 		} catch {}
 	}
 
+	async function reorderItems(listID: string, ids: string[]) {
+		const prev = itemsByList[listID] ?? [];
+		const reordered = ids.map((id, i) => ({ ...prev.find(p => p.id === id)!, manual_order: i }));
+		const rest = prev.filter(i => i.checked);
+		itemsByList = { ...itemsByList, [listID]: [...reordered, ...rest] };
+		try {
+			await api.patch(`/api/v1/households/${familyID}/lists/${listID}/items/reorder`, { ids });
+		} catch {
+			itemsByList = { ...itemsByList, [listID]: prev };
+		}
+	}
+
 	async function submitRenameList() {
 		if (!renamingListID || !renameListValue.trim()) { renamingListID = null; return; }
 		try {
@@ -138,7 +151,12 @@
 	function unchecked(listID: string) {
 		return (itemsByList[listID] ?? [])
 			.filter(i => !i.checked)
-			.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+			.sort((a, b) => {
+				if (a.manual_order != null && b.manual_order != null) return a.manual_order - b.manual_order;
+				if (a.manual_order != null) return -1;
+				if (b.manual_order != null) return 1;
+				return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+			});
 	}
 
 	function checked(listID: string) {
@@ -297,31 +315,38 @@
 		{#if uncheckedItems.length === 0 && checkedItems.length === 0}
 			<p class="text-sm text-muted-foreground text-center py-16 italic">{msg.lists_empty_hint()}</p>
 		{:else}
-			<div class="flex flex-col divide-y divide-border pb-8">
-				{#each uncheckedItems as item (item.id)}
-					<div class="flex items-center gap-3 px-4 py-3">
-						<Checkbox checked={false} onCheckedChange={() => toggleItem(lid, item)} />
-						<span class="flex-1 text-sm">{item.name}</span>
-						<button onclick={() => deleteItem(lid, item.id)} class="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0" aria-label={msg.edit_dialog_delete()}>
-							<X class="w-3.5 h-3.5" />
-						</button>
-					</div>
-				{/each}
-
-				{#if checkedItems.length > 0}
-					<div class="flex items-center justify-between px-4 py-2 bg-muted/40">
-						<span class="text-xs font-medium text-muted-foreground">{msg.lists_in_cart({ count: checkedItems.length })}</span>
-						<button onclick={() => clearChecked(lid)} class="text-xs text-muted-foreground hover:text-foreground transition-colors">{msg.lists_clear_all()}</button>
-					</div>
-					{#each checkedItems as item (item.id)}
-						<div class="flex items-center gap-3 px-4 py-3 opacity-50">
-							<Checkbox checked={true} onCheckedChange={() => toggleItem(lid, item)} />
-							<span class="flex-1 text-sm line-through">{item.name}</span>
+			<div class="flex flex-col pb-8">
+				<div class="flex flex-col divide-y divide-border" use:sortable={{ onReorder: (ids: string[]) => reorderItems(lid, ids) }}>
+					{#each uncheckedItems as item (item.id)}
+						<div class="flex items-center gap-2 px-4 py-3" data-id={item.id}>
+							<div data-drag-handle aria-label={msg.lists_drag_item_aria()} class="cursor-grab active:cursor-grabbing touch-none p-1 -ml-1 shrink-0 text-muted-foreground/40">
+								<GripVertical class="w-3.5 h-3.5" />
+							</div>
+							<Checkbox checked={false} onCheckedChange={() => toggleItem(lid, item)} />
+							<span class="flex-1 text-sm">{item.name}</span>
 							<button onclick={() => deleteItem(lid, item.id)} class="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0" aria-label={msg.edit_dialog_delete()}>
 								<X class="w-3.5 h-3.5" />
 							</button>
 						</div>
 					{/each}
+				</div>
+
+				{#if checkedItems.length > 0}
+					<div class="flex flex-col divide-y divide-border border-t border-border">
+						<div class="flex items-center justify-between px-4 py-2 bg-muted/40">
+							<span class="text-xs font-medium text-muted-foreground">{msg.lists_in_cart({ count: checkedItems.length })}</span>
+							<button onclick={() => clearChecked(lid)} class="text-xs text-muted-foreground hover:text-foreground transition-colors">{msg.lists_clear_all()}</button>
+						</div>
+						{#each checkedItems as item (item.id)}
+							<div class="flex items-center gap-3 px-4 py-3 opacity-50">
+								<Checkbox checked={true} onCheckedChange={() => toggleItem(lid, item)} />
+								<span class="flex-1 text-sm line-through">{item.name}</span>
+								<button onclick={() => deleteItem(lid, item.id)} class="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0" aria-label={msg.edit_dialog_delete()}>
+									<X class="w-3.5 h-3.5" />
+								</button>
+							</div>
+						{/each}
+					</div>
 				{/if}
 			</div>
 		{/if}
@@ -459,9 +484,12 @@
 					{#if uncheckedItems.length === 0 && checkedItems.length === 0}
 						<p class="text-xs text-muted-foreground text-center py-8 italic">{msg.lists_empty_desktop()}</p>
 					{:else}
-						<div class="flex flex-col divide-y divide-border">
+						<div class="flex flex-col divide-y divide-border" use:sortable={{ onReorder: (ids: string[]) => reorderItems(list.id, ids) }}>
 							{#each uncheckedItems as item (item.id)}
-								<div class="flex items-center gap-3 px-4 py-2.5">
+								<div class="flex items-center gap-2 px-4 py-2.5" data-id={item.id}>
+									<div data-drag-handle aria-label={msg.lists_drag_item_aria()} class="cursor-grab active:cursor-grabbing touch-none p-1 -ml-1 shrink-0 text-muted-foreground/40">
+										<GripVertical class="w-3.5 h-3.5" />
+									</div>
 									<Checkbox checked={false} onCheckedChange={() => toggleItem(list.id, item)} />
 									{#if renamingItem?.listID === list.id && renamingItem?.itemID === item.id}
 										<input
@@ -482,8 +510,10 @@
 									</button>
 								</div>
 							{/each}
+						</div>
 
-							{#if checkedItems.length > 0}
+						{#if checkedItems.length > 0}
+							<div class="flex flex-col divide-y divide-border border-t border-border">
 								<div class="flex items-center justify-between px-4 py-2 bg-muted/40">
 									<span class="text-xs font-medium text-muted-foreground">{msg.lists_in_cart({ count: checkedItems.length })}</span>
 									<button onclick={() => clearChecked(list.id)} class="text-xs text-muted-foreground hover:text-foreground transition-colors">
@@ -499,8 +529,8 @@
 										</button>
 									</div>
 								{/each}
-							{/if}
-						</div>
+							</div>
+						{/if}
 					{/if}
 					</div>
 				</div>

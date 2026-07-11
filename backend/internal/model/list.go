@@ -11,10 +11,11 @@ type List struct {
 }
 
 type ListItem struct {
-	ID        string     `json:"id"`
-	ListID    string     `json:"list_id"`
-	Name      string     `json:"name"`
-	Checked   bool       `json:"checked"`
-	CreatedAt time.Time  `json:"created_at"`
-	CheckedAt *time.Time `json:"checked_at"`
+	ID          string     `json:"id"`
+	ListID      string     `json:"list_id"`
+	Name        string     `json:"name"`
+	Checked     bool       `json:"checked"`
+	CreatedAt   time.Time  `json:"created_at"`
+	CheckedAt   *time.Time `json:"checked_at"`
+	ManualOrder *int       `json:"manual_order,omitempty"`
 }
