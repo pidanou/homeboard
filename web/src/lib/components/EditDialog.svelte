@@ -13,8 +13,9 @@
 	import { RangeCalendar } from '$lib/components/ui/range-calendar';
 	import type { DateRange } from 'bits-ui';
 	import { CalendarDate } from '@internationalized/date';
-	import { CalendarDays } from 'lucide-svelte';
+	import { CalendarDays, Clock, User, Users, MapPin, Repeat, Tag, AlignLeft, Trash2 } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
+	import FormRow from '$lib/components/FormRow.svelte';
 	import * as msg from '$lib/paraglide/messages.js';
 	let { familyID, members, categories, onSaved, onDeleted }: {
 		familyID: string;
@@ -44,7 +45,6 @@
 	let efIsRecurring = $state(false);
 	let efScopePrompt = $state<'save' | 'delete' | null>(null);
 	let efBirthdayOf = $state<string | undefined>(undefined);
-	let efShowMore = $state(false);
 
 	const REPEAT_LABELS = $derived<Record<string, string>>({
 		none: msg.repeat_none(), daily: msg.repeat_daily(), weekly: msg.repeat_weekly(), monthly: msg.repeat_monthly(), yearly: msg.repeat_yearly()
@@ -69,7 +69,6 @@
 		efDueTime = t.end_date && taskHasTime(t.end_date) ? isoToTimeInput(t.end_date) : '';
 		efCategoryID = t.category_id;
 		efBirthdayOf = undefined;
-		efShowMore = !!(t.description || t.category_id);
 		isOpen = true;
 	}
 
@@ -91,7 +90,6 @@
 		efIsRecurring = !!e.is_recurring;
 		efScopePrompt = null;
 		efBirthdayOf = e.birthday_of ?? undefined;
-		efShowMore = !!(e.description || e.recurrence_rule || e.location || e.birthday_of || e.category_id);
 		isOpen = true;
 	}
 
@@ -138,6 +136,9 @@
 		} catch { }
 	}
 
+	export function deleteTask(t: Task) { openTask(t); del(); }
+	export function deleteEvent(e: CalEvent) { openEvent(e); del(); }
+
 	function del() {
 		if (editKind === 'event' && efIsRecurring) { efScopePrompt = 'delete'; return; }
 		doDelete(editID);
@@ -177,17 +178,16 @@
 				{/if}
 
 				{#if editKind === 'task'}
-					<!-- Task primary: important + due date -->
-					<div class="flex flex-col gap-2">
-						<label class="flex items-center gap-2 text-sm cursor-pointer">
-							<Checkbox bind:checked={ef.important} />
-							{msg.dialog_important()}
-						</label>
+					<label class="flex items-center gap-2 text-sm cursor-pointer">
+						<Checkbox bind:checked={ef.important} />
+						{msg.dialog_important()}
+					</label>
+
+					<FormRow icon={CalendarDays}>
 						<div class="flex items-center gap-2">
 							<Popover.Root bind:open={efDueOpen}>
 								<Popover.Trigger class="flex-1">
-									<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
-										<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
+									<Button variant="outline" class="w-full justify-start font-normal text-sm">
 										{efDueDate ? fmtCalDate(efDueDate) : msg.dialog_no_due_date()}
 									</Button>
 								</Popover.Trigger>
@@ -199,11 +199,10 @@
 								<Input type="time" bind:value={efDueTime} class="w-32 shrink-0" />
 							{/if}
 						</div>
-					</div>
+					</FormRow>
 
-					<!-- Task secondary -->
-					{#if efShowMore}
-						{#if members.length > 0}
+					{#if members.length > 0}
+						<FormRow icon={User}>
 							<Select.Root type="single" bind:value={ef.assignedTo}>
 								<Select.Trigger class="w-full">{members.find(mem => mem.user_id === ef.assignedTo)?.name ?? msg.dialog_unassigned()}</Select.Trigger>
 								<Select.Content>
@@ -213,60 +212,71 @@
 									{/each}
 								</Select.Content>
 							</Select.Root>
-						{/if}
-						<Textarea bind:value={ef.description} placeholder={msg.dialog_notes_placeholder()} rows={2} />
-						<CategoryPicker {familyID} {categories} bind:selectedID={efCategoryID} />
+						</FormRow>
 					{/if}
+
+					<FormRow icon={Tag}>
+						<CategoryPicker {familyID} {categories} bind:selectedID={efCategoryID} />
+					</FormRow>
+
+					<FormRow icon={AlignLeft}>
+						<Textarea bind:value={ef.description} placeholder={msg.dialog_notes_placeholder()} rows={2} />
+					</FormRow>
 				{:else if efBirthdayOf !== undefined}
 					<!-- Birthday: single date picker, always all-day, always yearly -->
-					<Popover.Root bind:open={efEventPickerOpen}>
-						<Popover.Trigger>
-							<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
-								<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
-								{efEventRange.start ? fmtCalDate(efEventRange.start) : msg.dialog_birthday_date_placeholder()}
-							</Button>
-						</Popover.Trigger>
-						<Popover.Content class="w-auto p-0" align="start">
-							<Calendar
-								type="single"
-								value={efEventRange.start}
-								onValueChange={(d) => { efEventRange = { start: d, end: d }; efEventPickerOpen = false; }}
-							/>
-						</Popover.Content>
-					</Popover.Root>
+					<FormRow icon={CalendarDays}>
+						<Popover.Root bind:open={efEventPickerOpen}>
+							<Popover.Trigger class="w-full">
+								<Button variant="outline" class="w-full justify-start font-normal text-sm">
+									{efEventRange.start ? fmtCalDate(efEventRange.start) : msg.dialog_birthday_date_placeholder()}
+								</Button>
+							</Popover.Trigger>
+							<Popover.Content class="w-auto p-0" align="start">
+								<Calendar
+									type="single"
+									value={efEventRange.start}
+									onValueChange={(d) => { efEventRange = { start: d, end: d }; efEventPickerOpen = false; }}
+								/>
+							</Popover.Content>
+						</Popover.Root>
+					</FormRow>
 				{:else}
-					<!-- Event primary: dates, all day, times -->
-					<Popover.Root bind:open={efEventPickerOpen}>
-						<Popover.Trigger>
-							<Button variant="outline" class="w-full justify-start gap-2 font-normal text-sm">
-								<CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
-								{rangeLabelFor(efEventRange)}
-							</Button>
-						</Popover.Trigger>
-						<Popover.Content class="w-auto p-0" align="start">
-							<RangeCalendar
-								bind:value={efEventRange}
-								onValueChange={() => { if (efEventRange.start && efEventRange.end) efEventPickerOpen = false; }}
-							/>
-						</Popover.Content>
-					</Popover.Root>
-					<label class="flex items-center gap-2 text-sm cursor-pointer">
-						<Checkbox bind:checked={ef.allDay} />
-						{msg.dialog_all_day()}
-					</label>
+					<FormRow icon={CalendarDays}>
+						<Popover.Root bind:open={efEventPickerOpen}>
+							<Popover.Trigger class="w-full">
+								<Button variant="outline" class="w-full justify-start font-normal text-sm">
+									{rangeLabelFor(efEventRange)}
+								</Button>
+							</Popover.Trigger>
+							<Popover.Content class="w-auto p-0" align="start">
+								<RangeCalendar
+									bind:value={efEventRange}
+									onValueChange={() => { if (efEventRange.start && efEventRange.end) efEventPickerOpen = false; }}
+								/>
+							</Popover.Content>
+						</Popover.Root>
+					</FormRow>
+
+					<FormRow icon={Clock}>
+						<div class="flex items-center gap-3 flex-wrap">
+							<label class="flex items-center gap-2 text-sm cursor-pointer">
+								<Checkbox bind:checked={ef.allDay} />
+								{msg.dialog_all_day()}
+							</label>
+							{#if !ef.allDay}
+								<Input type="time" bind:value={efStartTime} class="w-28" />
+								<span class="text-muted-foreground text-sm">–</span>
+								<Input type="time" bind:value={efEndTime} class="w-28" />
+							{/if}
+						</div>
+					</FormRow>
+
 					<label class="flex items-center gap-2 text-sm cursor-pointer">
 						<Checkbox bind:checked={ef.important} />
 						{msg.dialog_important()}
 					</label>
-					{#if !ef.allDay}
-						<div class="flex gap-2">
-							<Input type="time" bind:value={efStartTime} class="flex-1" />
-							<Input type="time" bind:value={efEndTime} class="flex-1" />
-						</div>
-					{/if}
 
-					<!-- Event secondary -->
-					{#if efShowMore}
+					<FormRow icon={Repeat}>
 						<Select.Root type="single" bind:value={efRepeat}>
 							<Select.Trigger class="w-full">{REPEAT_LABELS[efRepeat] ?? msg.repeat_none()}</Select.Trigger>
 							<Select.Content>
@@ -277,8 +287,14 @@
 								<Select.Item value="yearly">{msg.repeat_yearly()}</Select.Item>
 							</Select.Content>
 						</Select.Root>
+					</FormRow>
+
+					<FormRow icon={MapPin}>
 						<Input bind:value={ef.location} placeholder={msg.dialog_location_placeholder()} />
-						{#if members.length > 0}
+					</FormRow>
+
+					{#if members.length > 0}
+						<FormRow icon={Users} compact>
 							<div class="flex flex-col gap-1.5">
 								{#each members as mem}
 									<label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -290,16 +306,17 @@
 									</label>
 								{/each}
 							</div>
-						{/if}
-						<Textarea bind:value={ef.description} placeholder={msg.dialog_notes_placeholder()} rows={2} />
-						<CategoryPicker {familyID} {categories} bind:selectedID={efCategoryID} />
+						</FormRow>
 					{/if}
-				{/if}
 
-				<button
-					class="text-xs text-muted-foreground hover:text-foreground transition-colors text-left w-fit"
-					onclick={() => (efShowMore = !efShowMore)}
-				>{efShowMore ? msg.dialog_less_options() : msg.dialog_more_options()}</button>
+					<FormRow icon={Tag}>
+						<CategoryPicker {familyID} {categories} bind:selectedID={efCategoryID} />
+					</FormRow>
+
+					<FormRow icon={AlignLeft}>
+						<Textarea bind:value={ef.description} placeholder={msg.dialog_notes_placeholder()} rows={2} />
+					</FormRow>
+				{/if}
 			</div>
 
 			<Dialog.Footer class="flex-col gap-2">
@@ -320,11 +337,20 @@
 						<Button variant="ghost" size="sm" onclick={() => (efScopePrompt = null)}>{msg.dialog_cancel()}</Button>
 					</div>
 				{:else}
-					<div class="flex flex-col-reverse sm:flex-row gap-2">
-						<Button variant="destructive" onclick={del}>{msg.edit_dialog_delete()}</Button>
-						<div class="flex gap-2 sm:ml-auto">
-							<Button variant="outline" onclick={() => (isOpen = false)}>{msg.dialog_cancel()}</Button>
+					<div class="flex w-full items-center gap-2">
+						<Button
+							variant="outline"
+							size="icon"
+							class="text-destructive hover:text-destructive shrink-0"
+							onclick={del}
+							aria-label={msg.edit_dialog_delete()}
+						>
+							<Trash2 class="size-4" />
+						</Button>
+						<div class="flex flex-1 justify-end gap-2">
+							<Button variant="outline" class="flex-1 sm:flex-none" onclick={() => (isOpen = false)}>{msg.dialog_cancel()}</Button>
 							<Button
+								class="flex-1 sm:flex-none"
 								onclick={save}
 								disabled={!ef.title.trim() || (editKind === 'event' && !efEventRange.start)}
 							>{msg.edit_dialog_save()}</Button>

@@ -99,8 +99,6 @@
 	"repeat_yearly": "Annuel",
 	"dialog_location_placeholder": "Lieu…",
 	"dialog_birthday_suffix": " — anniversaire",
-	"dialog_less_options": "− Moins d'options",
-	"dialog_more_options": "+ Plus d'options",
 	"dialog_cancel": "Annuler",
 	"dialog_create": "Créer",
 	"edit_dialog_title": "Modifier {kind}",

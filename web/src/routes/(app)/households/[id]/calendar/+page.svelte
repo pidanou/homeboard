@@ -6,12 +6,17 @@
 	import { api, sseUrl } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
-	import { X, CalendarDays } from 'lucide-svelte';
+	import * as Popover from '$lib/components/ui/popover';
+	import { Calendar as DatePicker } from '$lib/components/ui/calendar';
+	import { CalendarDate, type DateValue } from '@internationalized/date';
+	import { X, CalendarDays, ChevronDown, Pencil, Trash2 } from 'lucide-svelte';
 	import type { CalEvent, Task, Member, AppCategory } from '$lib/types';
 	import { dotClass, CATEGORY_HEX } from '$lib/categories';
 	import { fmtTime, taskHasTime, fmtWeekdayDate } from '$lib/dates';
 	import EditDialog from '$lib/components/EditDialog.svelte';
 	import CreateDialog from '$lib/components/CreateDialog.svelte';
+	import EventCard from '$lib/components/EventCard.svelte';
+	import TaskCard from '$lib/components/TaskCard.svelte';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
 	import * as msg from '$lib/paraglide/messages.js';
 
@@ -201,8 +206,22 @@
 	})());
 
 	// ── Dialogs ───────────────────────────────────────────────────────────────
-	let editDialog: { openTask: (t: Task) => void; openEvent: (e: CalEvent) => void } | undefined = $state();
+	let editDialog: {
+		openTask: (t: Task) => void; openEvent: (e: CalEvent) => void;
+		deleteTask: (t: Task) => void; deleteEvent: (e: CalEvent) => void;
+	} | undefined = $state();
 	let createDialog: { open: (t?: 'task' | 'event', start?: Date, end?: Date, allDay?: boolean) => void } | undefined = $state();
+
+	let previewOpen = $state(false);
+	let previewAnchor = $state<{ getBoundingClientRect: () => DOMRect } | null>(null);
+	let previewItem = $state<{ kind: 'task'; data: Task } | { kind: 'event'; data: CalEvent } | null>(null);
+
+	function showPreview(kind: 'task' | 'event', data: Task | CalEvent, jsEvent: MouseEvent) {
+		const { clientX, clientY } = jsEvent;
+		previewAnchor = { getBoundingClientRect: () => new DOMRect(clientX, clientY, 0, 0) };
+		previewItem = { kind, data } as typeof previewItem;
+		previewOpen = true;
+	}
 
 	let contentEl = $state<HTMLElement | null>(null);
 
@@ -292,16 +311,16 @@
 			currentStart = view.currentStart;
 			loadData(view.activeStart, view.activeEnd);
 		},
-		eventClick: ({ event }: any) => {
+		eventClick: ({ event, jsEvent }: any) => {
 			if (event.extendedProps.type === 'event') {
 				const data = event.extendedProps.data as CalEvent;
 				if (data.subscription_id) {
 					toast.info(msg.calendar_synced_readonly());
 					return;
 				}
-				editDialog?.openEvent(data);
+				showPreview('event', data, jsEvent);
 			}
-			else if (event.extendedProps.type === 'task') editDialog?.openTask(event.extendedProps.data as Task);
+			else if (event.extendedProps.type === 'task') showPreview('task', event.extendedProps.data as Task, jsEvent);
 		},
 		eventDrop: async ({ event, revert }: any) => {
 			try {
@@ -401,6 +420,16 @@
 	}
 	function jumpToToday() { ecOptions.date = new Date(today); }
 
+	let jumpOpen = $state(false);
+	const jumpValue = $derived<DateValue>(
+		new CalendarDate(currentStart.getFullYear(), currentStart.getMonth() + 1, currentStart.getDate())
+	);
+	function jumpTo(v: DateValue | undefined) {
+		if (!v) return;
+		ecOptions.date = new Date(v.year, v.month - 1, v.day);
+		jumpOpen = false;
+	}
+
 	// ── Event / Task CRUD ──────────────────────────────────────────────────────
 	async function patchEvent(ev: CalEvent, start: Date, end: Date, allDay: boolean) {
 		await api.patch(`/api/v1/households/${familyID}/events/${ev.id}`, {
@@ -428,68 +457,90 @@
 
 <!-- Header -->
 <div class="shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-2">
-<div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
-	<div class="flex items-center gap-1.5 flex-wrap">
-		<div class="flex rounded-md border border-border overflow-hidden text-sm shrink-0">
-			{#each [['month','M',msg.cal_view_month()],['week','W',msg.cal_view_week()],['day','D',msg.cal_view_day()],['agenda','A',msg.cal_view_agenda()]] as [v, short, long]}
-				<button
-					onclick={() => switchView(v as AppView)}
-					class="px-2.5 py-1.5 transition-colors cursor-pointer {appView === v ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}"
-				>
-					<span class="sm:hidden">{short}</span>
-					<span class="hidden sm:inline">{long}</span>
-				</button>
-			{/each}
-		</div>
-
-		{#if appView !== 'agenda'}
-			<Button variant="outline" size="sm" onclick={prevPeriod} aria-label={msg.cal_previous_aria()}>‹</Button>
-			<span class="text-sm font-medium max-w-40 truncate text-center">{periodLabel}</span>
-			<Button variant="outline" size="sm" onclick={nextPeriod} aria-label={msg.cal_next_aria()}>›</Button>
-			<Button variant="outline" size="sm" onclick={jumpToToday}>{msg.nav_today()}</Button>
-		{:else}
-			<Button variant="outline" size="sm" onclick={scrollToToday}>{msg.nav_today()}</Button>
-		{/if}
+<div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+	<div class="flex rounded-md border border-border overflow-hidden text-sm shrink-0 self-start">
+		{#each [['month','M',msg.cal_view_month()],['week','W',msg.cal_view_week()],['day','D',msg.cal_view_day()],['agenda','A',msg.cal_view_agenda()]] as [v, short, long]}
+			<button
+				onclick={() => switchView(v as AppView)}
+				class="px-2.5 py-1.5 transition-colors cursor-pointer {appView === v ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}"
+			>
+				<span class="sm:hidden">{short}</span>
+				<span class="hidden sm:inline">{long}</span>
+			</button>
+		{/each}
 	</div>
+
+	<div class="hidden sm:block w-px h-5 bg-border shrink-0"></div>
+
+	{#if appView !== 'agenda'}
+		<div class="flex items-center gap-2">
+			<Button variant="outline" size="sm" onclick={jumpToToday}>{msg.nav_today()}</Button>
+			<div class="flex items-center rounded-md border border-border overflow-hidden shrink-0">
+				<button onclick={prevPeriod} aria-label={msg.cal_previous_aria()} class="h-8 w-8 flex items-center justify-center hover:bg-muted transition-colors cursor-pointer">‹</button>
+				<div class="w-px self-stretch bg-border"></div>
+				<button onclick={nextPeriod} aria-label={msg.cal_next_aria()} class="h-8 w-8 flex items-center justify-center hover:bg-muted transition-colors cursor-pointer">›</button>
+			</div>
+			<Popover.Root bind:open={jumpOpen}>
+				<Popover.Trigger class="h-8 pl-2.5 pr-2 flex items-center gap-1 rounded-md text-sm font-medium hover:bg-muted transition-colors cursor-pointer">
+					<span class="w-32 sm:w-40 truncate text-left">{periodLabel}</span>
+					<ChevronDown class="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+				</Popover.Trigger>
+				<Popover.Content class="w-auto p-0" align="start">
+					<DatePicker type="single" value={jumpValue} onValueChange={jumpTo} captionLayout="dropdown" />
+				</Popover.Content>
+			</Popover.Root>
+		</div>
+	{:else}
+		<Button variant="outline" size="sm" onclick={scrollToToday} class="self-start">{msg.nav_today()}</Button>
+	{/if}
 </div>
 
 <!-- Legend / filter bar -->
-<div class="flex items-center gap-2 mb-2 flex-wrap">
-	<button onclick={() => toggleType('task')} class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs transition-all cursor-pointer {chipCls(filterTypes.has('task'))}">
-		<span class="w-2.5 h-2.5 rounded-full border border-dashed border-current shrink-0"></span>
-		{msg.board_filter_tasks()}
-	</button>
-	<button onclick={() => toggleType('event')} class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs transition-all cursor-pointer {chipCls(filterTypes.has('event'))}">
-		<span class="w-2.5 h-2.5 rounded-full bg-current shrink-0"></span>
-		{msg.board_filter_events()}
-	</button>
-	<button onclick={() => (showBirthdays = !showBirthdays)} class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs transition-all cursor-pointer {chipCls(!showBirthdays)}">
-		🎂 {msg.board_filter_birthdays()}
-	</button>
-	<span class="text-border text-xs">|</span>
-	<button onclick={() => (showCompleted = !showCompleted)} class="text-xs cursor-pointer transition-colors {showCompleted ? 'text-foreground' : 'text-muted-foreground/50 hover:text-muted-foreground'}">
+<div class="flex items-center gap-2.5 mb-2 flex-wrap">
+	<div class="flex items-center gap-1.5 flex-wrap">
+		<button onclick={() => toggleType('task')} class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {chipCls(filterTypes.has('task'))}">
+			<span class="w-2.5 h-2.5 rounded-full border border-dashed border-current shrink-0"></span>
+			{msg.board_filter_tasks()}
+		</button>
+		<button onclick={() => toggleType('event')} class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {chipCls(filterTypes.has('event'))}">
+			<span class="w-2.5 h-2.5 rounded-full bg-current shrink-0"></span>
+			{msg.board_filter_events()}
+		</button>
+		<button onclick={() => (showBirthdays = !showBirthdays)} class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {chipCls(!showBirthdays)}">
+			🎂 {msg.board_filter_birthdays()}
+		</button>
+	</div>
+
+	<div class="w-px h-4 bg-border shrink-0"></div>
+
+	<button onclick={() => (showCompleted = !showCompleted)} class="px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {showCompleted ? 'ring-1 ring-foreground opacity-100' : 'opacity-70 hover:opacity-100'}">
 		{showCompleted ? msg.cal_hide_completed() : msg.cal_show_completed()}
 	</button>
+
 {#if categories.length > 0}
-		<span class="text-border text-xs hidden sm:block">|</span>
-		{#each categories as cat (cat.id)}
-			<button onclick={() => toggleCategory(cat.id)} class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs transition-all cursor-pointer {chipCls(filterCategoryID === cat.id)}">
-				<span class="w-2 h-2 rounded-full {dotClass(cat.color)} shrink-0"></span>
-				{cat.name}
-			</button>
-		{/each}
+		<div class="w-px h-4 bg-border hidden sm:block shrink-0"></div>
+		<div class="hidden sm:flex items-center gap-1.5 flex-wrap">
+			{#each categories as cat (cat.id)}
+				<button onclick={() => toggleCategory(cat.id)} class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {chipCls(filterCategoryID === cat.id)}">
+					<span class="w-2 h-2 rounded-full {dotClass(cat.color)} shrink-0"></span>
+					{cat.name}
+				</button>
+			{/each}
+		</div>
 	{/if}
 	{#if members.length > 0}
-		<span class="text-border text-xs hidden sm:block">|</span>
-		{#each members as m (m.user_id)}
-			<button onclick={() => toggleMember(m.user_id)} title={m.name} class="hidden sm:flex rounded-full transition-all cursor-pointer shrink-0
-				{filterMemberIDs.includes(m.user_id) ? 'ring-2 ring-primary ring-offset-1 opacity-100' : someFilterActive ? 'opacity-30' : 'opacity-80 hover:opacity-100'}">
-				<UserAvatar name={m.name} avatarUrl={m.avatar_url} userId={m.user_id} size={24} />
-			</button>
-		{/each}
+		<div class="w-px h-4 bg-border hidden sm:block shrink-0"></div>
+		<div class="hidden sm:flex items-center gap-1.5 flex-wrap">
+			{#each members as m (m.user_id)}
+				<button onclick={() => toggleMember(m.user_id)} title={m.name} class="rounded-full transition-all cursor-pointer shrink-0
+					{filterMemberIDs.includes(m.user_id) ? 'ring-2 ring-primary ring-offset-1 opacity-100' : someFilterActive ? 'opacity-30' : 'opacity-80 hover:opacity-100'}">
+					<UserAvatar name={m.name} avatarUrl={m.avatar_url} userId={m.user_id} size={24} />
+				</button>
+			{/each}
+		</div>
 	{/if}
 	{#if someFilterActive}
-		<button onclick={clearFilters} class="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer ml-1">
+		<button onclick={clearFilters} class="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer">
 			<X class="w-3 h-3" />{msg.board_clear_filters()}
 		</button>
 	{/if}
@@ -623,5 +674,47 @@
 	{familyID} {members} {categories}
 	onCreated={() => appView === 'agenda' ? loadAgenda() : loadData(viewStart, viewEnd)}
 />
+
+<Popover.Root bind:open={previewOpen}>
+	<Popover.Content customAnchor={previewAnchor} class="w-80 relative">
+		{#if previewItem}
+			{@const openEdit = () => {
+				previewOpen = false;
+				previewItem!.kind === 'event' ? editDialog?.openEvent(previewItem!.data as CalEvent) : editDialog?.openTask(previewItem!.data as Task);
+			}}
+			<div class="absolute top-2 right-2 flex items-center gap-0.5">
+				<Button variant="ghost" size="icon" class="size-7 text-muted-foreground hover:text-foreground" onclick={openEdit} aria-label={msg.action_edit()}>
+					<Pencil class="size-3.5" />
+				</Button>
+				<Button
+					variant="ghost"
+					size="icon"
+					class="size-7 text-muted-foreground hover:text-destructive"
+					aria-label={msg.edit_dialog_delete()}
+					onclick={() => {
+						previewOpen = false;
+						previewItem!.kind === 'event' ? editDialog?.deleteEvent(previewItem!.data as CalEvent) : editDialog?.deleteTask(previewItem!.data as Task);
+					}}
+				>
+					<Trash2 class="size-3.5" />
+				</Button>
+			</div>
+			<div class="pr-16">
+				{#if previewItem.kind === 'event'}
+					<EventCard event={previewItem.data} {members} {categories} now={new Date()} interactive={false} />
+				{:else}
+					<TaskCard
+						task={previewItem.data}
+						{members}
+						{categories}
+						isDoneFilter={false}
+						interactive={false}
+						ontoggle={(e) => toggleTask(previewItem!.data as Task, e)}
+					/>
+				{/if}
+			</div>
+		{/if}
+	</Popover.Content>
+</Popover.Root>
 
 

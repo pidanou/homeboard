@@ -43,11 +43,11 @@
 	}
 
 	const subNav = $derived(familyID ? [
-		{ label: m.nav_today(),    href: `${base}/households/${familyID}`,          icon: Sun,          color: 'var(--color-today)',    bg: 'var(--color-today-bg)' },
-		{ label: m.nav_board(),    href: `${base}/households/${familyID}/board`,     icon: LayoutList,   color: 'var(--color-tasks)',    bg: 'var(--color-tasks-bg)' },
-		{ label: m.nav_calendar(), href: `${base}/households/${familyID}/calendar`,  icon: CalendarDays, color: 'var(--color-calendar)', bg: 'var(--color-calendar-bg)' },
-		{ label: m.nav_lists(),    href: `${base}/households/${familyID}/lists`,     icon: ListChecks,   color: 'var(--color-lists)',    bg: 'var(--color-lists-bg)' },
-		{ label: m.nav_settings(), href: `${base}/households/${familyID}/settings`,  icon: Settings,     color: null,                   bg: null },
+		{ label: m.nav_today(),    href: `${base}/households/${familyID}`,          icon: Sun },
+		{ label: m.nav_board(),    href: `${base}/households/${familyID}/board`,     icon: LayoutList },
+		{ label: m.nav_calendar(), href: `${base}/households/${familyID}/calendar`,  icon: CalendarDays },
+		{ label: m.nav_lists(),    href: `${base}/households/${familyID}/lists`,     icon: ListChecks },
+		{ label: m.nav_settings(), href: `${base}/households/${familyID}/settings`,  icon: Settings },
 	] : []);
 
 	const textStyle = $derived(collapsed ? 'max-width:0;opacity:0;overflow:hidden' : 'max-width:200px;opacity:1');
@@ -132,15 +132,16 @@
 								onclick={onclose}
 								aria-current={active ? 'page' : undefined}
 								aria-label={item.label}
-								class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg transition-colors
-									{active ? 'bg-sidebar-accent/40' : 'hover:bg-sidebar-accent/60'}"
+								class="flex items-center py-1.5 pr-2 rounded-lg transition-colors hover:bg-sidebar-accent/60"
 								{...props}
 							>
-								<span
-									class="flex items-center justify-center w-7 h-7 rounded-lg shrink-0 transition-colors"
-									style={item.color ? `background-color: ${active ? item.color : item.bg}; color: ${active ? 'white' : item.color};` : 'opacity: 0.6;'}
-								>
-									<Icon class="w-4 h-4" />
+								<span class="flex items-center justify-center w-10 shrink-0">
+									<span
+										class="flex items-center justify-center w-7 h-7 rounded-lg transition-colors
+											{active ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'text-muted-foreground'}"
+									>
+										<Icon class="w-4 h-4" />
+									</span>
 								</span>
 								<span class="text-sm whitespace-nowrap text-sidebar-foreground transition-[max-width,opacity] duration-200 {active ? 'font-medium' : ''}" style={textStyle}>
 									{item.label}

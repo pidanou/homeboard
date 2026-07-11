@@ -99,8 +99,6 @@
 	"repeat_yearly": "Yearly",
 	"dialog_location_placeholder": "Location…",
 	"dialog_birthday_suffix": "'s Birthday",
-	"dialog_less_options": "− Less options",
-	"dialog_more_options": "+ More options",
 	"dialog_cancel": "Cancel",
 	"dialog_create": "Create",
 	"edit_dialog_title": "Edit {kind}",

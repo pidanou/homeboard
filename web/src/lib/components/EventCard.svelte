@@ -4,12 +4,13 @@
 	import { fmtDate, fmtDateTime } from '$lib/dates';
 	import { MapPin, User, CalendarDays } from 'lucide-svelte';
 
-	let { event, members, categories, now, onclick }: {
+	let { event, members, categories, now, onclick, interactive = true }: {
 		event: CalEvent;
 		members: Member[];
 		categories: AppCategory[];
 		now: Date;
-		onclick: () => void;
+		onclick?: () => void;
+		interactive?: boolean;
 	} = $props();
 
 	function memberName(uid: string): string | null {
@@ -19,9 +20,12 @@
 	const category = $derived(categories.find((c) => c.id === event.category_id));
 </script>
 
-<button
-	class="w-full text-left flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer"
-	{onclick}
+<svelte:element
+	this={interactive ? 'button' : 'div'}
+	class="w-full text-left flex items-start gap-3 transition-colors {interactive ? 'rounded-lg border border-border bg-card px-4 py-3 hover:bg-accent/50 cursor-pointer' : ''}"
+	onclick={interactive ? onclick : undefined}
+	role={interactive ? 'button' : undefined}
+	tabindex={interactive ? 0 : undefined}
 >
 	{#if event.birthday_of}
 		<span class="text-base mt-0.5 shrink-0">🎂</span>
@@ -68,4 +72,4 @@
 			{/if}
 		</div>
 	</div>
-</button>
+</svelte:element>

@@ -6,13 +6,14 @@
 	import { User, Star } from 'lucide-svelte';
 	import * as msg from '$lib/paraglide/messages.js';
 
-	let { task, members, categories, isDoneFilter, onclick, ontoggle }: {
+	let { task, members, categories, isDoneFilter, onclick, ontoggle, interactive = true }: {
 		task: Task;
 		members: Member[];
 		categories: AppCategory[];
 		isDoneFilter: boolean;
-		onclick: () => void;
+		onclick?: () => void;
 		ontoggle: (e: MouseEvent) => void;
+		interactive?: boolean;
 	} = $props();
 
 	function memberName(uid: string | undefined): string | null {
@@ -28,10 +29,13 @@
 	}
 </script>
 
-<button
-	class="w-full text-left flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer
-		{isDoneFilter ? 'opacity-60' : ''}"
-	{onclick}
+<svelte:element
+	this={interactive ? 'button' : 'div'}
+	class="w-full text-left flex items-start gap-3 transition-colors {isDoneFilter ? 'opacity-60' : ''}
+		{interactive ? 'rounded-lg border border-border bg-card px-4 py-3 hover:bg-accent/50 cursor-pointer' : ''}"
+	onclick={interactive ? onclick : undefined}
+	role={interactive ? 'button' : undefined}
+	tabindex={interactive ? 0 : undefined}
 >
 	<div role="presentation" onclick={ontoggle} class="mt-0.5">
 		<Checkbox checked={task.status === 'done'} class="pointer-events-none" />
@@ -71,4 +75,4 @@
 			</div>
 		{/if}
 	</div>
-</button>
+</svelte:element>
