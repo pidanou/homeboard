@@ -132,14 +132,16 @@
 								onclick={onclose}
 								aria-current={active ? 'page' : undefined}
 								aria-label={item.label}
-								class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg transition-colors hover:bg-sidebar-accent/60"
+								class="flex items-center py-1.5 pr-2 rounded-lg transition-colors hover:bg-sidebar-accent/60"
 								{...props}
 							>
-								<span
-									class="flex items-center justify-center w-7 h-7 rounded-lg shrink-0 transition-colors
-										{active ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'text-muted-foreground'}"
-								>
-									<Icon class="w-4 h-4" />
+								<span class="flex items-center justify-center w-10 shrink-0">
+									<span
+										class="flex items-center justify-center w-7 h-7 rounded-lg transition-colors
+											{active ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'text-muted-foreground'}"
+									>
+										<Icon class="w-4 h-4" />
+									</span>
 								</span>
 								<span class="text-sm whitespace-nowrap text-sidebar-foreground transition-[max-width,opacity] duration-200 {active ? 'font-medium' : ''}" style={textStyle}>
 									{item.label}
