@@ -2,14 +2,16 @@
 	import { page } from '$app/stores';
 	import { api, sseUrl } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
-	import { GripVertical, Plus } from 'lucide-svelte';
+	import { GripVertical, Plus, Pencil, Trash2 } from 'lucide-svelte';
 	import type { Task, CalEvent, Member, AppCategory } from '$lib/types';
 	import { localDayMs, fmtTime, fmtWeekdayDate } from '$lib/dates';
 	import { sortable } from '$lib/sortable';
 	import TaskCard from '$lib/components/TaskCard.svelte';
+	import EventCard from '$lib/components/EventCard.svelte';
 	import DayView from '$lib/components/DayView.svelte';
 	import CreateDialog from '$lib/components/CreateDialog.svelte';
 	import EditDialog from '$lib/components/EditDialog.svelte';
+	import * as Popover from '$lib/components/ui/popover';
 	import * as m from '$lib/paraglide/messages.js';
 
 	const familyID = $derived($page.params.id ?? '');
@@ -24,7 +26,21 @@
 	let categories = $state<AppCategory[]>([]);
 
 	let createDialog: { open: (t?: 'task' | 'event') => void } | undefined = $state();
-	let editDialog: { openTask: (t: Task) => void; openEvent: (e: CalEvent) => void } | undefined = $state();
+	let editDialog: {
+		openTask: (t: Task) => void; openEvent: (e: CalEvent) => void;
+		deleteTask: (t: Task) => void; deleteEvent: (e: CalEvent) => void;
+	} | undefined = $state();
+
+	let previewOpen = $state(false);
+	let previewAnchor = $state<{ getBoundingClientRect: () => DOMRect } | null>(null);
+	let previewItem = $state<{ kind: 'task'; data: Task } | { kind: 'event'; data: CalEvent } | null>(null);
+
+	function showPreview(kind: 'task' | 'event', data: Task | CalEvent, jsEvent: MouseEvent) {
+		const { clientX, clientY } = jsEvent;
+		previewAnchor = { getBoundingClientRect: () => new DOMRect(clientX, clientY, 0, 0) };
+		previewItem = { kind, data } as typeof previewItem;
+		previewOpen = true;
+	}
 
 	let es: EventSource | null = null;
 
@@ -189,8 +205,8 @@
 						{events}
 						{tasks}
 						{categories}
-						onEventClick={(e) => editDialog?.openEvent(e)}
-						onTaskClick={(t) => editDialog?.openTask(t)}
+						onEventClick={(e, je) => showPreview('event', e, je)}
+						onTaskClick={(t, je) => showPreview('task', t, je)}
 						onDateClick={(date, allDay) => createDialog?.open('task', date, date, allDay)}
 						onSelect={(start, end, allDay) => createDialog?.open('event', start, end, allDay)}
 						onEventDrop={handleEventDrop}
@@ -205,3 +221,45 @@
 
 <CreateDialog bind:this={createDialog} {familyID} {members} {categories} onCreated={loadData} />
 <EditDialog bind:this={editDialog} {familyID} {members} {categories} onSaved={loadData} onDeleted={loadData} />
+
+<Popover.Root bind:open={previewOpen}>
+	<Popover.Content customAnchor={previewAnchor} class="w-80 relative">
+		{#if previewItem}
+			{@const openEdit = () => {
+				previewOpen = false;
+				previewItem!.kind === 'event' ? editDialog?.openEvent(previewItem!.data as CalEvent) : editDialog?.openTask(previewItem!.data as Task);
+			}}
+			<div class="absolute top-2 right-2 flex items-center gap-0.5">
+				<Button variant="ghost" size="icon" class="size-7 text-muted-foreground hover:text-foreground" onclick={openEdit} aria-label={m.action_edit()}>
+					<Pencil class="size-3.5" />
+				</Button>
+				<Button
+					variant="ghost"
+					size="icon"
+					class="size-7 text-muted-foreground hover:text-destructive"
+					aria-label={m.edit_dialog_delete()}
+					onclick={() => {
+						previewOpen = false;
+						previewItem!.kind === 'event' ? editDialog?.deleteEvent(previewItem!.data as CalEvent) : editDialog?.deleteTask(previewItem!.data as Task);
+					}}
+				>
+					<Trash2 class="size-3.5" />
+				</Button>
+			</div>
+			<div class="pr-16">
+				{#if previewItem.kind === 'event'}
+					<EventCard event={previewItem.data} {members} {categories} now={new Date()} interactive={false} />
+				{:else}
+					<TaskCard
+						task={previewItem.data}
+						{members}
+						{categories}
+						isDoneFilter={false}
+						interactive={false}
+						ontoggle={(e) => toggleTask(previewItem!.data as Task, e)}
+					/>
+				{/if}
+			</div>
+		{/if}
+	</Popover.Content>
+</Popover.Root>

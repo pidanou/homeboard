@@ -9,8 +9,8 @@
 		events: CalEvent[];
 		tasks: Task[];
 		categories: AppCategory[];
-		onEventClick?: (event: CalEvent) => void;
-		onTaskClick?: (task: Task) => void;
+		onEventClick?: (event: CalEvent, jsEvent: MouseEvent) => void;
+		onTaskClick?: (task: Task, jsEvent: MouseEvent) => void;
 		onDateClick?: (date: Date, allDay: boolean) => void;
 		onSelect?: (start: Date, end: Date, allDay: boolean) => void;
 		onEventDrop?: (event: CalEvent, start: Date, end: Date, allDay: boolean, revert: () => void) => void;
@@ -76,9 +76,9 @@
 		eventResize: ({ event, revert }: any) => {
 			onEventDrop?.(event.extendedProps.data, event.start, event.end, event.allDay, revert);
 		},
-		eventClick: ({ event }: any) => {
-			if (event.extendedProps.type === 'event') onEventClick?.(event.extendedProps.data as CalEvent);
-			else if (event.extendedProps.type === 'task') onTaskClick?.(event.extendedProps.data as Task);
+		eventClick: ({ event, jsEvent }: any) => {
+			if (event.extendedProps.type === 'event') onEventClick?.(event.extendedProps.data as CalEvent, jsEvent);
+			else if (event.extendedProps.type === 'task') onTaskClick?.(event.extendedProps.data as Task, jsEvent);
 		},
 	});
 

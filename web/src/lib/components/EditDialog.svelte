@@ -13,7 +13,7 @@
 	import { RangeCalendar } from '$lib/components/ui/range-calendar';
 	import type { DateRange } from 'bits-ui';
 	import { CalendarDate } from '@internationalized/date';
-	import { CalendarDays, Clock, User, Users, MapPin, Repeat, Tag, AlignLeft } from 'lucide-svelte';
+	import { CalendarDays, Clock, User, Users, MapPin, Repeat, Tag, AlignLeft, Trash2 } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 	import FormRow from '$lib/components/FormRow.svelte';
 	import * as msg from '$lib/paraglide/messages.js';
@@ -135,6 +135,9 @@
 			onSaved();
 		} catch { }
 	}
+
+	export function deleteTask(t: Task) { openTask(t); del(); }
+	export function deleteEvent(e: CalEvent) { openEvent(e); del(); }
 
 	function del() {
 		if (editKind === 'event' && efIsRecurring) { efScopePrompt = 'delete'; return; }
@@ -334,11 +337,20 @@
 						<Button variant="ghost" size="sm" onclick={() => (efScopePrompt = null)}>{msg.dialog_cancel()}</Button>
 					</div>
 				{:else}
-					<div class="flex flex-col-reverse sm:flex-row gap-2">
-						<Button variant="destructive" onclick={del}>{msg.edit_dialog_delete()}</Button>
-						<div class="flex gap-2 sm:ml-auto">
-							<Button variant="outline" onclick={() => (isOpen = false)}>{msg.dialog_cancel()}</Button>
+					<div class="flex w-full items-center gap-2">
+						<Button
+							variant="outline"
+							size="icon"
+							class="text-destructive hover:text-destructive shrink-0"
+							onclick={del}
+							aria-label={msg.edit_dialog_delete()}
+						>
+							<Trash2 class="size-4" />
+						</Button>
+						<div class="flex flex-1 justify-end gap-2">
+							<Button variant="outline" class="flex-1 sm:flex-none" onclick={() => (isOpen = false)}>{msg.dialog_cancel()}</Button>
 							<Button
+								class="flex-1 sm:flex-none"
 								onclick={save}
 								disabled={!ef.title.trim() || (editKind === 'event' && !efEventRange.start)}
 							>{msg.edit_dialog_save()}</Button>

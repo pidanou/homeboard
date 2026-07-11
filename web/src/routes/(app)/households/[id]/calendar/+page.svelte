@@ -9,12 +9,14 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import { Calendar as DatePicker } from '$lib/components/ui/calendar';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
-	import { X, CalendarDays, ChevronDown } from 'lucide-svelte';
+	import { X, CalendarDays, ChevronDown, Pencil, Trash2 } from 'lucide-svelte';
 	import type { CalEvent, Task, Member, AppCategory } from '$lib/types';
 	import { dotClass, CATEGORY_HEX } from '$lib/categories';
 	import { fmtTime, taskHasTime, fmtWeekdayDate } from '$lib/dates';
 	import EditDialog from '$lib/components/EditDialog.svelte';
 	import CreateDialog from '$lib/components/CreateDialog.svelte';
+	import EventCard from '$lib/components/EventCard.svelte';
+	import TaskCard from '$lib/components/TaskCard.svelte';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
 	import * as msg from '$lib/paraglide/messages.js';
 
@@ -204,8 +206,22 @@
 	})());
 
 	// ── Dialogs ───────────────────────────────────────────────────────────────
-	let editDialog: { openTask: (t: Task) => void; openEvent: (e: CalEvent) => void } | undefined = $state();
+	let editDialog: {
+		openTask: (t: Task) => void; openEvent: (e: CalEvent) => void;
+		deleteTask: (t: Task) => void; deleteEvent: (e: CalEvent) => void;
+	} | undefined = $state();
 	let createDialog: { open: (t?: 'task' | 'event', start?: Date, end?: Date, allDay?: boolean) => void } | undefined = $state();
+
+	let previewOpen = $state(false);
+	let previewAnchor = $state<{ getBoundingClientRect: () => DOMRect } | null>(null);
+	let previewItem = $state<{ kind: 'task'; data: Task } | { kind: 'event'; data: CalEvent } | null>(null);
+
+	function showPreview(kind: 'task' | 'event', data: Task | CalEvent, jsEvent: MouseEvent) {
+		const { clientX, clientY } = jsEvent;
+		previewAnchor = { getBoundingClientRect: () => new DOMRect(clientX, clientY, 0, 0) };
+		previewItem = { kind, data } as typeof previewItem;
+		previewOpen = true;
+	}
 
 	let contentEl = $state<HTMLElement | null>(null);
 
@@ -295,16 +311,16 @@
 			currentStart = view.currentStart;
 			loadData(view.activeStart, view.activeEnd);
 		},
-		eventClick: ({ event }: any) => {
+		eventClick: ({ event, jsEvent }: any) => {
 			if (event.extendedProps.type === 'event') {
 				const data = event.extendedProps.data as CalEvent;
 				if (data.subscription_id) {
 					toast.info(msg.calendar_synced_readonly());
 					return;
 				}
-				editDialog?.openEvent(data);
+				showPreview('event', data, jsEvent);
 			}
-			else if (event.extendedProps.type === 'task') editDialog?.openTask(event.extendedProps.data as Task);
+			else if (event.extendedProps.type === 'task') showPreview('task', event.extendedProps.data as Task, jsEvent);
 		},
 		eventDrop: async ({ event, revert }: any) => {
 			try {
@@ -658,5 +674,47 @@
 	{familyID} {members} {categories}
 	onCreated={() => appView === 'agenda' ? loadAgenda() : loadData(viewStart, viewEnd)}
 />
+
+<Popover.Root bind:open={previewOpen}>
+	<Popover.Content customAnchor={previewAnchor} class="w-80 relative">
+		{#if previewItem}
+			{@const openEdit = () => {
+				previewOpen = false;
+				previewItem!.kind === 'event' ? editDialog?.openEvent(previewItem!.data as CalEvent) : editDialog?.openTask(previewItem!.data as Task);
+			}}
+			<div class="absolute top-2 right-2 flex items-center gap-0.5">
+				<Button variant="ghost" size="icon" class="size-7 text-muted-foreground hover:text-foreground" onclick={openEdit} aria-label={msg.action_edit()}>
+					<Pencil class="size-3.5" />
+				</Button>
+				<Button
+					variant="ghost"
+					size="icon"
+					class="size-7 text-muted-foreground hover:text-destructive"
+					aria-label={msg.edit_dialog_delete()}
+					onclick={() => {
+						previewOpen = false;
+						previewItem!.kind === 'event' ? editDialog?.deleteEvent(previewItem!.data as CalEvent) : editDialog?.deleteTask(previewItem!.data as Task);
+					}}
+				>
+					<Trash2 class="size-3.5" />
+				</Button>
+			</div>
+			<div class="pr-16">
+				{#if previewItem.kind === 'event'}
+					<EventCard event={previewItem.data} {members} {categories} now={new Date()} interactive={false} />
+				{:else}
+					<TaskCard
+						task={previewItem.data}
+						{members}
+						{categories}
+						isDoneFilter={false}
+						interactive={false}
+						ontoggle={(e) => toggleTask(previewItem!.data as Task, e)}
+					/>
+				{/if}
+			</div>
+		{/if}
+	</Popover.Content>
+</Popover.Root>
 
 
