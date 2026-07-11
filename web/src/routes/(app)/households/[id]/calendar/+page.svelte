@@ -50,14 +50,13 @@
 	let currentStart = $state(new Date(today.getFullYear(), today.getMonth(), 1));
 
 	// ── Filters ───────────────────────────────────────────────────────────────
-	let filterTypes = $state(new Set<'task' | 'event'>());
-	let showBirthdays = $state(true);
+	let filterTypes = $state(new Set<'task' | 'event' | 'birthday'>());
 	let showCompleted = $state(false);
 	let filterMemberIDs = $state<string[]>([]);
 	let filterCategoryID = $state<string | null>(null);
-	const someFilterActive = $derived(filterTypes.size > 0 || filterMemberIDs.length > 0 || filterCategoryID !== null || !showBirthdays);
+	const someFilterActive = $derived(filterTypes.size > 0 || filterMemberIDs.length > 0 || filterCategoryID !== null);
 
-	function toggleType(t: 'task' | 'event') {
+	function toggleType(t: 'task' | 'event' | 'birthday') {
 		const next = new Set(filterTypes);
 		next.has(t) ? next.delete(t) : next.add(t);
 		filterTypes = next;
@@ -68,7 +67,7 @@
 	function toggleCategory(id: string) {
 		filterCategoryID = filterCategoryID === id ? null : id;
 	}
-	function clearFilters() { filterTypes = new Set(); filterMemberIDs = []; filterCategoryID = null; showBirthdays = true; showCompleted = false; }
+	function clearFilters() { filterTypes = new Set(); filterMemberIDs = []; filterCategoryID = null; showCompleted = false; }
 	function chipCls(active: boolean) {
 		if (active) return 'ring-1 ring-foreground opacity-100';
 		return someFilterActive ? 'opacity-30' : 'opacity-70 hover:opacity-100';
@@ -160,6 +159,7 @@
 		if (appView !== 'agenda') return [] as AgendaGroup[];
 		const showEvents = filterTypes.size === 0 || filterTypes.has('event');
 		const showTasks  = filterTypes.size === 0 || filterTypes.has('task');
+		const showBirthdays = filterTypes.size === 0 || filterTypes.has('birthday');
 		const byMemberEv = (ev: CalEvent) =>
 			filterMemberIDs.length === 0 || (ev.attendee_ids ?? []).some(id => filterMemberIDs.includes(id));
 		const byMember = (id: string | undefined) =>
@@ -175,10 +175,10 @@
 			dayMap.set(ms, { evs: [], tsks: [] });
 		}
 
-		if (showEvents) {
+		if (showEvents || showBirthdays) {
 			for (const ev of agendaEvents) {
+				if (ev.birthday_of ? !showBirthdays : !showEvents) continue;
 				if (!byMemberEv(ev) || !byCat(ev.category_id)) continue;
-				if (!showBirthdays && ev.birthday_of) continue;
 				const d = new Date(ev.start_at);
 				const dayMs = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 				dayMap.get(dayMs)?.evs.push(ev);
@@ -231,8 +231,8 @@
 
 	// ── EC computed events ────────────────────────────────────────────────────
 	const ecEvents = $derived((() => {
-		const filteredEvents = filterTypes.size > 0 && !filterTypes.has('event') ? [] : events.filter(ev => {
-			if (!showBirthdays && ev.birthday_of) return false;
+		const filteredEvents = events.filter(ev => {
+			if (ev.birthday_of ? (filterTypes.size > 0 && !filterTypes.has('birthday')) : (filterTypes.size > 0 && !filterTypes.has('event'))) return false;
 			if (filterMemberIDs.length > 0 && !filterMemberIDs.some(id => ev.attendee_ids?.includes(id))) return false;
 			if (filterCategoryID !== null && ev.category_id !== filterCategoryID) return false;
 			return true;
@@ -506,7 +506,7 @@
 			<span class="w-2.5 h-2.5 rounded-full bg-current shrink-0"></span>
 			{msg.board_filter_events()}
 		</button>
-		<button onclick={() => (showBirthdays = !showBirthdays)} class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {chipCls(!showBirthdays)}">
+		<button onclick={() => toggleType('birthday')} class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {chipCls(filterTypes.has('birthday'))}">
 			🎂 {msg.board_filter_birthdays()}
 		</button>
 	</div>
