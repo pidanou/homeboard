@@ -216,13 +216,25 @@
 	let previewAnchor = $state<{ getBoundingClientRect: () => DOMRect } | null>(null);
 	let previewItem = $state<{ kind: 'task'; data: Task } | { kind: 'event'; data: CalEvent } | null>(null);
 
-	// Dismissing the preview via an outside click still lets that same click
-	// bubble to the calendar's own dateClick/select handler. Swallow the next one.
-	let suppressNextCalendarClick = false;
-	function onPreviewInteractOutside() {
-		suppressNextCalendarClick = true;
-		setTimeout(() => (suppressNextCalendarClick = false), 0);
+	// Dismissing the preview via an outside click on the calendar itself would
+	// otherwise let that same pointerdown reach the calendar's own day-cell
+	// handler, which fires dateClick/select synchronously (event-calendar runs
+	// it on pointerup, before bits-ui's own ~10ms-debounced outside-click
+	// detection even gets a chance to run). Intercept it ourselves, on capture,
+	// directly on the calendar element, before it ever gets there.
+	let calendarWrapperEl: HTMLElement | null = $state(null);
+	function onCalendarPointerDownCapture(e: PointerEvent) {
+		if (!previewOpen) return;
+		if ((e.target as HTMLElement | null)?.closest('[data-popover-content]')) return;
+		previewOpen = false;
+		e.stopPropagation();
 	}
+	$effect(() => {
+		const el = calendarWrapperEl;
+		if (!el) return;
+		el.addEventListener('pointerdown', onCalendarPointerDownCapture, true);
+		return () => el.removeEventListener('pointerdown', onCalendarPointerDownCapture, true);
+	});
 
 	function showPreview(kind: 'task' | 'event', data: Task | CalEvent, jsEvent: MouseEvent) {
 		const { clientX, clientY } = jsEvent;
@@ -362,11 +374,9 @@
 			} catch { revert(); }
 		},
 		dateClick: ({ date, allDay }: any) => {
-			if (suppressNextCalendarClick) { suppressNextCalendarClick = false; return; }
 			createDialog?.open('event', date, date, allDay);
 		},
 		select: ({ start, end, allDay }: any) => {
-			if (suppressNextCalendarClick) { suppressNextCalendarClick = false; return; }
 			const s = start as Date;
 			// allDay select: end is exclusive (next day), clamp back one ms
 			const e = allDay ? new Date((end as Date).getTime() - 1) : end as Date;
@@ -666,7 +676,7 @@
 {:else}
 	<!-- EC calendar for month / week / day -->
 	<div class="px-4 md:px-6 pb-4 md:pb-6 h-full">
-		<div class="rounded-lg overflow-hidden h-full border border-border">
+		<div bind:this={calendarWrapperEl} class="rounded-lg overflow-hidden h-full border border-border">
 			<Calendar plugins={[DayGrid, TimeGrid, Interaction]} options={ecOptions} />
 		</div>
 	</div>
@@ -688,11 +698,7 @@
 />
 
 <Popover.Root bind:open={previewOpen}>
-	<Popover.Content
-		customAnchor={previewAnchor}
-		class="w-80 relative"
-		onInteractOutside={onPreviewInteractOutside}
-	>
+	<Popover.Content customAnchor={previewAnchor} class="w-80 relative">
 		{#if previewItem}
 			{@const openEdit = () => {
 				previewOpen = false;
