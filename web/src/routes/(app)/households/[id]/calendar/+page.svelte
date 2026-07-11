@@ -481,7 +481,7 @@
 				<button onclick={nextPeriod} aria-label={msg.cal_next_aria()} class="h-8 w-8 flex items-center justify-center hover:bg-muted transition-colors cursor-pointer">›</button>
 			</div>
 			<Popover.Root bind:open={jumpOpen}>
-				<Popover.Trigger class="h-8 pl-2.5 pr-2 flex items-center gap-1 rounded-md text-sm font-medium hover:bg-muted transition-colors cursor-pointer">
+				<Popover.Trigger class="h-8 pl-2.5 pr-2 flex items-center gap-1 rounded-md border border-border text-sm font-medium hover:bg-muted transition-colors cursor-pointer">
 					<span class="w-32 sm:w-40 truncate text-left">{periodLabel}</span>
 					<ChevronDown class="w-3.5 h-3.5 text-muted-foreground shrink-0" />
 				</Popover.Trigger>
