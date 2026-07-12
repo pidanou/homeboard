@@ -49,8 +49,8 @@ State, nonce, and PKCE verifier are carried in a short-lived signed `HttpOnly` c
 
 1. `GET /api/v1/auth/oidc/login` — generates state/nonce/PKCE verifier, signs them into the `oidc_flow` cookie, redirects to the IdP's authorization endpoint.
 2. `GET /api/v1/auth/oidc/callback` — verifies the cookie (HMAC + expiry), checks `state` against the callback param (CSRF), exchanges the code (PKCE), verifies the ID token (JWKS/signature/issuer/audience/expiry via `go-oidc`), checks `nonce` against the cookie (replay defense — `go-oidc` does not do this automatically), clears the cookie, then runs the account-linking rule above.
-3. On success, the backend mints the app JWT and stores `{code → jwt}` in an in-memory, single-use, 60s-TTL map, then redirects to a **fixed** `${APP_BASE_URL}/auth/callback?code=...` — never a caller-supplied URL, which rules out backend-side open-redirect entirely.
-4. On failure, redirects to `${APP_BASE_URL}/auth/callback?error=<reason>` where `reason` is one of `email_not_verified`, `registration_closed`, `oidc_failed` — internal error detail is never leaked to the redirect target.
+3. On success, the backend mints the app JWT and stores `{code → jwt}` in an in-memory, single-use, 60s-TTL map, then redirects to a **fixed** `${APP_BASE_URL}/callback?code=...` — never a caller-supplied URL, which rules out backend-side open-redirect entirely.
+4. On failure, redirects to `${APP_BASE_URL}/callback?error=<reason>` where `reason` is one of `email_not_verified`, `registration_closed`, `oidc_failed` — internal error detail is never leaked to the redirect target.
 5. `POST /api/v1/auth/oidc/exchange {code}` — consumes the handoff code, returns `{token}` as JSON. The JWT is never placed in a URL at any hop.
 
 The in-memory handoff store is safe because the self-hosted deployment runs a single backend replica (`docker-compose.yml` has no scaling config); this would need to move to a shared store if that ever changes.
