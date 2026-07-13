@@ -151,7 +151,7 @@ Registration works like Coolify's bootstrap flow:
 
 - **First launch** — the registration page is open. Create your first account; that's your admin.
 - **After the first user exists** — registration is automatically closed. Any further attempt returns 403.
-- **Need to add more accounts later?** Set `ALLOW_REGISTRATION=true` in your `.env`, restart, register the new accounts, then remove the variable and restart again.
+- **Need to add more accounts later?** Set `ALLOW_REGISTRATION=true` in your `.env`, restart, register the new accounts, then remove the variable and restart again. **OR** Use the invitation link, invitation links always allows new users to register.
 
 ### Email notifications (optional)
 
