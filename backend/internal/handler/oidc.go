@@ -237,7 +237,7 @@ func (h *OIDCHandler) callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, h.appBaseURL+"/auth/callback?code="+handoffCode, http.StatusFound)
+	http.Redirect(w, r, h.appBaseURL+"/callback?code="+handoffCode, http.StatusFound)
 }
 
 // redirectWithError sends the user back to the frontend's callback page with a
@@ -250,7 +250,7 @@ func (h *OIDCHandler) redirectWithError(w http.ResponseWriter, r *http.Request, 
 	} else if errors.Is(err, service.ErrRegistrationClosed) {
 		reason = "registration_closed"
 	}
-	http.Redirect(w, r, h.appBaseURL+"/auth/callback?error="+reason, http.StatusFound)
+	http.Redirect(w, r, h.appBaseURL+"/callback?error="+reason, http.StatusFound)
 }
 
 func (h *OIDCHandler) exchange(w http.ResponseWriter, r *http.Request) {
