@@ -21,7 +21,7 @@
 	type Panel = null | 'name' | 'password';
 	let panel = $state<Panel>(null);
 
-	const LANGUAGE_LABELS: Record<string, string> = { en: 'English', fr: 'Français', es: 'Español' };
+	const LANGUAGE_LABELS: Record<string, string> = { en: 'English', fr: 'Français', es: 'Español', de: 'Deutsch' };
 
 	// Language
 	let languageValue = $state(getLocale());
