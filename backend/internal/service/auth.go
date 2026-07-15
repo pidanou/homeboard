@@ -205,7 +205,7 @@ func (s *AuthService) SetAvatar(ctx context.Context, userID string, avatarURL *s
 	return s.users.Update(ctx, user)
 }
 
-var supportedLocales = map[string]bool{"en": true, "fr": true, "es": true}
+var supportedLocales = map[string]bool{"en": true, "fr": true, "es": true, "de": true}
 
 func (s *AuthService) SetLocale(ctx context.Context, userID, locale string) (*model.User, error) {
 	if !supportedLocales[locale] {

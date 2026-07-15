@@ -160,7 +160,7 @@ func main() {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]any{
 				"allowMultiHousehold": os.Getenv("ALLOW_MULTI_HOUSEHOLD") == "true",
-				"supportedLocales":    []string{"en", "fr", "es"},
+				"supportedLocales":    []string{"en", "fr", "es", "de"},
 				"oidcEnabled":         oidcHandler != nil,
 				"oidcProviderName":    oidcProviderName,
 				"allowPasswordLogin":  authConfig.AllowPasswordLogin,
