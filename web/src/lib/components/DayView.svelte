@@ -4,6 +4,7 @@
 	import type { CalEvent, Task, AppCategory } from '$lib/types';
 	import { CATEGORY_HEX } from '$lib/categories';
 	import { taskHasTime, hour12Option } from '$lib/dates';
+	import { getLocale } from '$lib/paraglide/runtime';
 
 	type Props = {
 		events: CalEvent[];
@@ -60,6 +61,7 @@
 		view: 'timeGridDay',
 		date: today,
 		height: '100%',
+		locale: getLocale(),
 		headerToolbar: { start: '', center: '', end: '' },
 		nowIndicator: true,
 		scrollTime: '08:00:00',

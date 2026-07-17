@@ -18,6 +18,7 @@
 	import FormRow from '$lib/components/FormRow.svelte';
 	import TimePicker from '$lib/components/TimePicker.svelte';
 	import * as msg from '$lib/paraglide/messages.js';
+	import { getLocale } from '$lib/paraglide/runtime';
 	let { familyID, members, categories, onSaved, onDeleted }: {
 		familyID: string;
 		members: Member[];
@@ -193,7 +194,7 @@
 									</Button>
 								</Popover.Trigger>
 								<Popover.Content class="w-auto p-0" align="start">
-									<Calendar type="single" bind:value={efDueDate} onValueChange={() => (efDueOpen = false)} />
+									<Calendar type="single" locale={getLocale()} bind:value={efDueDate} onValueChange={() => (efDueOpen = false)} />
 								</Popover.Content>
 							</Popover.Root>
 							{#if efDueDate}
@@ -235,6 +236,7 @@
 							<Popover.Content class="w-auto p-0" align="start">
 								<Calendar
 									type="single"
+									locale={getLocale()}
 									value={efEventRange.start}
 									onValueChange={(d) => { efEventRange = { start: d, end: d }; efEventPickerOpen = false; }}
 								/>
@@ -251,6 +253,7 @@
 							</Popover.Trigger>
 							<Popover.Content class="w-auto p-0" align="start">
 								<RangeCalendar
+									locale={getLocale()}
 									bind:value={efEventRange}
 									onValueChange={() => { if (efEventRange.start && efEventRange.end) efEventPickerOpen = false; }}
 								/>

@@ -13,6 +13,7 @@
 	import type { CalEvent, Task, Member, AppCategory } from '$lib/types';
 	import { dotClass, CATEGORY_HEX } from '$lib/categories';
 	import { fmtTime, taskHasTime, fmtWeekdayDate, hour12Option } from '$lib/dates';
+	import { getLocale } from '$lib/paraglide/runtime';
 	import EditDialog from '$lib/components/EditDialog.svelte';
 	import CreateDialog from '$lib/components/CreateDialog.svelte';
 	import EventCard from '$lib/components/EventCard.svelte';
@@ -320,6 +321,7 @@
 		view: 'dayGridMonth',
 		date: today,
 		height: '100%',
+		locale: getLocale(),
 		headerToolbar: false,
 		nowIndicator: true,
 		selectable: true,
@@ -516,7 +518,7 @@
 					<ChevronDown class="w-3.5 h-3.5 text-muted-foreground shrink-0" />
 				</Popover.Trigger>
 				<Popover.Content class="w-auto p-0" align="start">
-					<DatePicker type="single" value={jumpValue} onValueChange={jumpTo} captionLayout="dropdown" />
+					<DatePicker type="single" locale={getLocale()} value={jumpValue} onValueChange={jumpTo} captionLayout="dropdown" />
 				</Popover.Content>
 			</Popover.Root>
 		</div>
