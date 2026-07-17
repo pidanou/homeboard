@@ -7,6 +7,7 @@ export type CurrentUser = {
 	email: string;
 	avatar_url: string | null;
 	locale: string;
+	time_format: 'auto' | '12' | '24';
 };
 
 export const currentUser = writable<CurrentUser | null>(null);

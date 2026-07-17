@@ -27,6 +27,15 @@
 	let languageValue = $state(getLocale());
 	let languageLoading = $state(false);
 
+	// Time format
+	const TIME_FORMAT_LABELS: Record<string, () => string> = {
+		auto: msg.profile_time_format_auto,
+		'12': msg.profile_time_format_12h,
+		'24': msg.profile_time_format_24h,
+	};
+	let timeFormatValue = $state<'auto' | '12' | '24'>('auto');
+	let timeFormatLoading = $state(false);
+
 	// Name edit
 	let nameValue = $state('');
 	let nameLoading = $state(false);
@@ -58,6 +67,10 @@
 
 	$effect(() => {
 		if (panel === 'name' && user) nameValue = user.name;
+	});
+
+	$effect(() => {
+		if (user) timeFormatValue = user.time_format;
 	});
 
 	async function saveName() {
@@ -124,6 +137,21 @@
 			languageLoading = false;
 		}
 		setLocale(value as (typeof locales)[number]);
+	}
+
+	async function saveTimeFormat(value: string) {
+		if (!['auto', '12', '24'].includes(value) || value === timeFormatValue) return;
+		const previous = timeFormatValue;
+		timeFormatValue = value as 'auto' | '12' | '24';
+		timeFormatLoading = true;
+		try {
+			await api.patch('/api/v1/profile/time-format', { time_format: value });
+			await loadCurrentUser();
+		} catch {
+			timeFormatValue = previous;
+		} finally {
+			timeFormatLoading = false;
+		}
 	}
 
 	async function removeAvatar() {
@@ -267,6 +295,28 @@
 								class="text-xs font-semibold px-3 data-[state=on]:bg-foreground data-[state=on]:text-background data-[state=on]:hover:bg-foreground/90"
 							>
 								{loc.toUpperCase()}
+							</ToggleGroup.Item>
+						{/each}
+					</ToggleGroup.Root>
+				</div>
+
+				<!-- Time format row -->
+				<div class="rounded-xl border border-border px-4 py-3 flex items-center justify-between gap-3">
+					<span class="font-medium text-sm">{msg.profile_time_format()}</span>
+					<ToggleGroup.Root
+						type="single"
+						bind:value={timeFormatValue}
+						onValueChange={(v) => v && saveTimeFormat(v)}
+						variant="outline"
+						size="sm"
+					>
+						{#each ['auto', '12', '24'] as fmt}
+							<ToggleGroup.Item
+								value={fmt}
+								disabled={timeFormatLoading}
+								class="text-xs font-semibold px-3 data-[state=on]:bg-foreground data-[state=on]:text-background data-[state=on]:hover:bg-foreground/90"
+							>
+								{TIME_FORMAT_LABELS[fmt]()}
 							</ToggleGroup.Item>
 						{/each}
 					</ToggleGroup.Root>
