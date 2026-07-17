@@ -21,6 +21,7 @@
 				{part}
 				class={cn(
 					'focus:bg-accent focus:text-accent-foreground rounded-sm px-0.5 tabular-nums outline-none',
+					part !== 'literal' && 'hover:bg-accent/50 cursor-text',
 					part === 'literal' && 'text-muted-foreground px-0.5'
 				)}
 			>
