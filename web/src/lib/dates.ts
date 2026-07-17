@@ -5,7 +5,7 @@ import * as msg from '$lib/paraglide/messages.js';
 import { currentUser } from '$lib/stores/user.svelte';
 
 /** Empty when the user's preference is 'auto' — lets the locale pick the convention. */
-function hour12Option(): { hour12: boolean } | Record<string, never> {
+export function hour12Option(): { hour12: boolean } | Record<string, never> {
 	const format = currentUser.value?.time_format ?? 'auto';
 	if (format === '12') return { hour12: true };
 	if (format === '24') return { hour12: false };

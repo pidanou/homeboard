@@ -140,8 +140,8 @@
 	}
 
 	async function saveTimeFormat(value: string) {
-		if (!['auto', '12', '24'].includes(value) || value === timeFormatValue) return;
-		const previous = timeFormatValue;
+		if (!['auto', '12', '24'].includes(value) || value === user?.time_format) return;
+		const previous = user?.time_format ?? 'auto';
 		timeFormatValue = value as 'auto' | '12' | '24';
 		timeFormatLoading = true;
 		try {

@@ -3,7 +3,7 @@
 	import { Calendar, TimeGrid, Interaction } from '@event-calendar/core';
 	import type { CalEvent, Task, AppCategory } from '$lib/types';
 	import { CATEGORY_HEX } from '$lib/categories';
-	import { taskHasTime } from '$lib/dates';
+	import { taskHasTime, hour12Option } from '$lib/dates';
 
 	type Props = {
 		events: CalEvent[];
@@ -67,6 +67,8 @@
 		selectable: true,
 		editable: true,
 		events: [] as unknown[],
+		eventTimeFormat: { hour: 'numeric', minute: '2-digit' } as Record<string, unknown>,
+		slotLabelFormat: { hour: 'numeric', minute: '2-digit' } as Record<string, unknown>,
 		dateClick: ({ date, allDay }: any) => onDateClick?.(date, allDay),
 		select: ({ start, end, allDay }: any) => onSelect?.(start, end, allDay),
 		eventDrop: ({ event, revert }: any) => {
@@ -83,6 +85,12 @@
 	});
 
 	$effect(() => { ecOptions.events = ecEvents; });
+
+	$effect(() => {
+		const format = { hour: 'numeric', minute: '2-digit', ...hour12Option() };
+		ecOptions.eventTimeFormat = format;
+		ecOptions.slotLabelFormat = format;
+	});
 
 	let isDark = $state(false);
 	$effect(() => {

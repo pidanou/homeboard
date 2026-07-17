@@ -12,7 +12,7 @@
 	import { X, CalendarDays, ChevronDown, Pencil, Trash2 } from 'lucide-svelte';
 	import type { CalEvent, Task, Member, AppCategory } from '$lib/types';
 	import { dotClass, CATEGORY_HEX } from '$lib/categories';
-	import { fmtTime, taskHasTime, fmtWeekdayDate } from '$lib/dates';
+	import { fmtTime, taskHasTime, fmtWeekdayDate, hour12Option } from '$lib/dates';
 	import EditDialog from '$lib/components/EditDialog.svelte';
 	import CreateDialog from '$lib/components/CreateDialog.svelte';
 	import EventCard from '$lib/components/EventCard.svelte';
@@ -299,6 +299,12 @@
 	})());
 
 	$effect(() => { ecOptions.events = ecEvents; });
+
+	$effect(() => {
+		const format = { hour: 'numeric', minute: '2-digit', ...hour12Option() };
+		ecOptions.eventTimeFormat = format;
+		ecOptions.slotLabelFormat = format;
+	});
 
 	// ── EC options ────────────────────────────────────────────────────────────
 	function timeGridEventContent({ event }: any) {
