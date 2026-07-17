@@ -48,6 +48,7 @@ func (s *AuthService) CreateUser(ctx context.Context, email, password, name stri
 		PasswordHash: &hashStr,
 		Name:         name,
 		Locale:       "en",
+		TimeFormat:   "auto",
 		CreatedAt:    time.Now().UTC(),
 	}
 	if err := s.users.Create(ctx, user); err != nil {
@@ -108,6 +109,7 @@ func (s *AuthService) Register(ctx context.Context, email, password, name string
 		PasswordHash: &hashStr,
 		Name:         name,
 		Locale:       "en",
+		TimeFormat:   "auto",
 		CreatedAt:    time.Now().UTC(),
 	}
 	if err := s.users.Create(ctx, user); err != nil {
@@ -216,6 +218,23 @@ func (s *AuthService) SetLocale(ctx context.Context, userID, locale string) (*mo
 		return nil, err
 	}
 	user.Locale = locale
+	if err := s.users.Update(ctx, user); err != nil {
+		return nil, fmt.Errorf("update user: %w", err)
+	}
+	return user, nil
+}
+
+var supportedTimeFormats = map[string]bool{"auto": true, "12": true, "24": true}
+
+func (s *AuthService) SetTimeFormat(ctx context.Context, userID, format string) (*model.User, error) {
+	if !supportedTimeFormats[format] {
+		return nil, errors.New("unsupported time format")
+	}
+	user, err := s.users.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	user.TimeFormat = format
 	if err := s.users.Update(ctx, user); err != nil {
 		return nil, fmt.Errorf("update user: %w", err)
 	}

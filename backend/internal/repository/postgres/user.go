@@ -28,9 +28,9 @@ func (r *UserRepository) Create(ctx context.Context, user *model.User) error {
 func (r *UserRepository) GetByID(ctx context.Context, id string) (*model.User, error) {
 	user := &model.User{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, email, password_hash, name, avatar_url, locale, created_at FROM users WHERE id = $1`,
+		`SELECT id, email, password_hash, name, avatar_url, locale, time_format, created_at FROM users WHERE id = $1`,
 		id,
-	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.AvatarURL, &user.Locale, &user.CreatedAt)
+	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.AvatarURL, &user.Locale, &user.TimeFormat, &user.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("get user by id: %w", err)
 	}
@@ -40,9 +40,9 @@ func (r *UserRepository) GetByID(ctx context.Context, id string) (*model.User, e
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
 	user := &model.User{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, email, password_hash, name, avatar_url, locale, created_at FROM users WHERE email = $1`,
+		`SELECT id, email, password_hash, name, avatar_url, locale, time_format, created_at FROM users WHERE email = $1`,
 		email,
-	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.AvatarURL, &user.Locale, &user.CreatedAt)
+	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.AvatarURL, &user.Locale, &user.TimeFormat, &user.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("get user by email: %w", err)
 	}
@@ -51,8 +51,8 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*model.U
 
 func (r *UserRepository) Update(ctx context.Context, user *model.User) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE users SET name = $1, avatar_url = $2, password_hash = $3, locale = $4 WHERE id = $5`,
-		user.Name, user.AvatarURL, user.PasswordHash, user.Locale, user.ID,
+		`UPDATE users SET name = $1, avatar_url = $2, password_hash = $3, locale = $4, time_format = $5 WHERE id = $6`,
+		user.Name, user.AvatarURL, user.PasswordHash, user.Locale, user.TimeFormat, user.ID,
 	)
 	return err
 }
