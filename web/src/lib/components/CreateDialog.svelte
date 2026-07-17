@@ -16,6 +16,7 @@
 	import { CalendarDays, Clock, User, Users, MapPin, Repeat, Tag, AlignLeft } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 	import FormRow from '$lib/components/FormRow.svelte';
+	import TimePicker from '$lib/components/TimePicker.svelte';
 	import * as msg from '$lib/paraglide/messages.js';
 	let { familyID, members, categories, onCreated }: {
 		familyID: string;
@@ -174,7 +175,7 @@
 								</Popover.Content>
 							</Popover.Root>
 							{#if cfDueDate}
-								<Input type="time" bind:value={cfDueTime} class="w-32 shrink-0" />
+								<TimePicker bind:value={cfDueTime} class="w-32 shrink-0" />
 							{/if}
 						</div>
 					</FormRow>
@@ -238,9 +239,9 @@
 								{msg.dialog_all_day()}
 							</label>
 							{#if !cf.allDay}
-								<Input type="time" bind:value={cfStartTime} class="w-28" />
+								<TimePicker bind:value={cfStartTime} class="w-28" />
 								<span class="text-muted-foreground text-sm">–</span>
-								<Input type="time" bind:value={cfEndTime} class="w-28" />
+								<TimePicker bind:value={cfEndTime} class="w-28" />
 							{/if}
 						</div>
 					</FormRow>
