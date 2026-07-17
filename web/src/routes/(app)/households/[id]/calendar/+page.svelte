@@ -53,8 +53,8 @@
 	let filterTypes = $state(new Set<'task' | 'event' | 'birthday'>());
 	let showCompleted = $state(false);
 	let filterMemberIDs = $state<string[]>([]);
-	let filterCategoryID = $state<string | null>(null);
-	const someFilterActive = $derived(filterTypes.size > 0 || filterMemberIDs.length > 0 || filterCategoryID !== null);
+	let filterCategoryIDs = $state(new Set<string>());
+	const someFilterActive = $derived(filterTypes.size > 0 || filterMemberIDs.length > 0 || filterCategoryIDs.size > 0);
 
 	function toggleType(t: 'task' | 'event' | 'birthday') {
 		const next = new Set(filterTypes);
@@ -65,9 +65,11 @@
 		filterMemberIDs = filterMemberIDs.includes(id) ? filterMemberIDs.filter(x => x !== id) : [...filterMemberIDs, id];
 	}
 	function toggleCategory(id: string) {
-		filterCategoryID = filterCategoryID === id ? null : id;
+		const next = new Set(filterCategoryIDs);
+		next.has(id) ? next.delete(id) : next.add(id);
+		filterCategoryIDs = next;
 	}
-	function clearFilters() { filterTypes = new Set(); filterMemberIDs = []; filterCategoryID = null; showCompleted = false; }
+	function clearFilters() { filterTypes = new Set(); filterMemberIDs = []; filterCategoryIDs = new Set(); showCompleted = false; }
 	function chipCls(active: boolean) {
 		if (active) return 'ring-1 ring-foreground opacity-100';
 		return someFilterActive ? 'opacity-30' : 'opacity-70 hover:opacity-100';
@@ -165,7 +167,7 @@
 		const byMember = (id: string | undefined) =>
 			filterMemberIDs.length === 0 || (!!id && filterMemberIDs.includes(id));
 		const byCat = (id: string | undefined) =>
-			filterCategoryID === null || id === filterCategoryID;
+			filterCategoryIDs.size === 0 || (!!id && filterCategoryIDs.has(id));
 		const startMs = agendaStart.getTime();
 		const endMs   = agendaEnd.getTime();
 
@@ -254,14 +256,14 @@
 		const filteredEvents = events.filter(ev => {
 			if (ev.birthday_of ? (filterTypes.size > 0 && !filterTypes.has('birthday')) : (filterTypes.size > 0 && !filterTypes.has('event'))) return false;
 			if (filterMemberIDs.length > 0 && !filterMemberIDs.some(id => ev.attendee_ids?.includes(id))) return false;
-			if (filterCategoryID !== null && ev.category_id !== filterCategoryID) return false;
+			if (filterCategoryIDs.size > 0 && (!ev.category_id || !filterCategoryIDs.has(ev.category_id))) return false;
 			return true;
 		});
 		const filteredTasks = filterTypes.size > 0 && !filterTypes.has('task') ? [] : tasks.filter(t => {
 			if (!t.end_date) return false;
 			if (t.status === 'done' && !showCompleted) return false;
 			if (filterMemberIDs.length > 0 && !filterMemberIDs.includes(t.assigned_to ?? '')) return false;
-			if (filterCategoryID !== null && t.category_id !== filterCategoryID) return false;
+			if (filterCategoryIDs.size > 0 && (!t.category_id || !filterCategoryIDs.has(t.category_id))) return false;
 			return true;
 		});
 		return [
@@ -549,7 +551,7 @@
 		<div class="w-px h-4 bg-border hidden sm:block shrink-0"></div>
 		<div class="hidden sm:flex items-center gap-1.5 flex-wrap">
 			{#each categories as cat (cat.id)}
-				<button onclick={() => toggleCategory(cat.id)} class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {chipCls(filterCategoryID === cat.id)}">
+				<button onclick={() => toggleCategory(cat.id)} class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {chipCls(filterCategoryIDs.has(cat.id))}">
 					<span class="w-2 h-2 rounded-full {dotClass(cat.color)} shrink-0"></span>
 					{cat.name}
 				</button>

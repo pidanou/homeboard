@@ -51,8 +51,6 @@ export type CalEvent = {
 	subscription_id?: string | null;
 };
 
-export type Filter = 'all' | 'tasks' | 'events' | 'done' | 'birthdays';
-
 export type AppList = {
 	id: string;
 	family_id: string;
