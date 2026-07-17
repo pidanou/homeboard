@@ -1,5 +1,6 @@
 import { toast } from 'svelte-sonner';
 import * as m from '$lib/paraglide/messages.js';
+import { logout } from '$lib/auth';
 
 export function getBaseUrl(): string {
 	const runtime = typeof window !== 'undefined' ? window.__API_URL__ : undefined;
@@ -28,7 +29,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 	if (!res.ok) {
 		const text = await res.text();
-		toast.error(text || res.statusText);
+		if (res.status === 401 && token) {
+			logout();
+		} else {
+			toast.error(text || res.statusText);
+		}
 		throw new Error(text || res.statusText);
 	}
 
@@ -54,7 +59,11 @@ export const api = {
 		});
 		if (!res.ok) {
 			const text = (await res.text()) || res.statusText;
-			toast.error(text);
+			if (res.status === 401 && token) {
+				logout();
+			} else {
+				toast.error(text);
+			}
 			throw new Error(text);
 		}
 		if (res.status === 204) return null as T;
