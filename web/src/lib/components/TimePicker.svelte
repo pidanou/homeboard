@@ -19,7 +19,9 @@
 	} = $props();
 
 	function parseTime(v: string): Time | undefined {
-		const [h, m] = v.split(':').map(Number);
+		const parts = v.split(':');
+		if (parts.length !== 2) return undefined;
+		const [h, m] = parts.map(Number);
 		if (Number.isNaN(h) || Number.isNaN(m)) return undefined;
 		return new Time(h, m);
 	}
