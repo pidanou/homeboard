@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api/client';
-	import { currentUser, loadCurrentUser } from '$lib/stores/user';
+	import { currentUser, loadCurrentUser } from '$lib/stores/user.svelte';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
 	import AvatarCrop from '$lib/components/AvatarCrop.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -15,7 +15,7 @@
 	import * as msg from '$lib/paraglide/messages.js';
 	import { getLocale, setLocale, locales } from '$lib/paraglide/runtime';
 
-	let user = $derived($currentUser);
+	let user = $derived(currentUser.value);
 
 	// Which sub-form is open
 	type Panel = null | 'name' | 'password';

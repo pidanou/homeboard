@@ -3,7 +3,7 @@
 	import * as TimeField from '$lib/components/ui/time-field';
 	import { Input } from '$lib/components/ui/input';
 	import { cn } from '$lib/utils.js';
-	import { currentUser } from '$lib/stores/user';
+	import { currentUser } from '$lib/stores/user.svelte';
 	import { getLocale } from '$lib/paraglide/runtime';
 
 	let {
@@ -32,7 +32,7 @@
 	}
 
 	const hourCycle = $derived(
-		$currentUser?.time_format === '12' ? 12 : $currentUser?.time_format === '24' ? 24 : undefined
+		currentUser.value?.time_format === '12' ? 12 : currentUser.value?.time_format === '24' ? 24 : undefined
 	);
 
 	let timeValue = $state<Time | undefined>(parseTime(value));

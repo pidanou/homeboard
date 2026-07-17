@@ -10,7 +10,7 @@
     import WallpaperCrop from "$lib/components/WallpaperCrop.svelte";
     import AuthImage from "$lib/components/AuthImage.svelte";
     import CalendarSyncSettings from "$lib/components/CalendarSyncSettings.svelte";
-    import { currentUser } from "$lib/stores/user";
+    import { currentUser } from "$lib/stores/user.svelte";
     import { households, updateHouseholdName, updateHouseholdPhoto, updateHouseholdWallpaper } from "$lib/stores/households";
     import * as msg from "$lib/paraglide/messages.js";
 
@@ -219,7 +219,7 @@
     let editingCatColor = $state<CategoryColor>("blue");
 
     const myRole = $derived(
-        members.find((m) => m.user_id === $currentUser?.id)?.role ?? "member",
+        members.find((m) => m.user_id === currentUser.value?.id)?.role ?? "member",
     );
     const isAdmin = $derived(myRole === "admin");
     const realCount = $derived(members.filter((m) => !m.virtual).length);
@@ -654,7 +654,7 @@
                                             ? msg.settings_admin()
                                             : msg.settings_member_role()}
                                     </span>
-                                    {#if isAdmin && member.user_id !== $currentUser?.id}
+                                    {#if isAdmin && member.user_id !== currentUser.value?.id}
                                         <Button
                                             size="sm"
                                             variant="outline"

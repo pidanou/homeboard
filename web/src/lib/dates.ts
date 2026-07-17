@@ -1,13 +1,12 @@
-import { get } from 'svelte/store';
 import { CalendarDate, type DateValue } from '@internationalized/date';
 import type { DateRange } from 'bits-ui';
 import { getLocale } from '$lib/paraglide/runtime';
 import * as msg from '$lib/paraglide/messages.js';
-import { currentUser } from '$lib/stores/user';
+import { currentUser } from '$lib/stores/user.svelte';
 
 /** Empty when the user's preference is 'auto' — lets the locale pick the convention. */
 function hour12Option(): { hour12: boolean } | Record<string, never> {
-	const format = get(currentUser)?.time_format ?? 'auto';
+	const format = currentUser.value?.time_format ?? 'auto';
 	if (format === '12') return { hour12: true };
 	if (format === '24') return { hour12: false };
 	return {};
