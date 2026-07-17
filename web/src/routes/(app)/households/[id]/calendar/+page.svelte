@@ -322,6 +322,7 @@
 		date: today,
 		height: '100%',
 		locale: getLocale(),
+		allDayContent: msg.today_all_day(),
 		headerToolbar: false,
 		nowIndicator: true,
 		selectable: true,

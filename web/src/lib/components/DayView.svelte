@@ -5,6 +5,7 @@
 	import { CATEGORY_HEX } from '$lib/categories';
 	import { taskHasTime, hour12Option } from '$lib/dates';
 	import { getLocale } from '$lib/paraglide/runtime';
+	import * as msg from '$lib/paraglide/messages.js';
 
 	type Props = {
 		events: CalEvent[];
@@ -62,6 +63,7 @@
 		date: today,
 		height: '100%',
 		locale: getLocale(),
+		allDayContent: msg.today_all_day(),
 		headerToolbar: { start: '', center: '', end: '' },
 		nowIndicator: true,
 		scrollTime: '08:00:00',
