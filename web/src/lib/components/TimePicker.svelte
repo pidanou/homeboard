@@ -40,8 +40,10 @@
 	});
 
 	function onTimeFieldChange(t: Time | undefined) {
+		const formatted = formatTime(t);
+		if (formatted === value) return;
 		timeValue = t;
-		value = formatTime(t);
+		value = formatted;
 	}
 </script>
 
