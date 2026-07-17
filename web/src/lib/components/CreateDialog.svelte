@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Member, AppCategory } from '$lib/types';
-	import { calDateToISO, fmtCalDate, calDateTimeToISO, rangeLabelFor } from '$lib/dates';
+	import { calDateToISO, fmtCalDate, calDateTimeToISO } from '$lib/dates';
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -10,10 +10,9 @@
 	import * as Select from '$lib/components/ui/select';
 	import * as Popover from '$lib/components/ui/popover';
 	import { Calendar } from '$lib/components/ui/calendar';
-	import { RangeCalendar } from '$lib/components/ui/range-calendar';
 	import type { DateRange } from 'bits-ui';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
-	import { CalendarDays, Clock, User, Users, MapPin, Repeat, Tag, AlignLeft } from 'lucide-svelte';
+	import { CalendarDays, User, Users, MapPin, Repeat, Tag, AlignLeft } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 	import FormRow from '$lib/components/FormRow.svelte';
 	import TimePicker from '$lib/components/TimePicker.svelte';
@@ -38,7 +37,8 @@
 	let cfEventRange = $state<DateRange>({ start: undefined, end: undefined });
 	let cfStartTime = $state('09:00');
 	let cfEndTime = $state('10:00');
-	let cfEventPickerOpen = $state(false);
+	let cfStartPickerOpen = $state(false);
+	let cfEndPickerOpen = $state(false);
 	let cfCategoryID = $state<string | undefined>(undefined);
 	let cfBirthdayOf = $state('');
 
@@ -152,16 +152,15 @@
 
 				<!-- Title -->
 				{#if createType === 'birthday'}
-					<Input bind:value={cfBirthdayOf} placeholder={msg.dialog_birthday_name_placeholder()} class="flex-1" />
+					<Input bind:value={cfBirthdayOf} placeholder={msg.dialog_birthday_name_placeholder()} class="flex-1 h-11 text-lg font-medium" />
 				{:else}
-					<Input bind:value={cf.title} placeholder={createType === 'task' ? msg.dialog_task_title_placeholder() : msg.dialog_event_title_placeholder()} class="flex-1" />
+					<Input bind:value={cf.title} placeholder={createType === 'task' ? msg.dialog_task_title_placeholder() : msg.dialog_event_title_placeholder()} class="flex-1 h-11 text-lg font-medium" />
 				{/if}
 
 				{#if createType === 'task'}
-					<label class="flex items-center gap-2 text-sm cursor-pointer">
-						<Checkbox bind:checked={cf.important} />
+					<FormRow bind:checked={cf.important}>
 						{msg.dialog_important()}
-					</label>
+					</FormRow>
 
 					<FormRow icon={CalendarDays}>
 						<div class="flex items-center gap-2">
@@ -218,40 +217,61 @@
 					</FormRow>
 				{:else}
 					<FormRow icon={CalendarDays}>
-						<Popover.Root bind:open={cfEventPickerOpen}>
-							<Popover.Trigger class="w-full">
-								<Button variant="outline" class="w-full justify-start font-normal text-sm">
-									{rangeLabelFor(cfEventRange)}
-								</Button>
-							</Popover.Trigger>
-							<Popover.Content class="w-auto p-0" align="start">
-								<RangeCalendar
-									locale={getLocale()}
-									bind:value={cfEventRange}
-									onValueChange={() => { if (cfEventRange.start && cfEventRange.end) cfEventPickerOpen = false; }}
-								/>
-							</Popover.Content>
-						</Popover.Root>
-					</FormRow>
-
-					<FormRow icon={Clock}>
-						<div class="flex items-center gap-3 flex-wrap">
-							<label class="flex items-center gap-2 text-sm cursor-pointer">
-								<Checkbox bind:checked={cf.allDay} />
-								{msg.dialog_all_day()}
-							</label>
-							{#if !cf.allDay}
-								<TimePicker bind:value={cfStartTime} class="w-28" />
-								<span class="text-muted-foreground text-sm">–</span>
-								<TimePicker bind:value={cfEndTime} class="w-28" />
-							{/if}
+						<div class="flex flex-col gap-2">
+							<div class="flex items-center gap-2">
+								<Popover.Root bind:open={cfStartPickerOpen}>
+									<Popover.Trigger class="flex-1">
+										<Button variant="outline" class="w-full justify-start font-normal text-sm">
+											{cfEventRange.start ? fmtCalDate(cfEventRange.start) : msg.dates_select_dates()}
+										</Button>
+									</Popover.Trigger>
+									<Popover.Content class="w-auto p-0" align="start">
+										<Calendar
+											type="single"
+											locale={getLocale()}
+											bind:value={cfEventRange.start}
+											onValueChange={(d) => {
+												if (d && cfEventRange.end && cfEventRange.end.compare(d) < 0) cfEventRange.end = d;
+												cfStartPickerOpen = false;
+											}}
+										/>
+									</Popover.Content>
+								</Popover.Root>
+								{#if !cf.allDay}
+									<TimePicker bind:value={cfStartTime} class="w-28 shrink-0" />
+								{/if}
+							</div>
+							<div class="flex items-center gap-2">
+								<Popover.Root bind:open={cfEndPickerOpen}>
+									<Popover.Trigger class="flex-1">
+										<Button variant="outline" class="w-full justify-start font-normal text-sm">
+											{cfEventRange.end ? fmtCalDate(cfEventRange.end) : msg.dates_select_dates()}
+										</Button>
+									</Popover.Trigger>
+									<Popover.Content class="w-auto p-0" align="start">
+										<Calendar
+											type="single"
+											locale={getLocale()}
+											bind:value={cfEventRange.end}
+											minValue={cfEventRange.start}
+											onValueChange={() => (cfEndPickerOpen = false)}
+										/>
+									</Popover.Content>
+								</Popover.Root>
+								{#if !cf.allDay}
+									<TimePicker bind:value={cfEndTime} class="w-28 shrink-0" />
+								{/if}
+							</div>
 						</div>
 					</FormRow>
 
-					<label class="flex items-center gap-2 text-sm cursor-pointer">
-						<Checkbox bind:checked={cf.important} />
+					<FormRow bind:checked={cf.allDay}>
+						{msg.dialog_all_day()}
+					</FormRow>
+
+					<FormRow bind:checked={cf.important}>
 						{msg.dialog_important()}
-					</label>
+					</FormRow>
 
 					<FormRow icon={Repeat}>
 						<Select.Root type="single" bind:value={cfRepeat}>

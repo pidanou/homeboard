@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Task, CalEvent, Member, AppCategory } from '$lib/types';
-	import { calDateToISO, isoToCalDate, fmtCalDate, calDateTimeToISO, rangeLabelFor, taskHasTime, isoToTimeInput } from '$lib/dates';
+	import { calDateToISO, isoToCalDate, fmtCalDate, calDateTimeToISO, taskHasTime, isoToTimeInput } from '$lib/dates';
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -10,10 +10,9 @@
 	import * as Select from '$lib/components/ui/select';
 	import * as Popover from '$lib/components/ui/popover';
 	import { Calendar } from '$lib/components/ui/calendar';
-	import { RangeCalendar } from '$lib/components/ui/range-calendar';
 	import type { DateRange } from 'bits-ui';
 	import { CalendarDate } from '@internationalized/date';
-	import { CalendarDays, Clock, User, Users, MapPin, Repeat, Tag, AlignLeft, Trash2 } from 'lucide-svelte';
+	import { CalendarDays, User, Users, MapPin, Repeat, Tag, AlignLeft, Trash2 } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 	import FormRow from '$lib/components/FormRow.svelte';
 	import TimePicker from '$lib/components/TimePicker.svelte';
@@ -41,6 +40,8 @@
 	let efStartTime = $state('09:00');
 	let efEndTime = $state('10:00');
 	let efEventPickerOpen = $state(false);
+	let efStartPickerOpen = $state(false);
+	let efEndPickerOpen = $state(false);
 	let efCategoryID = $state<string | undefined>(undefined);
 	type RepeatVal = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 	let efRepeat = $state<RepeatVal>('none');
@@ -174,16 +175,15 @@
 				onkeydown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); save(); } }}>
 				<!-- Title -->
 				{#if efBirthdayOf !== undefined}
-					<Input bind:value={efBirthdayOf} placeholder={msg.dialog_birthday_name_placeholder()} class="flex-1" />
+					<Input bind:value={efBirthdayOf} placeholder={msg.dialog_birthday_name_placeholder()} class="flex-1 h-11 text-lg font-medium" />
 				{:else}
-				<Input bind:value={ef.title} class="flex-1" />
+				<Input bind:value={ef.title} class="flex-1 h-11 text-lg font-medium" />
 				{/if}
 
 				{#if editKind === 'task'}
-					<label class="flex items-center gap-2 text-sm cursor-pointer">
-						<Checkbox bind:checked={ef.important} />
+					<FormRow bind:checked={ef.important}>
 						{msg.dialog_important()}
-					</label>
+					</FormRow>
 
 					<FormRow icon={CalendarDays}>
 						<div class="flex items-center gap-2">
@@ -245,40 +245,61 @@
 					</FormRow>
 				{:else}
 					<FormRow icon={CalendarDays}>
-						<Popover.Root bind:open={efEventPickerOpen}>
-							<Popover.Trigger class="w-full">
-								<Button variant="outline" class="w-full justify-start font-normal text-sm">
-									{rangeLabelFor(efEventRange)}
-								</Button>
-							</Popover.Trigger>
-							<Popover.Content class="w-auto p-0" align="start">
-								<RangeCalendar
-									locale={getLocale()}
-									bind:value={efEventRange}
-									onValueChange={() => { if (efEventRange.start && efEventRange.end) efEventPickerOpen = false; }}
-								/>
-							</Popover.Content>
-						</Popover.Root>
-					</FormRow>
-
-					<FormRow icon={Clock}>
-						<div class="flex items-center gap-3 flex-wrap">
-							<label class="flex items-center gap-2 text-sm cursor-pointer">
-								<Checkbox bind:checked={ef.allDay} />
-								{msg.dialog_all_day()}
-							</label>
-							{#if !ef.allDay}
-								<TimePicker bind:value={efStartTime} class="w-28" />
-								<span class="text-muted-foreground text-sm">–</span>
-								<TimePicker bind:value={efEndTime} class="w-28" />
-							{/if}
+						<div class="flex flex-col gap-2">
+							<div class="flex items-center gap-2">
+								<Popover.Root bind:open={efStartPickerOpen}>
+									<Popover.Trigger class="flex-1">
+										<Button variant="outline" class="w-full justify-start font-normal text-sm">
+											{efEventRange.start ? fmtCalDate(efEventRange.start) : msg.dates_select_dates()}
+										</Button>
+									</Popover.Trigger>
+									<Popover.Content class="w-auto p-0" align="start">
+										<Calendar
+											type="single"
+											locale={getLocale()}
+											bind:value={efEventRange.start}
+											onValueChange={(d) => {
+												if (d && efEventRange.end && efEventRange.end.compare(d) < 0) efEventRange.end = d;
+												efStartPickerOpen = false;
+											}}
+										/>
+									</Popover.Content>
+								</Popover.Root>
+								{#if !ef.allDay}
+									<TimePicker bind:value={efStartTime} class="w-28 shrink-0" />
+								{/if}
+							</div>
+							<div class="flex items-center gap-2">
+								<Popover.Root bind:open={efEndPickerOpen}>
+									<Popover.Trigger class="flex-1">
+										<Button variant="outline" class="w-full justify-start font-normal text-sm">
+											{efEventRange.end ? fmtCalDate(efEventRange.end) : msg.dates_select_dates()}
+										</Button>
+									</Popover.Trigger>
+									<Popover.Content class="w-auto p-0" align="start">
+										<Calendar
+											type="single"
+											locale={getLocale()}
+											bind:value={efEventRange.end}
+											minValue={efEventRange.start}
+											onValueChange={() => (efEndPickerOpen = false)}
+										/>
+									</Popover.Content>
+								</Popover.Root>
+								{#if !ef.allDay}
+									<TimePicker bind:value={efEndTime} class="w-28 shrink-0" />
+								{/if}
+							</div>
 						</div>
 					</FormRow>
 
-					<label class="flex items-center gap-2 text-sm cursor-pointer">
-						<Checkbox bind:checked={ef.important} />
+					<FormRow bind:checked={ef.allDay}>
+						{msg.dialog_all_day()}
+					</FormRow>
+
+					<FormRow bind:checked={ef.important}>
 						{msg.dialog_important()}
-					</label>
+					</FormRow>
 
 					<FormRow icon={Repeat}>
 						<Select.Root type="single" bind:value={efRepeat}>
