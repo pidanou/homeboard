@@ -162,6 +162,8 @@
 
 	// Strip the ::YYYYMMDD suffix to get the parent ID.
 	function parentID(id: string) { return id.split('::')[0]; }
+	// German capitalizes all nouns, so lowercasing "Aufgabe"/"Event" mid-sentence would be wrong.
+	function lowerKind(kind: string) { return getLocale() === 'de' ? kind : kind.toLowerCase(); }
 </script>
 
 <Dialog.Root bind:open={isOpen}>
@@ -169,7 +171,7 @@
 		<Dialog.Overlay />
 		<Dialog.Content class="sm:max-w-md flex flex-col max-h-[90dvh]">
 			<Dialog.Header>
-				<Dialog.Title>{msg.edit_dialog_title({ kind: editKind === 'task' ? msg.dialog_type_task().toLowerCase() : msg.dialog_type_event().toLowerCase() })}</Dialog.Title>
+				<Dialog.Title>{msg.edit_dialog_title({ kind: lowerKind(editKind === 'task' ? msg.dialog_type_task() : msg.dialog_type_event()) })}</Dialog.Title>
 			</Dialog.Header>
 
 			<div class="flex flex-col gap-3 py-2 overflow-y-auto flex-1 min-h-0 px-1"
