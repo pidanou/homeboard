@@ -18,6 +18,7 @@
 	import TimePicker from '$lib/components/TimePicker.svelte';
 	import * as msg from '$lib/paraglide/messages.js';
 	import { getLocale } from '$lib/paraglide/runtime';
+	import { buildRRule, type RepeatEndType } from '$lib/rrule';
 	let { familyID, members, categories, onCreated }: {
 		familyID: string;
 		members: Member[];
@@ -46,13 +47,14 @@
 		none: msg.repeat_none(), daily: msg.repeat_daily(), weekly: msg.repeat_weekly(), monthly: msg.repeat_monthly(), yearly: msg.repeat_yearly()
 	});
 	let cfRepeat = $state<'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'>('none');
+	let cfRepeatEndType = $state<RepeatEndType>('never');
+	let cfRepeatUntil = $state<CalendarDate | undefined>(undefined);
+	let cfRepeatUntilOpen = $state(false);
+	let cfRepeatCount = $state(5);
 
-	const RRULE: Record<string, string> = {
-		daily: 'FREQ=DAILY',
-		weekly: 'FREQ=WEEKLY',
-		monthly: 'FREQ=MONTHLY',
-		yearly: 'FREQ=YEARLY',
-	};
+	const REPEAT_END_LABELS: Record<RepeatEndType, string> = $derived({
+		never: msg.repeat_ends_never(), until: msg.repeat_ends_on_date(), count: msg.repeat_ends_after(),
+	});
 
 	function toCalDate(d: Date) {
 		return new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
@@ -72,6 +74,9 @@
 		cfCategoryID = undefined;
 		cfBirthdayOf = '';
 		cfRepeat = 'none';
+		cfRepeatEndType = 'never';
+		cfRepeatUntil = undefined;
+		cfRepeatCount = 5;
 		isOpen = true;
 	}
 
@@ -110,7 +115,7 @@
 					all_day: isAllDay,
 					attendee_ids: cf.attendeeIDs,
 					category_id: cfCategoryID,
-					recurrence_rule: isBirthday ? RRULE['yearly'] : (cfRepeat !== 'none' ? RRULE[cfRepeat] : undefined),
+					recurrence_rule: isBirthday ? 'FREQ=YEARLY' : buildRRule(cfRepeat, cfRepeatEndType === 'until' && cfRepeatUntil ? { type: 'until', date: cfRepeatUntil } : cfRepeatEndType === 'count' ? { type: 'count', count: cfRepeatCount } : { type: 'never' }),
 					important: cf.important,
 					birthday_of: isBirthday ? cfBirthdayOf.trim() : undefined,
 				});
@@ -126,7 +131,7 @@
 		<Dialog.Overlay />
 		<Dialog.Content class="sm:max-w-md flex flex-col max-h-[90dvh]">
 			<Dialog.Header>
-				<Dialog.Title>{msg.dialog_new_item_title()}</Dialog.Title>
+				<Dialog.Title class="sr-only">{msg.dialog_new_item_title()}</Dialog.Title>
 			</Dialog.Header>
 
 			<div class="flex flex-col gap-3 py-2 overflow-y-auto flex-1 min-h-0 px-1"
@@ -285,6 +290,39 @@
 							</Select.Content>
 						</Select.Root>
 					</FormRow>
+
+					{#if cfRepeat !== 'none'}
+						<FormRow>
+							<div class="flex items-center gap-2">
+								<span class="text-sm text-muted-foreground shrink-0">{msg.repeat_ends_label()}</span>
+								<Select.Root type="single" bind:value={cfRepeatEndType}>
+									<Select.Trigger class="w-32 shrink-0">{REPEAT_END_LABELS[cfRepeatEndType]}</Select.Trigger>
+									<Select.Content>
+										<Select.Item value="never">{msg.repeat_ends_never()}</Select.Item>
+										<Select.Item value="until">{msg.repeat_ends_on_date()}</Select.Item>
+										<Select.Item value="count">{msg.repeat_ends_after()}</Select.Item>
+									</Select.Content>
+								</Select.Root>
+								{#if cfRepeatEndType === 'until'}
+									<Popover.Root bind:open={cfRepeatUntilOpen}>
+										<Popover.Trigger class="flex-1">
+											<Button variant="outline" class="w-full justify-start font-normal text-sm">
+												{cfRepeatUntil ? fmtCalDate(cfRepeatUntil) : msg.dates_select_dates()}
+											</Button>
+										</Popover.Trigger>
+										<Popover.Content class="w-auto p-0" align="start">
+											<Calendar type="single" locale={getLocale()} bind:value={cfRepeatUntil} onValueChange={() => (cfRepeatUntilOpen = false)} />
+										</Popover.Content>
+									</Popover.Root>
+								{:else if cfRepeatEndType === 'count'}
+									<div class="flex items-center gap-2 flex-1">
+										<Input type="number" min="1" bind:value={cfRepeatCount} class="w-16" />
+										<span class="text-sm text-muted-foreground">{msg.repeat_ends_occurrences()}</span>
+									</div>
+								{/if}
+							</div>
+						</FormRow>
+					{/if}
 
 					<FormRow icon={MapPin}>
 						<Input bind:value={cf.location} placeholder={msg.dialog_location_placeholder()} />

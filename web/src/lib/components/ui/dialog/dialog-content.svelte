@@ -21,6 +21,30 @@
 		children: Snippet;
 		showCloseButton?: boolean;
 	} = $props();
+
+	let dragX = $state(0);
+	let dragY = $state(0);
+	let dragging = $state(false);
+
+	function onDragStart(e: PointerEvent) {
+		const target = e.target as HTMLElement;
+		if (!target.closest('[data-slot="dialog-header"]')) return;
+		if (target.closest('button, a, input, textarea, select')) return;
+		dragging = true;
+		const startX = e.clientX - dragX;
+		const startY = e.clientY - dragY;
+		const onMove = (ev: PointerEvent) => {
+			dragX = ev.clientX - startX;
+			dragY = ev.clientY - startY;
+		};
+		const onUp = () => {
+			dragging = false;
+			window.removeEventListener('pointermove', onMove);
+			window.removeEventListener('pointerup', onUp);
+		};
+		window.addEventListener('pointermove', onMove);
+		window.addEventListener('pointerup', onUp);
+	}
 </script>
 
 <DialogPortal {...portalProps}>
@@ -28,10 +52,13 @@
 	<DialogPrimitive.Content
 		bind:ref
 		data-slot="dialog-content"
+		onpointerdown={onDragStart}
 		class={cn(
-			"bg-popover text-popover-foreground data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 ring-foreground/5 grid max-w-[calc(100%-2rem)] gap-6 rounded-4xl p-6 text-sm ring-1 duration-100 sm:max-w-md fixed top-1/2 left-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2 outline-none",
+			"bg-popover text-popover-foreground data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 ring-foreground/5 grid max-w-[calc(100%-2rem)] gap-6 rounded-4xl p-6 text-sm ring-1 shadow-2xl shadow-black/30 duration-100 sm:max-w-md fixed top-1/2 left-1/2 z-50 w-full outline-none",
+			dragging && "select-none",
 			className
 		)}
+		style="{dragging ? 'transition: none;' : ''}translate: calc(-50% + {dragX}px) calc(-50% + {dragY}px)"
 		{...restProps}
 	>
 		{@render children?.()}
