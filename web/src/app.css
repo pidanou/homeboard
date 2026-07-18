@@ -178,7 +178,8 @@
 }
 .ec-event.ec-task-done .ec-event-title { text-decoration: line-through; }
 
-.ec-task-row { display: flex; align-items: center; gap: 0.3rem; }
+.ec-task-row { display: flex; align-items: center; gap: 0.3rem; min-width: 0; }
+.ec-task-row .ec-event-title { min-width: 0; }
 .ec-task-checkbox {
 	appearance: none;
 	-webkit-appearance: none;
