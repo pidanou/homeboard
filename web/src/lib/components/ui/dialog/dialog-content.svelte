@@ -27,6 +27,7 @@
 	let dragging = $state(false);
 
 	function onDragStart(e: PointerEvent) {
+		if (window.matchMedia('(pointer: coarse)').matches) return;
 		const target = e.target as HTMLElement;
 		if (!target.closest('[data-slot="dialog-header"]')) return;
 		if (target.closest('button, a, input, textarea, select')) return;

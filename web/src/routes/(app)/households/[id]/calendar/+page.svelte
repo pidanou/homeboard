@@ -573,7 +573,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 
 	<div class="w-px h-4 bg-border shrink-0"></div>
 
-	<button onclick={() => (showCompleted = !showCompleted)} class="px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {showCompleted ? 'ring-1 ring-foreground opacity-100' : 'opacity-70 hover:opacity-100'}">
+	<button onclick={() => (showCompleted = !showCompleted)} class="px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {!showCompleted ? 'ring-1 ring-foreground opacity-100' : 'opacity-70 hover:opacity-100'}">
 		{showCompleted ? msg.cal_hide_completed() : msg.cal_show_completed()}
 	</button>
 
