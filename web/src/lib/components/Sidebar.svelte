@@ -4,7 +4,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api/client';
 	import { logout } from '$lib/auth';
-	import { currentUser } from '$lib/stores/user';
+	import { currentUser } from '$lib/stores/user.svelte';
 	import { households } from '$lib/stores/households';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
 	import HouseholdAvatar from '$lib/components/HouseholdAvatar.svelte';
@@ -22,7 +22,7 @@
 		ontoggle?: () => void;
 	} = $props();
 
-	const user = $derived($currentUser);
+	const user = $derived(currentUser.value);
 
 	let switcherOpen = $state(false);
 	let userMenuOpen = $state(false);

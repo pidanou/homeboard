@@ -3,7 +3,9 @@
 	import { Calendar, TimeGrid, Interaction } from '@event-calendar/core';
 	import type { CalEvent, Task, AppCategory } from '$lib/types';
 	import { CATEGORY_HEX } from '$lib/categories';
-	import { taskHasTime } from '$lib/dates';
+	import { taskHasTime, hour12Option } from '$lib/dates';
+	import { getLocale } from '$lib/paraglide/runtime';
+	import * as msg from '$lib/paraglide/messages.js';
 
 	type Props = {
 		events: CalEvent[];
@@ -60,6 +62,8 @@
 		view: 'timeGridDay',
 		date: today,
 		height: '100%',
+		locale: getLocale(),
+		allDayContent: msg.today_all_day(),
 		headerToolbar: { start: '', center: '', end: '' },
 		nowIndicator: true,
 		scrollTime: '08:00:00',
@@ -67,6 +71,8 @@
 		selectable: true,
 		editable: true,
 		events: [] as unknown[],
+		eventTimeFormat: { hour: 'numeric', minute: '2-digit' } as Record<string, unknown>,
+		slotLabelFormat: { hour: 'numeric', minute: '2-digit' } as Record<string, unknown>,
 		dateClick: ({ date, allDay }: any) => onDateClick?.(date, allDay),
 		select: ({ start, end, allDay }: any) => onSelect?.(start, end, allDay),
 		eventDrop: ({ event, revert }: any) => {
@@ -83,6 +89,12 @@
 	});
 
 	$effect(() => { ecOptions.events = ecEvents; });
+
+	$effect(() => {
+		const format = { hour: 'numeric', minute: '2-digit', ...hour12Option() };
+		ecOptions.eventTimeFormat = format;
+		ecOptions.slotLabelFormat = format;
+	});
 
 	let isDark = $state(false);
 	$effect(() => {

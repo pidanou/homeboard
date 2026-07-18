@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { get } from 'svelte/store';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
@@ -8,7 +7,7 @@
 	import { api, getBaseUrl, getBaseOrigin } from '$lib/api/client';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import UserAvatar from '$lib/components/UserAvatar.svelte';
-	import { currentUser, loadCurrentUser } from '$lib/stores/user';
+	import { currentUser, loadCurrentUser } from '$lib/stores/user.svelte';
 	import { loadConfig } from '$lib/stores/config';
 	import { households } from '$lib/stores/households';
 	import { setLastHouseholdId } from '$lib/stores/lastHousehold';
@@ -28,7 +27,7 @@
 	const householdName = $derived(household?.name ?? null);
 	const wallpaperUrl = $derived($households.find(h => h.id === familyID)?.wallpaper_url ?? null);
 
-	const user = $derived($currentUser);
+	const user = $derived(currentUser.value);
 
 	$effect(() => {
 		if (familyID) {
@@ -74,7 +73,7 @@
 			goto(`${base}/login`);
 		} else {
 			loadCurrentUser().then(() => {
-				const profileLocale = get(currentUser)?.locale;
+				const profileLocale = currentUser.value?.locale;
 				if (
 					profileLocale &&
 					locales.includes(profileLocale as (typeof locales)[number]) &&

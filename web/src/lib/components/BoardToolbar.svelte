@@ -1,22 +1,26 @@
 <script lang="ts">
-    import type { Member, AppCategory, Filter } from "$lib/types";
+    import type { Member, AppCategory } from "$lib/types";
     import { dotClass } from "$lib/categories";
     import { X, Tag } from "lucide-svelte";
     import UserAvatar from "$lib/components/UserAvatar.svelte";
     import * as msg from "$lib/paraglide/messages.js";
 
+    type ItemType = "task" | "event" | "birthday";
+
     let {
-        filter = $bindable<Filter>("all"),
+        filterTypes = $bindable(new Set<ItemType>()),
+        showDone = $bindable(false),
         filterMembers = $bindable(new Set<string>()),
-        filterCategory = $bindable<string | null>(null),
+        filterCategory = $bindable(new Set<string>()),
         members,
         categories,
         doneCnt,
         familyID,
     }: {
-        filter?: Filter;
+        filterTypes?: Set<ItemType>;
+        showDone?: boolean;
         filterMembers?: Set<string>;
-        filterCategory?: string | null;
+        filterCategory?: Set<string>;
         members: Member[];
         categories: AppCategory[];
         doneCnt: number;
@@ -24,7 +28,7 @@
     } = $props();
 
     const someFilterActive = $derived(
-        filter !== "all" || filterMembers.size > 0 || filterCategory !== null,
+        filterTypes.size > 0 || filterMembers.size > 0 || filterCategory.size > 0,
     );
 
     function chipCls(active: boolean) {
@@ -47,35 +51,52 @@
         filterMembers = next;
     }
 
-    const FILTERS: { id: Filter; label: string }[] = $derived([
-        { id: "all", label: msg.board_filter_active() },
-        { id: "tasks", label: msg.board_filter_tasks() },
-        { id: "events", label: msg.board_filter_events() },
-        { id: "birthdays", label: `🎂 ${msg.board_filter_birthdays()}` },
-        { id: "done", label: `${msg.board_filter_done()}${doneCnt ? ` (${doneCnt})` : ""}` },
+    function toggleType(t: ItemType) {
+        const next = new Set(filterTypes);
+        next.has(t) ? next.delete(t) : next.add(t);
+        filterTypes = next;
+    }
+
+    const TYPES: { id: ItemType; label: string }[] = $derived([
+        { id: "task", label: msg.board_filter_tasks() },
+        { id: "event", label: msg.board_filter_events() },
+        { id: "birthday", label: `🎂 ${msg.board_filter_birthdays()}` },
     ]);
 </script>
 
 <div class="flex items-center gap-2 flex-wrap">
     <!-- Type pills -->
-    {#each FILTERS as f}
+    {#each TYPES as t}
         <button
-            onclick={() => (filter = f.id)}
+            onclick={() => toggleType(t.id)}
             class="px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer {chipCls(
-                filter === f.id,
-            )}">{f.label}</button
+                filterTypes.has(t.id),
+            )}">{t.label}</button
         >
     {/each}
+
+    <span class="text-border text-xs hidden sm:block">|</span>
+    <button
+        onclick={() => (showDone = !showDone)}
+        class="px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer {showDone
+            ? 'ring-1 ring-foreground opacity-100'
+            : someFilterActive
+              ? 'opacity-30'
+              : 'opacity-70 hover:opacity-100'}"
+        >{msg.board_filter_done()}{doneCnt ? ` (${doneCnt})` : ""}</button
+    >
 
     {#if categories.length > 0}
         <span class="text-border text-xs hidden sm:block">|</span>
         {#each categories as cat (cat.id)}
             <button
                 onclick={() => {
-                    filterCategory = filterCategory === cat.id ? null : cat.id;
+                    const next = new Set(filterCategory);
+                    next.has(cat.id) ? next.delete(cat.id) : next.add(cat.id);
+                    filterCategory = next;
                 }}
                 class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs transition-all cursor-pointer {chipCls(
-                    filterCategory === cat.id,
+                    filterCategory.has(cat.id),
                 )}"
             >
                 <span
@@ -106,9 +127,9 @@
     {#if someFilterActive}
         <button
             onclick={() => {
-                filter = "all";
+                filterTypes = new Set();
                 filterMembers = new Set();
-                filterCategory = null;
+                filterCategory = new Set();
             }}
             class="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             ><X class="w-3 h-3" />{msg.board_clear_filters()}</button

@@ -9,10 +9,12 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import { Calendar as DatePicker } from '$lib/components/ui/calendar';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
-	import { X, CalendarDays, ChevronDown, Pencil, Trash2 } from 'lucide-svelte';
+	import { X, CalendarDays, ChevronDown, Pencil, Trash2, SquareCheck } from 'lucide-svelte';
+import { Checkbox } from '$lib/components/ui/checkbox';
 	import type { CalEvent, Task, Member, AppCategory } from '$lib/types';
 	import { dotClass, CATEGORY_HEX } from '$lib/categories';
-	import { fmtTime, taskHasTime, fmtWeekdayDate } from '$lib/dates';
+	import { fmtTime, taskHasTime, fmtWeekdayDate, hour12Option } from '$lib/dates';
+	import { getLocale } from '$lib/paraglide/runtime';
 	import EditDialog from '$lib/components/EditDialog.svelte';
 	import CreateDialog from '$lib/components/CreateDialog.svelte';
 	import EventCard from '$lib/components/EventCard.svelte';
@@ -51,10 +53,10 @@
 
 	// ── Filters ───────────────────────────────────────────────────────────────
 	let filterTypes = $state(new Set<'task' | 'event' | 'birthday'>());
-	let showCompleted = $state(false);
+	let showCompleted = $state(true);
 	let filterMemberIDs = $state<string[]>([]);
-	let filterCategoryID = $state<string | null>(null);
-	const someFilterActive = $derived(filterTypes.size > 0 || filterMemberIDs.length > 0 || filterCategoryID !== null);
+	let filterCategoryIDs = $state(new Set<string>());
+	const someFilterActive = $derived(filterTypes.size > 0 || filterMemberIDs.length > 0 || filterCategoryIDs.size > 0);
 
 	function toggleType(t: 'task' | 'event' | 'birthday') {
 		const next = new Set(filterTypes);
@@ -65,9 +67,11 @@
 		filterMemberIDs = filterMemberIDs.includes(id) ? filterMemberIDs.filter(x => x !== id) : [...filterMemberIDs, id];
 	}
 	function toggleCategory(id: string) {
-		filterCategoryID = filterCategoryID === id ? null : id;
+		const next = new Set(filterCategoryIDs);
+		next.has(id) ? next.delete(id) : next.add(id);
+		filterCategoryIDs = next;
 	}
-	function clearFilters() { filterTypes = new Set(); filterMemberIDs = []; filterCategoryID = null; showCompleted = false; }
+	function clearFilters() { filterTypes = new Set(); filterMemberIDs = []; filterCategoryIDs = new Set(); showCompleted = true; }
 	function chipCls(active: boolean) {
 		if (active) return 'ring-1 ring-foreground opacity-100';
 		return someFilterActive ? 'opacity-30' : 'opacity-70 hover:opacity-100';
@@ -165,7 +169,7 @@
 		const byMember = (id: string | undefined) =>
 			filterMemberIDs.length === 0 || (!!id && filterMemberIDs.includes(id));
 		const byCat = (id: string | undefined) =>
-			filterCategoryID === null || id === filterCategoryID;
+			filterCategoryIDs.size === 0 || (!!id && filterCategoryIDs.has(id));
 		const startMs = agendaStart.getTime();
 		const endMs   = agendaEnd.getTime();
 
@@ -254,14 +258,14 @@
 		const filteredEvents = events.filter(ev => {
 			if (ev.birthday_of ? (filterTypes.size > 0 && !filterTypes.has('birthday')) : (filterTypes.size > 0 && !filterTypes.has('event'))) return false;
 			if (filterMemberIDs.length > 0 && !filterMemberIDs.some(id => ev.attendee_ids?.includes(id))) return false;
-			if (filterCategoryID !== null && ev.category_id !== filterCategoryID) return false;
+			if (filterCategoryIDs.size > 0 && (!ev.category_id || !filterCategoryIDs.has(ev.category_id))) return false;
 			return true;
 		});
 		const filteredTasks = filterTypes.size > 0 && !filterTypes.has('task') ? [] : tasks.filter(t => {
 			if (!t.end_date) return false;
 			if (t.status === 'done' && !showCompleted) return false;
 			if (filterMemberIDs.length > 0 && !filterMemberIDs.includes(t.assigned_to ?? '')) return false;
-			if (filterCategoryID !== null && t.category_id !== filterCategoryID) return false;
+			if (filterCategoryIDs.size > 0 && (!t.category_id || !filterCategoryIDs.has(t.category_id))) return false;
 			return true;
 		});
 		return [
@@ -300,18 +304,51 @@
 
 	$effect(() => { ecOptions.events = ecEvents; });
 
+	$effect(() => {
+		const format = { hour: 'numeric', minute: '2-digit', ...hour12Option() };
+		ecOptions.eventTimeFormat = format;
+		ecOptions.slotLabelFormat = format;
+	});
+
 	// ── EC options ────────────────────────────────────────────────────────────
+	function taskCheckbox(task: Task): HTMLInputElement {
+		const input = document.createElement('input');
+		input.type = 'checkbox';
+		input.className = 'ec-task-checkbox';
+		input.checked = task.status === 'done';
+		input.setAttribute('aria-label', msg.task_toggle_done());
+		input.onclick = (e) => { e.stopPropagation(); toggleTask(task, e as unknown as MouseEvent); };
+		return input;
+	}
+
 	function timeGridEventContent({ event }: any) {
 		const h4 = document.createElement('h4');
 		h4.className = 'ec-event-title';
 		h4.textContent = event.title;
-		return { domNodes: [h4] };
+		if (event.extendedProps.type !== 'task') return { domNodes: [h4] };
+		const row = document.createElement('div');
+		row.className = 'ec-task-row';
+		row.append(taskCheckbox(event.extendedProps.data), h4);
+		return { domNodes: [row] };
+	}
+
+	function monthEventContent({ event }: any) {
+		if (event.extendedProps.type !== 'task') return undefined;
+		const h4 = document.createElement('h4');
+		h4.className = 'ec-event-title';
+		h4.textContent = event.title;
+		const row = document.createElement('div');
+		row.className = 'ec-task-row';
+		row.append(taskCheckbox(event.extendedProps.data), h4);
+		return { domNodes: [row] };
 	}
 
 	let ecOptions = $state<Record<string, unknown>>({
 		view: 'dayGridMonth',
 		date: today,
 		height: '100%',
+		locale: getLocale(),
+		allDayContent: msg.today_all_day(),
 		headerToolbar: false,
 		nowIndicator: true,
 		selectable: true,
@@ -320,6 +357,7 @@
 		firstDay: 1,
 		dayMaxEvents: true,
 		events: [],
+		eventContent: monthEventContent,
 		views: {
 			timeGridWeek: { eventContent: timeGridEventContent },
 			timeGridDay: { eventContent: timeGridEventContent },
@@ -508,7 +546,7 @@
 					<ChevronDown class="w-3.5 h-3.5 text-muted-foreground shrink-0" />
 				</Popover.Trigger>
 				<Popover.Content class="w-auto p-0" align="start">
-					<DatePicker type="single" value={jumpValue} onValueChange={jumpTo} captionLayout="dropdown" />
+					<DatePicker type="single" locale={getLocale()} value={jumpValue} onValueChange={jumpTo} captionLayout="dropdown" />
 				</Popover.Content>
 			</Popover.Root>
 		</div>
@@ -521,7 +559,7 @@
 <div class="flex items-center gap-2.5 mb-2 flex-wrap">
 	<div class="flex items-center gap-1.5 flex-wrap">
 		<button onclick={() => toggleType('task')} class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {chipCls(filterTypes.has('task'))}">
-			<span class="w-2.5 h-2.5 rounded-full border border-dashed border-current shrink-0"></span>
+			<SquareCheck class="w-3 h-3 shrink-0" />
 			{msg.board_filter_tasks()}
 		</button>
 		<button onclick={() => toggleType('event')} class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {chipCls(filterTypes.has('event'))}">
@@ -543,7 +581,7 @@
 		<div class="w-px h-4 bg-border hidden sm:block shrink-0"></div>
 		<div class="hidden sm:flex items-center gap-1.5 flex-wrap">
 			{#each categories as cat (cat.id)}
-				<button onclick={() => toggleCategory(cat.id)} class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {chipCls(filterCategoryID === cat.id)}">
+				<button onclick={() => toggleCategory(cat.id)} class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {chipCls(filterCategoryIDs.has(cat.id))}">
 					<span class="w-2 h-2 rounded-full {dotClass(cat.color)} shrink-0"></span>
 					{cat.name}
 				</button>
@@ -650,7 +688,9 @@
 								class="flex items-center gap-3 text-left py-1 px-2 -mx-2 rounded-md hover:bg-accent/50 transition-colors cursor-pointer w-full"
 							>
 								<span class="w-12 shrink-0 flex justify-end">
-									<span class="w-3.5 h-3.5 rounded-sm border-2 border-muted-foreground/30 shrink-0"></span>
+									<span role="presentation" onclick={(e) => toggleTask(task, e)}>
+										<Checkbox checked={task.status === 'done'} class="pointer-events-none" />
+									</span>
 								</span>
 								<span class="text-sm flex-1 min-w-0 truncate {task.important ? 'font-medium' : ''} {task.status === 'done' ? 'line-through text-muted-foreground' : ''}">{task.title}</span>
 								{#if cat}

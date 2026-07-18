@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { CalEvent, Member, AppCategory } from '$lib/types';
 	import { chipClass, dotClass } from '$lib/categories';
-	import { fmtDate, fmtDateTime } from '$lib/dates';
+	import { fmtDate, fmtDateTime, localDayMs } from '$lib/dates';
 	import { MapPin, User, CalendarDays } from 'lucide-svelte';
 
 	let { event, members, categories, now, onclick, interactive = true }: {
@@ -47,8 +47,10 @@
 		{/if}
 		<p class="text-xs text-muted-foreground mt-1">
 			{event.all_day ? fmtDate(event.start_at) : fmtDateTime(event.start_at)}
-			→
-			{event.all_day ? fmtDate(event.end_at) : fmtDateTime(event.end_at)}
+			{#if !event.all_day || localDayMs(event.end_at) - localDayMs(event.start_at) > 86400000}
+				→
+				{event.all_day ? fmtDate(event.end_at) : fmtDateTime(event.end_at)}
+			{/if}
 			{#if event.location}
 				· <MapPin class="w-3 h-3 inline -mt-px" />{event.location}
 			{/if}

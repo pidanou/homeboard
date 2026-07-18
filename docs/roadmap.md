@@ -200,7 +200,7 @@ One focused sweep to reconcile the full UI against `docs/specs/design.md`.
 - ✅ Create dialog: Repeat picker (None / Daily / Weekly / Monthly / Yearly)
 - ✅ Edit dialog: Repeat picker + "This event / All events" scope prompt for recurring occurrences
 - ⬜ Weekly day selection (e.g. MO,WE,FR) — deferred; defaults to event's start day
-- ⬜ End condition (after N / on date) — deferred; defaults to never
+- ✅ End condition: never / on date (`UNTIL`) / after N occurrences (`COUNT`) — Create and Edit dialogs
 
 ---
 

@@ -5,13 +5,7 @@
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
     import { CheckSquare, CalendarDays } from "lucide-svelte";
-    import type {
-        Task,
-        CalEvent,
-        Member,
-        AppCategory,
-        Filter,
-    } from "$lib/types";
+    import type { Task, CalEvent, Member, AppCategory } from "$lib/types";
     import { localDayMs } from "$lib/dates";
     import BoardToolbar from "$lib/components/BoardToolbar.svelte";
     import TaskCard from "$lib/components/TaskCard.svelte";
@@ -27,9 +21,10 @@
     let tasks = $state<Task[]>([]);
     let events = $state<CalEvent[]>([]);
     let categories = $state<AppCategory[]>([]);
-    let filter = $state<Filter>("all");
+    let filterTypes = $state(new Set<"task" | "event" | "birthday">());
+    let showDone = $state(false);
     let filterMembers = $state(new Set<string>());
-    let filterCategory = $state<string | null>(null);
+    let filterCategory = $state(new Set<string>());
     let quickTitle = $state("");
 
     let createDialog: { open: (t?: "task" | "event") => void } | undefined =
@@ -127,9 +122,25 @@
                 filterMembers.size === 0 ||
                 (ev.attendee_ids ?? []).some((id) => filterMembers.has(id));
             const matchesCategory = (id: string | undefined) =>
-                filterCategory === null || id === filterCategory;
+                filterCategory.size === 0 || (!!id && filterCategory.has(id));
+            const showTasks = filterTypes.size === 0 || filterTypes.has("task");
+            const showEvents = filterTypes.size === 0 || filterTypes.has("event");
+            const showBirthdays =
+                filterTypes.size === 0 || filterTypes.has("birthday");
 
-            if (filter === "all" || filter === "tasks") {
+            if (showDone) {
+                for (const t of tasks.filter(
+                    (t) =>
+                        t.status === "done" &&
+                        matchesMember(t) &&
+                        matchesCategory(t.category_id),
+                )) {
+                    items.push({ kind: "task", data: t, sortKey: 0 });
+                }
+                return items.sort((a, b) => a.sortKey - b.sortKey);
+            }
+
+            if (showTasks) {
                 for (const t of tasks.filter(
                     (t) =>
                         t.status !== "done" &&
@@ -142,8 +153,13 @@
                     items.push({ kind: "task", data: t, sortKey });
                 }
             }
-            if (filter !== "done") {
-                for (const ev of events.filter((ev) => ev.birthday_of)) {
+            if (showBirthdays) {
+                for (const ev of events.filter(
+                    (ev) =>
+                        ev.birthday_of &&
+                        matchesMemberEv(ev) &&
+                        matchesCategory(ev.category_id),
+                )) {
                     items.push({
                         kind: "event",
                         data: ev,
@@ -151,7 +167,7 @@
                     });
                 }
             }
-            if (filter === "all" || filter === "events") {
+            if (showEvents) {
                 for (const ev of events.filter(
                     (ev) =>
                         !ev.birthday_of &&
@@ -164,13 +180,6 @@
                         data: ev,
                         sortKey: new Date(ev.start_at).getTime(),
                     });
-                }
-            }
-            if (filter === "done") {
-                for (const t of tasks.filter(
-                    (t) => t.status === "done" && matchesMember(t),
-                )) {
-                    items.push({ kind: "task", data: t, sortKey: 0 });
                 }
             }
 
@@ -255,7 +264,8 @@
         </div>
     </div>
     <BoardToolbar
-        bind:filter
+        bind:filterTypes
+        bind:showDone
         bind:filterMembers
         bind:filterCategory
         {members}
@@ -272,13 +282,13 @@
         >
             <CheckSquare class="w-10 h-10 opacity-30" />
             <p class="text-sm font-medium">
-                {filter === "done" ? m.board_nothing_completed() : m.board_all_caught_up()}
+                {showDone ? m.board_nothing_completed() : m.board_all_caught_up()}
             </p>
-            {#if filter !== "done"}
+            {#if !showDone}
                 <p class="text-xs">{m.board_empty_hint()}</p>
             {/if}
         </div>
-    {:else if filter === "done"}
+    {:else if showDone}
         <div class="flex flex-col gap-2">
             {#each visibleItems as item (item.kind + item.data.id)}
                 {#if item.kind === "task"}

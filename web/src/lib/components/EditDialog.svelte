@@ -1,22 +1,25 @@
 <script lang="ts">
 	import type { Task, CalEvent, Member, AppCategory } from '$lib/types';
-	import { calDateToISO, isoToCalDate, fmtCalDate, calDateTimeToISO, rangeLabelFor, taskHasTime, isoToTimeInput } from '$lib/dates';
+	import { calDateToISO, isoToCalDate, fmtCalDate, calDateTimeToISO, taskHasTime, isoToTimeInput } from '$lib/dates';
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import * as Dialog from '$lib/components/ui/dialog';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Select from '$lib/components/ui/select';
 	import * as Popover from '$lib/components/ui/popover';
 	import { Calendar } from '$lib/components/ui/calendar';
-	import { RangeCalendar } from '$lib/components/ui/range-calendar';
 	import type { DateRange } from 'bits-ui';
 	import { CalendarDate } from '@internationalized/date';
-	import { CalendarDays, Clock, User, Users, MapPin, Repeat, Tag, AlignLeft, Trash2 } from 'lucide-svelte';
+	import { CalendarDays, User, Users, MapPin, Repeat, Tag, AlignLeft, Trash2 } from 'lucide-svelte';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 	import FormRow from '$lib/components/FormRow.svelte';
+	import TimePicker from '$lib/components/TimePicker.svelte';
 	import * as msg from '$lib/paraglide/messages.js';
+	import { getLocale } from '$lib/paraglide/runtime';
+	import { buildRRule, parseRRule, type RepeatEndType } from '$lib/rrule';
 	let { familyID, members, categories, onSaved, onDeleted }: {
 		familyID: string;
 		members: Member[];
@@ -39,25 +42,28 @@
 	let efStartTime = $state('09:00');
 	let efEndTime = $state('10:00');
 	let efEventPickerOpen = $state(false);
+	let efStartPickerOpen = $state(false);
+	let efEndPickerOpen = $state(false);
 	let efCategoryID = $state<string | undefined>(undefined);
 	type RepeatVal = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 	let efRepeat = $state<RepeatVal>('none');
+	let efRepeatEndType = $state<RepeatEndType>('never');
+	let efRepeatUntil = $state<CalendarDate | undefined>(undefined);
+	let efRepeatUntilOpen = $state(false);
+	let efRepeatCount = $state(5);
 	let efIsRecurring = $state(false);
-	let efScopePrompt = $state<'save' | 'delete' | null>(null);
+	let efScopePrompt = $state<'save' | null>(null);
 	let efBirthdayOf = $state<string | undefined>(undefined);
+	let deleteConfirmOpen = $state(false);
 
 	const REPEAT_LABELS = $derived<Record<string, string>>({
 		none: msg.repeat_none(), daily: msg.repeat_daily(), weekly: msg.repeat_weekly(), monthly: msg.repeat_monthly(), yearly: msg.repeat_yearly()
 	});
+	const REPEAT_END_LABELS = $derived<Record<RepeatEndType, string>>({
+		never: msg.repeat_ends_never(), until: msg.repeat_ends_on_date(), count: msg.repeat_ends_after(),
+	});
 
-	const RRULE: Record<string, string> = {
-		daily: 'FREQ=DAILY', weekly: 'FREQ=WEEKLY', monthly: 'FREQ=MONTHLY', yearly: 'FREQ=YEARLY',
-	};
-	const RRULE_REVERSE: Record<string, string> = {
-		'FREQ=DAILY': 'daily', 'FREQ=WEEKLY': 'weekly', 'FREQ=MONTHLY': 'monthly', 'FREQ=YEARLY': 'yearly',
-	};
-
-	export function openTask(t: Task) {
+	export function openTask(t: Task, open = true) {
 		editKind = 'task';
 		editID = t.id;
 		ef = {
@@ -69,10 +75,10 @@
 		efDueTime = t.end_date && taskHasTime(t.end_date) ? isoToTimeInput(t.end_date) : '';
 		efCategoryID = t.category_id;
 		efBirthdayOf = undefined;
-		isOpen = true;
+		if (open) isOpen = true;
 	}
 
-	export function openEvent(e: CalEvent) {
+	export function openEvent(e: CalEvent, open = true) {
 		editKind = 'event';
 		editID = e.id;
 		ef = {
@@ -86,11 +92,15 @@
 		efStartTime = `${String(s.getHours()).padStart(2, '0')}:${String(s.getMinutes()).padStart(2, '0')}`;
 		efEndTime = `${String(en.getHours()).padStart(2, '0')}:${String(en.getMinutes()).padStart(2, '0')}`;
 		efCategoryID = e.category_id;
-		efRepeat = (e.recurrence_rule ? (RRULE_REVERSE[e.recurrence_rule] ?? 'none') : 'none') as RepeatVal;
+		const parsed = parseRRule(e.recurrence_rule);
+		efRepeat = parsed.freq;
+		efRepeatEndType = parsed.end.type;
+		efRepeatUntil = parsed.end.type === 'until' ? parsed.end.date : undefined;
+		efRepeatCount = parsed.end.type === 'count' ? parsed.end.count : 5;
 		efIsRecurring = !!e.is_recurring;
 		efScopePrompt = null;
 		efBirthdayOf = e.birthday_of ?? undefined;
-		isOpen = true;
+		if (open) isOpen = true;
 	}
 
 	function toggleAttendee(ids: string[], uid: string): string[] {
@@ -128,7 +138,7 @@
 					end_at: calDateTimeToISO(efEnd, efEndTime, isAllDay),
 					all_day: isAllDay, attendee_ids: ef.attendeeIDs, category_id: efCategoryID,
 					important: ef.important,
-					recurrence_rule: isBirthday ? RRULE['yearly'] : (efRepeat !== 'none' ? RRULE[efRepeat] : null),
+					recurrence_rule: isBirthday ? 'FREQ=YEARLY' : (buildRRule(efRepeat, efRepeatEndType === 'until' && efRepeatUntil ? { type: 'until', date: efRepeatUntil } : efRepeatEndType === 'count' ? { type: 'count', count: efRepeatCount } : { type: 'never' }) ?? null),
 					birthday_of: efBirthdayOf?.trim() || null,
 				});
 			}
@@ -136,16 +146,14 @@
 		} catch { }
 	}
 
-	export function deleteTask(t: Task) { openTask(t); del(); }
-	export function deleteEvent(e: CalEvent) { openEvent(e); del(); }
+	export function deleteTask(t: Task) { openTask(t, false); confirmDelete(); }
+	export function deleteEvent(e: CalEvent) { openEvent(e, false); confirmDelete(); }
 
-	function del() {
-		if (editKind === 'event' && efIsRecurring) { efScopePrompt = 'delete'; return; }
-		doDelete(editID);
-	}
+	function confirmDelete() { deleteConfirmOpen = true; }
 
 	async function doDelete(id: string) {
 		isOpen = false;
+		deleteConfirmOpen = false;
 		try {
 			if (editKind === 'task') {
 				await api.delete(`/api/v1/households/${familyID}/tasks/${id}`);
@@ -158,6 +166,8 @@
 
 	// Strip the ::YYYYMMDD suffix to get the parent ID.
 	function parentID(id: string) { return id.split('::')[0]; }
+	// German capitalizes all nouns, so lowercasing "Aufgabe"/"Event" mid-sentence would be wrong.
+	function lowerKind(kind: string) { return getLocale() === 'de' ? kind : kind.toLowerCase(); }
 </script>
 
 <Dialog.Root bind:open={isOpen}>
@@ -165,23 +175,22 @@
 		<Dialog.Overlay />
 		<Dialog.Content class="sm:max-w-md flex flex-col max-h-[90dvh]">
 			<Dialog.Header>
-				<Dialog.Title>{msg.edit_dialog_title({ kind: editKind === 'task' ? msg.dialog_type_task().toLowerCase() : msg.dialog_type_event().toLowerCase() })}</Dialog.Title>
+				<Dialog.Title class="sr-only">{msg.edit_dialog_title({ kind: lowerKind(editKind === 'task' ? msg.dialog_type_task() : msg.dialog_type_event()) })}</Dialog.Title>
 			</Dialog.Header>
 
 			<div class="flex flex-col gap-3 py-2 overflow-y-auto flex-1 min-h-0 px-1"
 				onkeydown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); save(); } }}>
 				<!-- Title -->
 				{#if efBirthdayOf !== undefined}
-					<Input bind:value={efBirthdayOf} placeholder={msg.dialog_birthday_name_placeholder()} class="flex-1" />
+					<Input bind:value={efBirthdayOf} placeholder={msg.dialog_birthday_name_placeholder()} class="flex-1 h-11 text-lg font-medium" />
 				{:else}
-				<Input bind:value={ef.title} class="flex-1" />
+				<Input bind:value={ef.title} class="flex-1 h-11 text-lg font-medium" />
 				{/if}
 
 				{#if editKind === 'task'}
-					<label class="flex items-center gap-2 text-sm cursor-pointer">
-						<Checkbox bind:checked={ef.important} />
+					<FormRow bind:checked={ef.important}>
 						{msg.dialog_important()}
-					</label>
+					</FormRow>
 
 					<FormRow icon={CalendarDays}>
 						<div class="flex items-center gap-2">
@@ -192,11 +201,11 @@
 									</Button>
 								</Popover.Trigger>
 								<Popover.Content class="w-auto p-0" align="start">
-									<Calendar type="single" bind:value={efDueDate} onValueChange={() => (efDueOpen = false)} />
+									<Calendar type="single" locale={getLocale()} bind:value={efDueDate} onValueChange={() => (efDueOpen = false)} />
 								</Popover.Content>
 							</Popover.Root>
 							{#if efDueDate}
-								<Input type="time" bind:value={efDueTime} class="w-32 shrink-0" />
+								<TimePicker bind:value={efDueTime} class="w-32 shrink-0" />
 							{/if}
 						</div>
 					</FormRow>
@@ -234,6 +243,7 @@
 							<Popover.Content class="w-auto p-0" align="start">
 								<Calendar
 									type="single"
+									locale={getLocale()}
 									value={efEventRange.start}
 									onValueChange={(d) => { efEventRange = { start: d, end: d }; efEventPickerOpen = false; }}
 								/>
@@ -242,39 +252,61 @@
 					</FormRow>
 				{:else}
 					<FormRow icon={CalendarDays}>
-						<Popover.Root bind:open={efEventPickerOpen}>
-							<Popover.Trigger class="w-full">
-								<Button variant="outline" class="w-full justify-start font-normal text-sm">
-									{rangeLabelFor(efEventRange)}
-								</Button>
-							</Popover.Trigger>
-							<Popover.Content class="w-auto p-0" align="start">
-								<RangeCalendar
-									bind:value={efEventRange}
-									onValueChange={() => { if (efEventRange.start && efEventRange.end) efEventPickerOpen = false; }}
-								/>
-							</Popover.Content>
-						</Popover.Root>
-					</FormRow>
-
-					<FormRow icon={Clock}>
-						<div class="flex items-center gap-3 flex-wrap">
-							<label class="flex items-center gap-2 text-sm cursor-pointer">
-								<Checkbox bind:checked={ef.allDay} />
-								{msg.dialog_all_day()}
-							</label>
-							{#if !ef.allDay}
-								<Input type="time" bind:value={efStartTime} class="w-28" />
-								<span class="text-muted-foreground text-sm">–</span>
-								<Input type="time" bind:value={efEndTime} class="w-28" />
-							{/if}
+						<div class="flex flex-col gap-2">
+							<div class="flex items-center gap-2">
+								<Popover.Root bind:open={efStartPickerOpen}>
+									<Popover.Trigger class="flex-1">
+										<Button variant="outline" class="w-full justify-start font-normal text-sm">
+											{efEventRange.start ? fmtCalDate(efEventRange.start) : msg.dates_select_dates()}
+										</Button>
+									</Popover.Trigger>
+									<Popover.Content class="w-auto p-0" align="start">
+										<Calendar
+											type="single"
+											locale={getLocale()}
+											bind:value={efEventRange.start}
+											onValueChange={(d) => {
+												if (d && efEventRange.end && efEventRange.end.compare(d) < 0) efEventRange.end = d;
+												efStartPickerOpen = false;
+											}}
+										/>
+									</Popover.Content>
+								</Popover.Root>
+								{#if !ef.allDay}
+									<TimePicker bind:value={efStartTime} class="w-28 shrink-0" />
+								{/if}
+							</div>
+							<div class="flex items-center gap-2">
+								<Popover.Root bind:open={efEndPickerOpen}>
+									<Popover.Trigger class="flex-1">
+										<Button variant="outline" class="w-full justify-start font-normal text-sm">
+											{efEventRange.end ? fmtCalDate(efEventRange.end) : msg.dates_select_dates()}
+										</Button>
+									</Popover.Trigger>
+									<Popover.Content class="w-auto p-0" align="start">
+										<Calendar
+											type="single"
+											locale={getLocale()}
+											bind:value={efEventRange.end}
+											minValue={efEventRange.start}
+											onValueChange={() => (efEndPickerOpen = false)}
+										/>
+									</Popover.Content>
+								</Popover.Root>
+								{#if !ef.allDay}
+									<TimePicker bind:value={efEndTime} class="w-28 shrink-0" />
+								{/if}
+							</div>
 						</div>
 					</FormRow>
 
-					<label class="flex items-center gap-2 text-sm cursor-pointer">
-						<Checkbox bind:checked={ef.important} />
+					<FormRow bind:checked={ef.allDay}>
+						{msg.dialog_all_day()}
+					</FormRow>
+
+					<FormRow bind:checked={ef.important}>
 						{msg.dialog_important()}
-					</label>
+					</FormRow>
 
 					<FormRow icon={Repeat}>
 						<Select.Root type="single" bind:value={efRepeat}>
@@ -288,6 +320,39 @@
 							</Select.Content>
 						</Select.Root>
 					</FormRow>
+
+					{#if efRepeat !== 'none'}
+						<FormRow>
+							<div class="flex items-center gap-2">
+								<span class="text-sm text-muted-foreground shrink-0">{msg.repeat_ends_label()}</span>
+								<Select.Root type="single" bind:value={efRepeatEndType}>
+									<Select.Trigger class="w-32 shrink-0">{REPEAT_END_LABELS[efRepeatEndType]}</Select.Trigger>
+									<Select.Content>
+										<Select.Item value="never">{msg.repeat_ends_never()}</Select.Item>
+										<Select.Item value="until">{msg.repeat_ends_on_date()}</Select.Item>
+										<Select.Item value="count">{msg.repeat_ends_after()}</Select.Item>
+									</Select.Content>
+								</Select.Root>
+								{#if efRepeatEndType === 'until'}
+									<Popover.Root bind:open={efRepeatUntilOpen}>
+										<Popover.Trigger class="flex-1">
+											<Button variant="outline" class="w-full justify-start font-normal text-sm">
+												{efRepeatUntil ? fmtCalDate(efRepeatUntil) : msg.dates_select_dates()}
+											</Button>
+										</Popover.Trigger>
+										<Popover.Content class="w-auto p-0" align="start">
+											<Calendar type="single" locale={getLocale()} bind:value={efRepeatUntil} onValueChange={() => (efRepeatUntilOpen = false)} />
+										</Popover.Content>
+									</Popover.Root>
+								{:else if efRepeatEndType === 'count'}
+									<div class="flex items-center gap-2 flex-1">
+										<Input type="number" min="1" bind:value={efRepeatCount} class="w-16" />
+										<span class="text-sm text-muted-foreground">{msg.repeat_ends_occurrences()}</span>
+									</div>
+								{/if}
+							</div>
+						</FormRow>
+					{/if}
 
 					<FormRow icon={MapPin}>
 						<Input bind:value={ef.location} placeholder={msg.dialog_location_placeholder()} />
@@ -322,18 +387,11 @@
 			<Dialog.Footer class="flex-col gap-2">
 				{#if efScopePrompt}
 					<p class="text-sm text-muted-foreground text-center">
-						{efScopePrompt === 'save' ? msg.edit_dialog_update_which() : msg.edit_dialog_delete_which()}
+						{msg.edit_dialog_update_which()}
 					</p>
 					<div class="flex gap-2 justify-center">
-						<Button variant="outline" size="sm" onclick={() => {
-							if (efScopePrompt === 'save') doSave(editID);
-							else doDelete(editID);
-						}}>{msg.edit_dialog_this_event()}</Button>
-						<Button variant="outline" size="sm" onclick={() => {
-							const pid = parentID(editID);
-							if (efScopePrompt === 'save') doSave(pid);
-							else doDelete(pid);
-						}}>{msg.edit_dialog_all_events()}</Button>
+						<Button variant="outline" size="sm" onclick={() => doSave(editID)}>{msg.edit_dialog_this_event()}</Button>
+						<Button variant="outline" size="sm" onclick={() => doSave(parentID(editID))}>{msg.edit_dialog_all_events()}</Button>
 						<Button variant="ghost" size="sm" onclick={() => (efScopePrompt = null)}>{msg.dialog_cancel()}</Button>
 					</div>
 				{:else}
@@ -342,7 +400,7 @@
 							variant="outline"
 							size="icon"
 							class="text-destructive hover:text-destructive shrink-0"
-							onclick={del}
+							onclick={confirmDelete}
 							aria-label={msg.edit_dialog_delete()}
 						>
 							<Trash2 class="size-4" />
@@ -361,3 +419,24 @@
 		</Dialog.Content>
 	</Dialog.Portal>
 </Dialog.Root>
+
+<AlertDialog.Root bind:open={deleteConfirmOpen}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>{msg.edit_dialog_delete_confirm({ title: ef.title })}</AlertDialog.Title>
+			{#if editKind === 'event' && efIsRecurring && !efBirthdayOf?.trim()}
+				<AlertDialog.Description>{msg.edit_dialog_delete_which()}</AlertDialog.Description>
+			{/if}
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			{#if editKind === 'event' && efIsRecurring && !efBirthdayOf?.trim()}
+				<Button variant="outline" size="sm" onclick={() => (deleteConfirmOpen = false)}>{msg.dialog_cancel()}</Button>
+				<Button variant="destructive" size="sm" onclick={() => doDelete(editID)}>{msg.edit_dialog_this_event()}</Button>
+				<Button variant="destructive" size="sm" onclick={() => doDelete(parentID(editID))}>{msg.edit_dialog_all_events()}</Button>
+			{:else}
+				<AlertDialog.Cancel>{msg.dialog_cancel()}</AlertDialog.Cancel>
+				<Button variant="destructive" onclick={() => doDelete(efBirthdayOf?.trim() ? parentID(editID) : editID)}>{msg.edit_dialog_delete()}</Button>
+			{/if}
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>

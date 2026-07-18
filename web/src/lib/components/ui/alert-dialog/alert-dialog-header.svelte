@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { HTMLAttributes } from "svelte/elements";
 	import { cn, type WithElementRef } from "$lib/utils.js";
-	import { GripVertical } from "lucide-svelte";
 
 	let {
 		ref = $bindable(null),
@@ -13,12 +12,9 @@
 
 <div
 	bind:this={ref}
-	data-slot="dialog-header"
-	class={cn("gap-2 flex flex-row items-center cursor-grab active:cursor-grabbing", className)}
+	data-slot="alert-dialog-header"
+	class={cn("gap-2 flex flex-col", className)}
 	{...restProps}
 >
-	<GripVertical class="size-4 text-muted-foreground/40 shrink-0" />
-	<div class="flex flex-col gap-2 flex-1 min-w-0">
-		{@render children?.()}
-	</div>
+	{@render children?.()}
 </div>

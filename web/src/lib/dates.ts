@@ -2,6 +2,15 @@ import { CalendarDate, type DateValue } from '@internationalized/date';
 import type { DateRange } from 'bits-ui';
 import { getLocale } from '$lib/paraglide/runtime';
 import * as msg from '$lib/paraglide/messages.js';
+import { currentUser } from '$lib/stores/user.svelte';
+
+/** Empty when the user's preference is 'auto' — lets the locale pick the convention. */
+export function hour12Option(): { hour12: boolean } | Record<string, never> {
+	const format = currentUser.value?.time_format ?? 'auto';
+	if (format === '12') return { hour12: true };
+	if (format === '24') return { hour12: false };
+	return {};
+}
 
 export function calDateToISO(d: DateValue): string {
 	const pad = (n: number) => String(n).padStart(2, '0');
@@ -58,7 +67,7 @@ export function localDayMs(iso: string): number {
 }
 
 export function fmtTime(iso: string): string {
-	return new Date(iso).toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' });
+	return new Date(iso).toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit', ...hour12Option() });
 }
 
 export function taskHasTime(iso: string): boolean {
@@ -73,7 +82,7 @@ export function isoToTimeInput(iso: string): string {
 
 export function fmtDateTime(iso: string): string {
 	return new Date(iso).toLocaleString(getLocale(), {
-		month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+		month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', ...hour12Option(),
 	});
 }
 

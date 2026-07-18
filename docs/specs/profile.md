@@ -14,6 +14,8 @@ A **profile** is the user's personal identity within the app. It controls how th
 | avatar | Optional. A photo or image. Falls back to initials if absent. |
 | email | Required. Used for login and invites. Changing it requires confirmation. |
 | password | Not displayed — change via a dedicated flow. |
+| language | One of the supported locales. Synced to the account, applies on any device. |
+| time format | `auto` (follow locale), `12` (AM/PM), or `24`. Synced to the account. Controls how times render across calendar, tasks, and lists. |
 
 ---
 
@@ -166,3 +168,4 @@ No inline crop in the action sheet — crop UI opens as a full-screen overlay af
 | Email change flow | Not implemented |
 | Password change | Not implemented |
 | Profile settings page | Not implemented |
+| Time format preference (auto/12h/24h) | Implemented |

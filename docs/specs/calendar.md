@@ -149,13 +149,13 @@ Consistent with the Board page filter panel:
 
 ---
 
-## Recurring events *(not yet implemented — deferred)*
+## Recurring events
 
-Full recurrence is out of scope for v1 but the data model should not preclude it. When implemented:
-- Rules: daily, weekly (select days), monthly, yearly
-- End: never / after N occurrences / on date
-- Edit: "this event" / "this and following" / "all events"
-- Stored as a `recurrence_rule` TEXT field on the events table (RFC 5545 RRULE)
+- Rules: daily, weekly, monthly, yearly (birthdays are always yearly)
+- End: never / on date / after N occurrences
+- Edit and delete: "this event only" (creates an exception row) / "all events" (updates the recurring parent)
+- Stored as a `recurrence_rule` TEXT field on the events table (RFC 5545 RRULE, e.g. `FREQ=WEEKLY;UNTIL=20261231T235959Z` or `FREQ=WEEKLY;COUNT=10`); occurrences are expanded on read via `rrule-go`, not materialized
+- Not yet implemented: weekly recurrence on selected days (BYDAY), "this and following" edit scope
 
 ---
 
