@@ -252,4 +252,4 @@ Copy `.env.example` to `.env` and fill in `DATABASE_URL` and `JWT_SECRET` before
 
 ## License
 
-MIT
+GPL-3
