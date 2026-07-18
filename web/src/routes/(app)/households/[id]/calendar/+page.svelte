@@ -9,7 +9,8 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import { Calendar as DatePicker } from '$lib/components/ui/calendar';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
-	import { X, CalendarDays, ChevronDown, Pencil, Trash2 } from 'lucide-svelte';
+	import { X, CalendarDays, ChevronDown, Pencil, Trash2, SquareCheck } from 'lucide-svelte';
+import { Checkbox } from '$lib/components/ui/checkbox';
 	import type { CalEvent, Task, Member, AppCategory } from '$lib/types';
 	import { dotClass, CATEGORY_HEX } from '$lib/categories';
 	import { fmtTime, taskHasTime, fmtWeekdayDate, hour12Option } from '$lib/dates';
@@ -52,7 +53,7 @@
 
 	// ── Filters ───────────────────────────────────────────────────────────────
 	let filterTypes = $state(new Set<'task' | 'event' | 'birthday'>());
-	let showCompleted = $state(false);
+	let showCompleted = $state(true);
 	let filterMemberIDs = $state<string[]>([]);
 	let filterCategoryIDs = $state(new Set<string>());
 	const someFilterActive = $derived(filterTypes.size > 0 || filterMemberIDs.length > 0 || filterCategoryIDs.size > 0);
@@ -70,7 +71,7 @@
 		next.has(id) ? next.delete(id) : next.add(id);
 		filterCategoryIDs = next;
 	}
-	function clearFilters() { filterTypes = new Set(); filterMemberIDs = []; filterCategoryIDs = new Set(); showCompleted = false; }
+	function clearFilters() { filterTypes = new Set(); filterMemberIDs = []; filterCategoryIDs = new Set(); showCompleted = true; }
 	function chipCls(active: boolean) {
 		if (active) return 'ring-1 ring-foreground opacity-100';
 		return someFilterActive ? 'opacity-30' : 'opacity-70 hover:opacity-100';
@@ -310,11 +311,36 @@
 	});
 
 	// ── EC options ────────────────────────────────────────────────────────────
+	function taskCheckbox(task: Task): HTMLInputElement {
+		const input = document.createElement('input');
+		input.type = 'checkbox';
+		input.className = 'ec-task-checkbox';
+		input.checked = task.status === 'done';
+		input.setAttribute('aria-label', msg.task_toggle_done());
+		input.onclick = (e) => { e.stopPropagation(); toggleTask(task, e as unknown as MouseEvent); };
+		return input;
+	}
+
 	function timeGridEventContent({ event }: any) {
 		const h4 = document.createElement('h4');
 		h4.className = 'ec-event-title';
 		h4.textContent = event.title;
-		return { domNodes: [h4] };
+		if (event.extendedProps.type !== 'task') return { domNodes: [h4] };
+		const row = document.createElement('div');
+		row.className = 'ec-task-row';
+		row.append(taskCheckbox(event.extendedProps.data), h4);
+		return { domNodes: [row] };
+	}
+
+	function monthEventContent({ event }: any) {
+		if (event.extendedProps.type !== 'task') return undefined;
+		const h4 = document.createElement('h4');
+		h4.className = 'ec-event-title';
+		h4.textContent = event.title;
+		const row = document.createElement('div');
+		row.className = 'ec-task-row';
+		row.append(taskCheckbox(event.extendedProps.data), h4);
+		return { domNodes: [row] };
 	}
 
 	let ecOptions = $state<Record<string, unknown>>({
@@ -331,6 +357,7 @@
 		firstDay: 1,
 		dayMaxEvents: true,
 		events: [],
+		eventContent: monthEventContent,
 		views: {
 			timeGridWeek: { eventContent: timeGridEventContent },
 			timeGridDay: { eventContent: timeGridEventContent },
@@ -532,7 +559,7 @@
 <div class="flex items-center gap-2.5 mb-2 flex-wrap">
 	<div class="flex items-center gap-1.5 flex-wrap">
 		<button onclick={() => toggleType('task')} class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {chipCls(filterTypes.has('task'))}">
-			<span class="w-2.5 h-2.5 rounded-full border border-dashed border-current shrink-0"></span>
+			<SquareCheck class="w-3 h-3 shrink-0" />
 			{msg.board_filter_tasks()}
 		</button>
 		<button onclick={() => toggleType('event')} class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {chipCls(filterTypes.has('event'))}">
@@ -661,7 +688,9 @@
 								class="flex items-center gap-3 text-left py-1 px-2 -mx-2 rounded-md hover:bg-accent/50 transition-colors cursor-pointer w-full"
 							>
 								<span class="w-12 shrink-0 flex justify-end">
-									<span class="w-3.5 h-3.5 rounded-sm border-2 border-muted-foreground/30 shrink-0"></span>
+									<span role="presentation" onclick={(e) => toggleTask(task, e)}>
+										<Checkbox checked={task.status === 'done'} class="pointer-events-none" />
+									</span>
 								</span>
 								<span class="text-sm flex-1 min-w-0 truncate {task.important ? 'font-medium' : ''} {task.status === 'done' ? 'line-through text-muted-foreground' : ''}">{task.title}</span>
 								{#if cat}

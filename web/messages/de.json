@@ -125,6 +125,7 @@
 	"action_add": "Hinzufügen",
 	"action_edit": "Bearbeiten",
 	"cal_hide_completed": "Erledigte Ausblenden",
+	"task_toggle_done": "Aufgabe erledigt umschalten",
 	"cal_show_completed": "Erledigte Anzeigen",
 	"cal_click_drag_hint": "Klicken oder ziehen, um hinzuzufügen",
 	"cal_previous_aria": "Vorherige",

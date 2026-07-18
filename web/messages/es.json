@@ -119,6 +119,7 @@
 	"action_add": "Añadir",
 	"action_edit": "Editar",
 	"cal_hide_completed": "Ocultar completadas",
+	"task_toggle_done": "Alternar tarea completada",
 	"cal_show_completed": "Mostrar completadas",
 	"cal_click_drag_hint": "Haz clic o arrastra para añadir",
 	"cal_previous_aria": "Anterior",

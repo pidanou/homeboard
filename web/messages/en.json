@@ -125,6 +125,7 @@
 	"action_add": "Add",
 	"action_edit": "Edit",
 	"cal_hide_completed": "Hide completed",
+	"task_toggle_done": "Toggle task done",
 	"cal_show_completed": "Show completed",
 	"cal_click_drag_hint": "Click or drag to add",
 	"cal_previous_aria": "Previous",

@@ -171,27 +171,38 @@
 
 .ec-toolbar { display: none !important; height: 0 !important; padding: 0 !important; margin: 0 !important; }
 
-.ec-event.ec-task {
-	border-width: 2px !important;
-	border-style: dashed !important;
-	border-color: rgba(0, 0, 0, 0.35) !important;
-}
-
-.dark .ec-event.ec-task {
-	border-color: rgba(255, 255, 255, 0.7) !important;
-}
-
-@media (prefers-color-scheme: dark) {
-	.ec-event.ec-task {
-		border-color: rgba(255, 255, 255, 0.7) !important;
-	}
-}
 .ec-event.ec-task-done {
 	opacity: 0.5;
 	--ec-event-bg-color: var(--muted);
 	--ec-event-text-color: var(--muted-foreground);
 }
 .ec-event.ec-task-done .ec-event-title { text-decoration: line-through; }
+
+.ec-task-row { display: flex; align-items: center; gap: 0.3rem; }
+.ec-task-checkbox {
+	appearance: none;
+	-webkit-appearance: none;
+	width: 12px;
+	height: 12px;
+	margin: 0;
+	border: 2px solid currentColor;
+	border-radius: 4px;
+	flex-shrink: 0;
+	cursor: pointer;
+	position: relative;
+}
+.ec-task-checkbox:checked { background: currentColor; }
+.ec-task-checkbox:checked::after {
+	content: '';
+	position: absolute;
+	left: 2px;
+	top: -1px;
+	width: 3px;
+	height: 6px;
+	border: solid var(--ec-event-bg-color, #fff);
+	border-width: 0 2px 2px 0;
+	transform: rotate(45deg);
+}
 
 .ec-day-grid .ec-body .ec-day,
 .ec-time-grid .ec-body .ec-time { cursor: pointer; }
