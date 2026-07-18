@@ -143,6 +143,7 @@
 	export function deleteEvent(e: CalEvent) { openEvent(e); del(); }
 
 	function del() {
+		if (editKind === 'event' && efBirthdayOf?.trim()) { doDelete(parentID(editID)); return; }
 		if (editKind === 'event' && efIsRecurring) { efScopePrompt = 'delete'; return; }
 		doDelete(editID);
 	}
