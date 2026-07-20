@@ -128,32 +128,6 @@ OAuth and invite polish.
 
 ---
 
-## M11b — Capacitor native wrapper ⬜
-Wrap the existing SvelteKit app in a Capacitor native shell for iOS and Android distribution. **No rewrite** — same codebase, native WebView + plugin access.
-
-**Why Capacitor over Flutter/React Native:**
-- Zero code rewrite — SvelteKit stays as-is
-- Three targets from one codebase: self-hosted PWA + iOS App Store + Google Play
-- Access to native plugins (push, haptics, safe area, status bar, camera)
-- Capacitor detects native context via `Capacitor.isNativePlatform()` — conditional behavior where needed
-
-**Steps when ready:**
-1. `npm install @capacitor/core @capacitor/cli && npx cap init`
-2. `npx cap add ios && npx cap add android`
-3. SvelteKit build → `npx cap sync` copies output into native projects
-4. Add `@capacitor/push-notifications` — use instead of Web Push when native
-5. Add `@capacitor/status-bar`, `@capacitor/splash-screen`, `@capacitor/haptics`
-6. CI: add Xcode + Android Studio build steps
-
-**Distribution targets after this milestone:**
-- Self-hosted PWA: `docker compose up` (unchanged)
-- iOS: Capacitor → Xcode → App Store
-- Android: Capacitor → Android Studio → Play Store
-
-> **If traction grows beyond Capacitor:** Flutter (one codebase, true native UI, good if team stays JS/Dart) or fully native Swift/Kotlin (maximum platform integration — widgets, Watch, CarPlay). The Go backend requires zero changes for either path — it's just another REST client.
-
----
-
 ## M12 — Calendar DnD & advanced rendering ✅
 Replaced hand-rolled calendar grid with `@event-calendar/core` (Svelte 5 native). Library: `@event-calendar/core` v5.7.1 with DayGrid, TimeGrid, List, Interaction plugins.
 
@@ -268,6 +242,37 @@ One focused sweep to reconcile the full UI against `docs/specs/design.md`.
 
 ---
 
+## M23 — Native wrapper (Capacitor, revisit if not) ⬜
+Wrap the existing SvelteKit app in a native shell for iOS and Android distribution. Placed last deliberately — revisit the approach based on how the project has evolved by the time this is picked up, not decided today.
+
+**Default plan: Capacitor.** No rewrite — same codebase, native WebView + plugin access.
+- Zero code rewrite — SvelteKit stays as-is
+- Three targets from one codebase: self-hosted PWA + iOS App Store + Google Play
+- Access to native plugins (push, haptics, safe area, status bar, camera)
+- Capacitor detects native context via `Capacitor.isNativePlatform()` — conditional behavior where needed
+
+**Steps when ready (if Capacitor still fits):**
+1. `npm install @capacitor/core @capacitor/cli && npx cap init`
+2. `npx cap add ios && npx cap add android`
+3. SvelteKit build → `npx cap sync` copies output into native projects
+4. Add `@capacitor/push-notifications` — use instead of Web Push when native
+5. Add `@capacitor/status-bar`, `@capacitor/splash-screen`, `@capacitor/haptics`
+6. CI: add Xcode + Android Studio build steps
+
+**Re-evaluate before starting — pick Flutter or native Swift/Kotlin instead if:**
+- The app has grown a lot of native-feeling interaction (gestures, animations) that a WebView renders poorly
+- Deep native integration becomes a priority — home screen widgets, Apple Watch/Wear OS, CarPlay/Android Auto, background processing beyond what Capacitor plugins cover
+- Team capacity/interest shifts toward maintaining a dedicated native codebase
+
+The Go backend requires zero changes for any of these paths — it's just another REST client either way.
+
+**Distribution targets after this milestone (any path):**
+- Self-hosted PWA: `docker compose up` (unchanged)
+- iOS: App Store
+- Android: Google Play
+
+---
+
 ## Deferred / no milestone yet
 
 These are captured in spec out-of-scope tables. Promote to a milestone when prioritised.
@@ -288,4 +293,4 @@ These are captured in spec out-of-scope tables. Promote to a milestone when prio
 | ~~List item categories / aisle grouping~~ | ✅ M22 |
 | Activity feed / audit log | `app.md` |
 | File attachments | `app.md` |
-| Native mobile app (Flutter) | `app.md` |
+| ~~Native mobile app~~ | 🚧 M23 |

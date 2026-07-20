@@ -233,6 +233,36 @@ When sort is not "Date", time grouping (Overdue / Today / This week / Later) is 
 
 ---
 
+## Subtasks (planned, not yet implemented)
+
+A subtask is a **checklist item** under a task — not a second class of full task. It has a title and a done/todo state, nothing else. This scope is deliberate: subtasks inherit the parent's due date, assignee, and category rather than getting their own, which keeps every other part of this spec (time grouping, filters, sort, Today/Calendar chips) completely untouched. Widening that later is a bigger, separate decision — not a natural extension of v1.
+
+### Data model
+- New table `task_subtasks`: `id`, `task_id` (FK → `tasks.id`, `ON DELETE CASCADE`), `title`, `status` (`todo` | `done`), `created_at`, `updated_at`. No `family_id` — scoping goes through the parent task.
+- No `assigned_to`, `start_date`/`end_date`, `category_id`, or `important` on subtasks. No nesting (a subtask cannot have subtasks).
+
+### API
+- Task list/detail responses gain a `subtasks: Subtask[]` field, fetched via a second query keyed on the family's task IDs and merged in Go (avoids N+1 without complicating the main tasks query).
+- `POST /families/{familyID}/tasks/{taskID}/subtasks` — `{ title }`
+- `PATCH /families/{familyID}/tasks/{taskID}/subtasks/{subtaskID}` — `{ title?, status? }`
+- `DELETE /families/{familyID}/tasks/{taskID}/subtasks/{subtaskID}`
+- Same `hub.Broadcast(familyID)` SSE pattern as every other mutation — no new event type needed.
+- Ordering: `created_at ASC`. No manual reorder in v1 (list is expected to stay short; add `manual_order` later only if that stops being true).
+
+### UI
+- **TaskCard**: when a task has subtasks, show a `N/M` done-count chip alongside the due date/assignee/category chips (e.g. `2/5`). Not interactive on the card — tapping the card still opens Edit dialog, same as today.
+- **EditDialog only** (not Create): new "Subtasks" section — checkbox + title per row, inline delete icon (always visible, per this repo's no-hover-reveal rule), "+ Add subtask" input at the bottom. Subtasks can only be added after the task itself is saved, since they need a `task_id`.
+- **CreateDialog**: unchanged — no subtask UI at creation time.
+- Toggling a subtask checkbox is its own PATCH call (optimistic), independent of the parent task's status.
+
+### Explicitly deferred
+- Auto-completing the parent task when all subtasks are done — tempting, but surprising/implicit behavior; leave it to the user to mark the parent done explicitly.
+- Subtask-level due date, assignee, category, or notifications.
+- Drag-to-reorder subtasks.
+- Subtasks appearing independently on Today/Calendar/Board (they're only visible inside their parent task's Edit dialog).
+
+---
+
 ## What's out of scope (flag for later)
 
 | Feature | Notes |
@@ -240,19 +270,23 @@ When sort is not "Date", time grouping (Overdue / Today / This week / Later) is 
 | Bulk actions (select multiple, bulk delete/assign) | Needed once lists grow long |
 | Drag to reorder / manual ordering | Complex on mobile; sort covers it for now |
 | Task status beyond todo/done (e.g. in progress) | Requires UI change in card + filter + board logic |
-| Subtasks | Different data model; high complexity |
 | Pagination / infinite scroll | Current 90-day window is sufficient for now |
 | Bulk clear done tasks | Nice to have once "Done" view fills up |
 | Pinned / starred tasks | YAGNI |
+| Subtask due date / assignee / category / notifications | See "Subtasks" section above — deliberately excluded from v1 |
+| Subtask drag-to-reorder | See "Subtasks" section above |
+| Auto-complete parent task when all subtasks done | See "Subtasks" section above |
 
 ---
 
 ## Delta vs current implementation
 
+> **Note:** this spec's language ("priority borders", "label chips") predates the current implementation. The actual model uses a single boolean `important` flag (star icon, not a 3-tier priority) and a single `category_id` per task (not multiple labels) — see `web/src/lib/types.ts` and `backend/internal/model/task.go`. Not fixing retroactively here since it's cosmetic to the spec, not a behavior gap — flag if you want the wording reconciled.
+
 | Current | Target |
 |---|---|
 | Implemented: quick-add, filter, sort, time grouping, task/event cards | — |
-| Implemented: relative due dates, priority borders, label chips | — |
+| Implemented: relative due dates, `important` star flag, single category chip | — |
 | Implemented: create/edit dialogs with all fields | — |
 | Implemented: optimistic checkbox toggle | — |
 | Implemented: SSE real-time refresh | — |
@@ -260,3 +294,4 @@ When sort is not "Date", time grouping (Overdue / Today / This week / Later) is 
 | Not implemented: bulk actions | Flag for later |
 | Not implemented: "in progress" task status | Flag for later |
 | Not implemented: bulk clear done tasks | Flag for later |
+| Not implemented: subtasks | See "Subtasks" section above — spec ready, not built |
