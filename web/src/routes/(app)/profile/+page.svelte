@@ -196,7 +196,7 @@
 	}
 </script>
 
-<div class="px-4 md:px-6 pt-4 md:pt-6 pb-12">
+<div class="h-full overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-12">
 	<div class="max-w-lg mx-auto flex flex-col gap-0 divide-y divide-border">
 
 		<!-- Header -->
