@@ -51,7 +51,7 @@ When a new user accepts a family invite, if the family has **unlinked virtual me
 - Name match is a hint to pre-select, not a requirement — the user picks manually
 - Linking merges the new account into the existing virtual member: all task assignments, event attendees, and history are preserved, no re-assignment needed
 - "No, I'm someone new" creates a fresh member record
-- Admins can also manually link or unlink from Settings > Members at any time
+- Admins can also manually link a virtual member to an existing real account from Settings > Members at any time (via the link icon on the profile row); reversing a link ("unlink") is out of scope for v1
 
 ### Task
 A discrete action item.
@@ -223,3 +223,4 @@ These constraints must not be violated during any implementation:
 | Activity feed / audit log | Useful for larger households; deferred |
 | File attachments | Storage complexity; YAGNI |
 | Chat / messaging | Out of scope — use WhatsApp |
+| Unlink a virtual member back from a real account | Would require detaching a user from the household without kicking them and recreating a placeholder profile; no clear use case yet — deferred |

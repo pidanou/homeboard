@@ -99,8 +99,20 @@ func (s *HouseholdService) GetUnlinkedVirtualMembers(ctx context.Context, family
 	return s.families.GetUnlinkedVirtualMembers(ctx, familyID)
 }
 
-func (s *HouseholdService) LinkVirtualMember(ctx context.Context, virtualID, familyID, userID string) error {
-	return s.families.LinkVirtualMember(ctx, virtualID, familyID, userID)
+// LinkVirtualMember links a virtual member to a real account. Linking to
+// another user (not the caller) requires the caller to be an admin, and the
+// target must already be a real member of the household.
+func (s *HouseholdService) LinkVirtualMember(ctx context.Context, virtualID, familyID, targetUserID, callerID string) error {
+	if targetUserID != callerID {
+		callerRole, err := s.families.GetMemberRole(ctx, callerID, familyID)
+		if err != nil || callerRole != "admin" {
+			return fmt.Errorf("only admins can link virtual members to another account")
+		}
+		if _, err := s.families.GetMemberRole(ctx, targetUserID, familyID); err != nil {
+			return fmt.Errorf("target user is not a member of this household")
+		}
+	}
+	return s.families.LinkVirtualMember(ctx, virtualID, familyID, targetUserID)
 }
 
 func (s *HouseholdService) GetMemberRole(ctx context.Context, userID, familyID string) (string, error) {

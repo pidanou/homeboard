@@ -4,7 +4,8 @@
     import { api, getBaseUrl, getBaseOrigin } from "$lib/api/client";
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
-    import { X, Pencil, Clock, Camera, Image } from "lucide-svelte";
+    import { X, Pencil, Clock, Camera, Image, Link2 } from "lucide-svelte";
+    import * as Select from "$lib/components/ui/select";
     import UserAvatar from "$lib/components/UserAvatar.svelte";
     import AvatarCrop from "$lib/components/AvatarCrop.svelte";
     import WallpaperCrop from "$lib/components/WallpaperCrop.svelte";
@@ -216,6 +217,8 @@
     let newCategoryColor = $state<CategoryColor>("blue");
     let addingVirtual = $state(false);
     let newVirtualName = $state("");
+    let linkingVirtualID = $state<string | null>(null);
+    let linkTargetUserID = $state("");
     let editingCatID = $state<string | null>(null);
     let editingCatName = $state("");
     let editingCatColor = $state<CategoryColor>("blue");
@@ -317,6 +320,19 @@
                 `/api/v1/households/${familyID}/members/virtual/${id}`,
             );
             members = members.filter((m) => m.user_id !== id);
+        } catch {}
+    }
+
+    async function linkVirtualMember(virtualID: string, targetUserID: string) {
+        if (!targetUserID) return;
+        try {
+            await api.post(
+                `/api/v1/households/${familyID}/members/virtual/${virtualID}/link`,
+                { userId: targetUserID },
+            );
+            members = members.filter((m) => m.user_id !== virtualID);
+            linkingVirtualID = null;
+            linkTargetUserID = "";
         } catch {}
     }
 
@@ -622,6 +638,7 @@
                     class="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border"
                 >
                     {#each members as member (member.user_id)}
+                        <div>
                         <div class="flex items-center gap-3 px-4 py-3">
                             <UserAvatar
                                 name={member.name}
@@ -647,6 +664,17 @@
                                         {msg.settings_profile_badge()}
                                     </span>
                                     {#if isAdmin}
+                                        <button
+                                            onclick={() =>
+                                                (linkingVirtualID =
+                                                    linkingVirtualID === member.user_id
+                                                        ? null
+                                                        : member.user_id)}
+                                            class="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                            aria-label={msg.settings_link_profile_aria()}
+                                        >
+                                            <Link2 class="w-4 h-4" />
+                                        </button>
                                         <button
                                             onclick={() =>
                                                 deleteVirtualMember(member.user_id)}
@@ -697,6 +725,42 @@
                                     {/if}
                                 </div>
                             {/if}
+                        </div>
+                        {#if isAdmin && linkingVirtualID === member.user_id}
+                            <div class="flex items-center gap-2 px-4 py-3 bg-muted/30 border-t border-border">
+                                <Select.Root type="single" bind:value={linkTargetUserID}>
+                                    <Select.Trigger class="w-full"
+                                        >{members.find(
+                                            (m) => m.user_id === linkTargetUserID,
+                                        )?.name ?? msg.settings_link_profile_placeholder()}</Select.Trigger
+                                    >
+                                    <Select.Content>
+                                        {#each members.filter((m) => !m.virtual) as real (real.user_id)}
+                                            <Select.Item value={real.user_id}
+                                                >{real.name}</Select.Item
+                                            >
+                                        {/each}
+                                    </Select.Content>
+                                </Select.Root>
+                                <Button
+                                    size="sm"
+                                    disabled={!linkTargetUserID}
+                                    onclick={() =>
+                                        linkVirtualMember(
+                                            member.user_id,
+                                            linkTargetUserID,
+                                        )}>{msg.settings_link_profile_confirm()}</Button
+                                >
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onclick={() => {
+                                        linkingVirtualID = null;
+                                        linkTargetUserID = "";
+                                    }}>{msg.dialog_cancel()}</Button
+                                >
+                            </div>
+                        {/if}
                         </div>
                     {/each}
                 </div>

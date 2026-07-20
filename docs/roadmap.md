@@ -81,7 +81,7 @@ Kids and non-app family members.
 - ✅ Settings > Members: "+ Without account" button + inline name form; virtual members shown with person-off icon + "No account" label + delete button
 - ✅ Invite acceptance: `POST /invites/{token}/accept` now returns `{ family_id, unlinked_virtual_members }` — frontend shows "Are you one of these?" prompt before redirect
 - ✅ Link action: migrates task assignments + event attendees from virtual ID to real user ID in a single transaction
-- ⬜ Settings > Members: manual link/unlink for admins (admin can link a virtual member to an existing real account) — deferred
+- ✅ Settings > Members: manual link for admins — link icon on a virtual profile row lets an admin link it to another member's existing real account (`POST .../members/virtual/{memberID}/link` takes an optional `userId`; self-link needs no admin check, linking to someone else does); reverse "unlink" deferred, see `docs/specs/app.md`
 
 ---
 

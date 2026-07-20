@@ -242,13 +242,21 @@ func (h *HouseholdHandler) updateName(w http.ResponseWriter, r *http.Request) {
 func (h *HouseholdHandler) linkVirtual(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	memberID := chi.URLParam(r, "memberID")
-	userID, ok := r.Context().Value(ContextKeyUserID).(string)
-	if !ok || userID == "" {
+	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
+	if !ok || callerID == "" {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	if err := h.families.LinkVirtualMember(r.Context(), memberID, familyID, userID); err != nil {
-		http.Error(w, "failed to link virtual member", http.StatusInternalServerError)
+	var body struct {
+		UserID string `json:"userId"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	targetUserID := body.UserID
+	if targetUserID == "" {
+		targetUserID = callerID
+	}
+	if err := h.families.LinkVirtualMember(r.Context(), memberID, familyID, targetUserID, callerID); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
