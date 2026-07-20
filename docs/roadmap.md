@@ -110,12 +110,12 @@ Secondary calendar views; lower priority than M8.
 
 ---
 
-## M10 — Auth improvements 🚧
+## M10 — Auth improvements ✅
 OAuth and invite polish.
 
 - ✅ Generic OIDC login (single configurable issuer — see `docs/specs/auth.md`), replaces the originally-planned hardcoded Google/Apple OAuth since this is a self-hosted app where operators run their own IdP
-- ⬜ Forgot password / reset flow
-- ⬜ Resend invite email
+- ✅ Forgot password / reset flow (see `docs/specs/auth.md`)
+- ✅ Resend invite email (see `docs/specs/roles.md`)
 
 ---
 

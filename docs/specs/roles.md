@@ -49,8 +49,9 @@ Virtual members have no role — they cannot act.
 | `DELETE` | `/api/v1/families/{familyID}/members/{memberID}` | admin | Kick a real member |
 | `POST` | `/api/v1/families/{familyID}/members/virtual` | admin | Create virtual member |
 | `DELETE` | `/api/v1/families/{familyID}/members/virtual/{memberID}` | admin | Remove virtual member |
-| `POST` | `/api/v1/families/{familyID}/invites` | admin | Generate invite link |
+| `POST` | `/api/v1/families/{familyID}/invites` | admin | Generate invite link. Optional body `{"email": "..."}` also emails the link |
 | `DELETE` | `/api/v1/families/{familyID}/invites/{token}` | admin | Revoke invite link |
+| `POST` | `/api/v1/families/{familyID}/invites/{token}/resend` | admin | Re-send the invite email; 400 if the invite has no stored email, is used, or is expired |
 | `POST` | `/api/v1/families/{familyID}/categories` | admin | Create category |
 | `PUT` | `/api/v1/families/{familyID}/categories/{categoryID}` | admin | Edit category |
 | `DELETE` | `/api/v1/families/{familyID}/categories/{categoryID}` | admin | Delete category |
@@ -86,4 +87,5 @@ Virtual members have no role — they cannot act.
 | Role toggle button (admin only) in settings UI | ✅ implemented |
 | Conditional kick button (admin only) in settings UI | ✅ implemented |
 | New members join as `member` | ✅ implemented (invite accept sets role = "member") |
+| Email invite link + resend | ✅ implemented (optional `email` on create sends the invite; `/resend` re-sends it) |
 | Leave family flow | ☐ not yet implemented |

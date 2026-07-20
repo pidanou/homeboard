@@ -24,6 +24,7 @@ func (h *InviteHandler) Routes() http.Handler {
 	r.Get("/", h.list)
 	r.Post("/", h.create)
 	r.Delete("/{token}", h.delete)
+	r.Post("/{token}/resend", h.resend)
 	return r
 }
 
@@ -77,7 +78,13 @@ func (h *InviteHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	invite, err := h.invites.Create(r.Context(), familyID, userID)
+	var body struct {
+		Email string `json:"email"`
+	}
+	// Body is optional — a plain shareable link has no email.
+	json.NewDecoder(r.Body).Decode(&body)
+
+	invite, err := h.invites.Create(r.Context(), familyID, userID, body.Email)
 	if err != nil {
 		http.Error(w, "failed to create invite", http.StatusInternalServerError)
 		return
@@ -86,6 +93,20 @@ func (h *InviteHandler) create(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(invite)
+}
+
+func (h *InviteHandler) resend(w http.ResponseWriter, r *http.Request) {
+	familyID := chi.URLParam(r, "familyID")
+	if err := requireAdmin(r, familyID, h.families); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+	token := chi.URLParam(r, "token")
+	if err := h.invites.Resend(r.Context(), token); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *InviteHandler) get(w http.ResponseWriter, r *http.Request) {

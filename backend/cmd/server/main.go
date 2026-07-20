@@ -61,6 +61,7 @@ func main() {
 	oidcIdentityRepo := postgres.NewOIDCIdentityRepository(pool)
 	householdRepo := postgres.NewHouseholdRepository(pool)
 	inviteRepo := postgres.NewInviteRepository(pool)
+	passwordResetRepo := postgres.NewPasswordResetRepository(pool)
 	taskRepo := postgres.NewTaskRepository(pool)
 	eventRepo := postgres.NewEventRepository(pool)
 	labelRepo := postgres.NewCategoryRepository(pool)
@@ -80,7 +81,8 @@ func main() {
 		os.Getenv("SMTP_TLS") == "true",
 	)
 	authConfig := config.LoadAuth()
-	authService := service.NewAuthService(userRepo, authConfig.JWTSecret, mailer)
+	appBaseURL := os.Getenv("APP_BASE_URL")
+	authService := service.NewAuthService(userRepo, passwordResetRepo, authConfig.JWTSecret, mailer, appBaseURL)
 	authService.SetAllowPasswordLogin(authConfig.AllowPasswordLogin)
 
 	var oidcHandler *handler.OIDCHandler
@@ -91,13 +93,13 @@ func main() {
 			slog.Warn("oidc discovery failed, starting with OIDC disabled", "issuer", authConfig.OIDC.IssuerURL, "err", err)
 		} else {
 			handoffStore := service.NewOIDCHandoffStore()
-			oidcHandler = handler.NewOIDCHandler(oidcService, handoffStore, authConfig.JWTSecret, os.Getenv("APP_BASE_URL"), authConfig.OIDC.RedirectURL)
+			oidcHandler = handler.NewOIDCHandler(oidcService, handoffStore, authConfig.JWTSecret, appBaseURL, authConfig.OIDC.RedirectURL)
 			oidcProviderName = authConfig.OIDC.ProviderName
 		}
 	}
 
 	householdService := service.NewHouseholdService(householdRepo)
-	inviteService := service.NewInviteService(inviteRepo, householdRepo)
+	inviteService := service.NewInviteService(inviteRepo, householdRepo, mailer, appBaseURL)
 	taskService := service.NewTaskService(taskRepo)
 	eventService := service.NewEventService(eventRepo)
 	labelService := service.NewCategoryService(labelRepo)
@@ -140,7 +142,7 @@ func main() {
 			}
 		}
 	}
-	if origin := os.Getenv("APP_BASE_URL"); origin != "" && allowedOrigins[0] != "*" {
+	if origin := appBaseURL; origin != "" && allowedOrigins[0] != "*" {
 		allowedOrigins = append(allowedOrigins, origin)
 	}
 

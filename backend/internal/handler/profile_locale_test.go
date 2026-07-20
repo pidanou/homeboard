@@ -43,7 +43,8 @@ func newProfileTestEnv(t *testing.T) (*testEnv, string) {
 	}
 
 	userRepo := pgRepo.NewUserRepository(pool)
-	authSvc := service.NewAuthService(userRepo, testJWTSecret, nil)
+	passwordResetRepo := pgRepo.NewPasswordResetRepository(pool)
+	authSvc := service.NewAuthService(userRepo, passwordResetRepo, testJWTSecret, nil, "http://localhost")
 	profileH := handler.NewProfileHandler(authSvc, t.TempDir(), "http://localhost")
 
 	r := chi.NewRouter()

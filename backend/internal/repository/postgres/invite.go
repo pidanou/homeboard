@@ -19,9 +19,9 @@ func NewInviteRepository(pool *pgxpool.Pool) *InviteRepository {
 
 func (r *InviteRepository) Create(ctx context.Context, invite *model.Invite) error {
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO invites (token, family_id, created_by, created_at, expires_at)
-		 VALUES ($1, $2, $3, $4, $5)`,
-		invite.Token, invite.FamilyID, invite.CreatedBy, invite.CreatedAt, invite.ExpiresAt,
+		`INSERT INTO invites (token, family_id, created_by, email, created_at, expires_at)
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
+		invite.Token, invite.FamilyID, invite.CreatedBy, invite.Email, invite.CreatedAt, invite.ExpiresAt,
 	)
 	return err
 }
@@ -29,11 +29,11 @@ func (r *InviteRepository) Create(ctx context.Context, invite *model.Invite) err
 func (r *InviteRepository) GetByToken(ctx context.Context, token string) (*model.Invite, error) {
 	inv := &model.Invite{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT i.token, i.family_id, f.name, i.created_by, i.created_at, i.expires_at, i.used_at
+		`SELECT i.token, i.family_id, f.name, i.created_by, i.email, i.created_at, i.expires_at, i.used_at
 		 FROM invites i JOIN households f ON f.id = i.family_id
 		 WHERE i.token = $1`,
 		token,
-	).Scan(&inv.Token, &inv.FamilyID, &inv.FamilyName, &inv.CreatedBy, &inv.CreatedAt, &inv.ExpiresAt, &inv.UsedAt)
+	).Scan(&inv.Token, &inv.FamilyID, &inv.FamilyName, &inv.CreatedBy, &inv.Email, &inv.CreatedAt, &inv.ExpiresAt, &inv.UsedAt)
 	if err != nil {
 		return nil, fmt.Errorf("get invite: %w", err)
 	}
@@ -42,7 +42,7 @@ func (r *InviteRepository) GetByToken(ctx context.Context, token string) (*model
 
 func (r *InviteRepository) ListByFamilyID(ctx context.Context, familyID string) ([]*model.Invite, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT token, family_id, created_by, created_at, expires_at, used_at
+		`SELECT token, family_id, created_by, email, created_at, expires_at, used_at
 		 FROM invites WHERE family_id = $1 AND used_at IS NULL AND expires_at > NOW()
 		 ORDER BY created_at DESC`,
 		familyID,
@@ -55,7 +55,7 @@ func (r *InviteRepository) ListByFamilyID(ctx context.Context, familyID string) 
 	invites := make([]*model.Invite, 0)
 	for rows.Next() {
 		inv := &model.Invite{}
-		if err := rows.Scan(&inv.Token, &inv.FamilyID, &inv.CreatedBy, &inv.CreatedAt, &inv.ExpiresAt, &inv.UsedAt); err != nil {
+		if err := rows.Scan(&inv.Token, &inv.FamilyID, &inv.CreatedBy, &inv.Email, &inv.CreatedAt, &inv.ExpiresAt, &inv.UsedAt); err != nil {
 			return nil, err
 		}
 		invites = append(invites, inv)

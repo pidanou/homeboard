@@ -21,6 +21,8 @@ func (h *AuthHandler) Routes() http.Handler {
 	r := chi.NewRouter()
 	r.Post("/register", h.register)
 	r.Post("/login", h.login)
+	r.Post("/forgot-password", h.forgotPassword)
+	r.Post("/reset-password", h.resetPassword)
 	return r
 }
 
@@ -76,4 +78,53 @@ func (h *AuthHandler) login(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"token": token})
+}
+
+func (h *AuthHandler) forgotPassword(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.auth.RequestPasswordReset(r.Context(), body.Email); err != nil {
+		if errors.Is(err, service.ErrPasswordLoginDisabled) {
+			http.Error(w, "password login is disabled", http.StatusForbidden)
+			return
+		}
+		http.Error(w, "failed to process request", http.StatusInternalServerError)
+		return
+	}
+
+	// Always a generic success — never reveal whether the email exists.
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "if that email exists, a reset link was sent"})
+}
+
+func (h *AuthHandler) resetPassword(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Token    string `json:"token"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.auth.ResetPassword(r.Context(), body.Token, body.Password); err != nil {
+		if errors.Is(err, service.ErrPasswordLoginDisabled) {
+			http.Error(w, "password login is disabled", http.StatusForbidden)
+			return
+		}
+		if errors.Is(err, service.ErrInvalidResetToken) {
+			http.Error(w, "invalid or expired reset link", http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "failed to reset password", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

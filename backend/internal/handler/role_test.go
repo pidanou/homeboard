@@ -47,6 +47,7 @@ func newTestEnv(t *testing.T) *testEnv {
 
 	householdRepo := pgRepo.NewHouseholdRepository(pool)
 	inviteRepo := pgRepo.NewInviteRepository(pool)
+	passwordResetRepo := pgRepo.NewPasswordResetRepository(pool)
 	labelRepo := pgRepo.NewCategoryRepository(pool)
 	userRepo := pgRepo.NewUserRepository(pool)
 	eventRepo := pgRepo.NewEventRepository(pool)
@@ -54,9 +55,9 @@ func newTestEnv(t *testing.T) *testEnv {
 	calendarSubscriptionRepo := pgRepo.NewCalendarSubscriptionRepository(pool)
 
 	householdSvc := service.NewHouseholdService(householdRepo)
-	inviteSvc := service.NewInviteService(inviteRepo, householdRepo)
+	inviteSvc := service.NewInviteService(inviteRepo, householdRepo, nil, "http://localhost")
 	labelSvc := service.NewCategoryService(labelRepo)
-	authSvc := service.NewAuthService(userRepo, testJWTSecret, nil)
+	authSvc := service.NewAuthService(userRepo, passwordResetRepo, testJWTSecret, nil, "http://localhost")
 	eventSvc := service.NewEventService(eventRepo)
 	calendarExportSvc := service.NewCalendarExportService(calendarExportTokenRepo, eventRepo, householdRepo)
 	calendarImportSvc := service.NewCalendarImportService(eventSvc)
