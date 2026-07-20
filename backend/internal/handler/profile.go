@@ -30,6 +30,7 @@ func (h *ProfileHandler) Routes() http.Handler {
 	r.Patch("/", h.updateName)
 	r.Patch("/locale", h.updateLocale)
 	r.Patch("/time-format", h.updateTimeFormat)
+	r.Patch("/reminder", h.updateReminder)
 	r.Patch("/password", h.changePassword)
 	r.Post("/avatar", h.uploadAvatar)
 	r.Delete("/avatar", h.deleteAvatar)
@@ -95,6 +96,24 @@ func (h *ProfileHandler) updateTimeFormat(w http.ResponseWriter, r *http.Request
 	user, err := h.auth.SetTimeFormat(r.Context(), userID, body.TimeFormat)
 	if err != nil {
 		http.Error(w, "unsupported time format", http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
+}
+
+func (h *ProfileHandler) updateReminder(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(ContextKeyUserID).(string)
+	var body struct {
+		ReminderMinutesBefore *int `json:"reminder_minutes_before"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+	user, err := h.auth.SetReminderMinutesBefore(r.Context(), userID, body.ReminderMinutesBefore)
+	if err != nil {
+		http.Error(w, "unsupported reminder offset", http.StatusBadRequest)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

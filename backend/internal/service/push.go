@@ -41,8 +41,20 @@ func (s *PushService) SendToFamily(ctx context.Context, familyID, title, body st
 		log.Printf("push: list family subs: %v", err)
 		return
 	}
+	s.send(ctx, subs, title, body, "")
+}
 
-	payload, _ := json.Marshal(map[string]string{"title": title, "body": body})
+func (s *PushService) SendToUser(ctx context.Context, userID, title, body, url string) {
+	subs, err := s.repo.ListForUser(ctx, userID)
+	if err != nil {
+		log.Printf("push: list user subs: %v", err)
+		return
+	}
+	s.send(ctx, subs, title, body, url)
+}
+
+func (s *PushService) send(ctx context.Context, subs []*model.PushSubscription, title, body, url string) {
+	payload, _ := json.Marshal(map[string]string{"title": title, "body": body, "url": url})
 
 	for _, sub := range subs {
 		resp, err := webpush.SendNotification(payload, &webpush.Subscription{

@@ -246,6 +246,17 @@ One focused sweep to reconcile the full UI against `docs/specs/design.md`.
 
 ---
 
+## M21 — Time-based reminders ✅
+
+- ✅ Migration 000035: `reminder_minutes_before` on `users` (nullable, one of 15/30/60); `sent_reminders` idempotency table
+- ✅ Backend: `ReminderService` — 1-minute ticker goroutine checks due tasks (assignee only) and events (attendees, else household) against each user's offset window; `sent_reminders` prevents double-send, including per-occurrence for recurring events
+- ✅ `PushService.SendToUser` + payload `url` field for deep-linking (task → board, event → calendar); service worker opens the link on notification click
+- ✅ Profile page: "Remind me" toggle group (Off/15/30/60 min), disabled until push notifications are enabled
+- ✅ `PATCH /api/v1/profile/reminder`
+- ✅ Integration tests (`reminder_test.go`): fires once within window, unassigned tasks never fire, event attendee filtering
+
+---
+
 ## Deferred / no milestone yet
 
 These are captured in spec out-of-scope tables. Promote to a milestone when prioritised.
@@ -259,7 +270,7 @@ These are captured in spec out-of-scope tables. Promote to a milestone when prio
 | ~~Inline list rename~~ | ✅ done |
 | ~~External calendar sync (ICS export/import/one-way subscription)~~ | ✅ M20 |
 | External calendar sync — CalDAV, Google Calendar OAuth API, two-way sync | `calendar.md` |
-| Push notifications | `calendar.md`, `app.md` |
+| ~~Push notifications (due-soon reminders)~~ | ✅ M21 |
 | Search / full-text filter | `board.md` |
 | Bulk actions (select multiple, bulk delete/assign) | `board.md` |
 | Subtasks | `board.md` |

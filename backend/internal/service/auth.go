@@ -240,3 +240,20 @@ func (s *AuthService) SetTimeFormat(ctx context.Context, userID, format string) 
 	}
 	return user, nil
 }
+
+var supportedReminderMinutes = map[int]bool{15: true, 30: true, 60: true}
+
+func (s *AuthService) SetReminderMinutesBefore(ctx context.Context, userID string, minutes *int) (*model.User, error) {
+	if minutes != nil && !supportedReminderMinutes[*minutes] {
+		return nil, errors.New("unsupported reminder offset")
+	}
+	user, err := s.users.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	user.ReminderMinutesBefore = minutes
+	if err := s.users.Update(ctx, user); err != nil {
+		return nil, fmt.Errorf("update user: %w", err)
+	}
+	return user, nil
+}

@@ -55,6 +55,28 @@ func (r *PushRepository) ListForFamily(ctx context.Context, familyID string) ([]
 	return subs, rows.Err()
 }
 
+func (r *PushRepository) ListForUser(ctx context.Context, userID string) ([]*model.PushSubscription, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT id, user_id, endpoint, auth, p256dh
+		FROM push_subscriptions
+		WHERE user_id = $1
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var subs []*model.PushSubscription
+	for rows.Next() {
+		s := &model.PushSubscription{}
+		if err := rows.Scan(&s.ID, &s.UserID, &s.Endpoint, &s.Auth, &s.P256DH); err != nil {
+			return nil, err
+		}
+		subs = append(subs, s)
+	}
+	return subs, rows.Err()
+}
+
 func (r *PushRepository) DeleteByEndpoint(ctx context.Context, endpoint string) error {
 	_, err := r.pool.Exec(ctx,
 		`DELETE FROM push_subscriptions WHERE endpoint = $1`, endpoint)

@@ -66,6 +66,7 @@ func main() {
 	labelRepo := postgres.NewCategoryRepository(pool)
 	listRepo := postgres.NewListRepository(pool)
 	pushRepo := postgres.NewPushRepository(pool)
+	reminderRepo := postgres.NewReminderRepository(pool)
 	calendarExportTokenRepo := postgres.NewCalendarExportTokenRepository(pool)
 	calendarSubscriptionRepo := postgres.NewCalendarSubscriptionRepository(pool)
 
@@ -105,6 +106,7 @@ func main() {
 	calendarExportService := service.NewCalendarExportService(calendarExportTokenRepo, eventRepo, householdRepo)
 	calendarImportService := service.NewCalendarImportService(eventService)
 	calendarSyncService := service.NewCalendarSyncService(calendarSubscriptionRepo, eventRepo)
+	reminderService := service.NewReminderService(reminderRepo, taskRepo, eventRepo, pushService)
 
 	// SSE hub
 	hub := handler.NewHub()
@@ -234,6 +236,14 @@ func main() {
 		defer ticker.Stop()
 		for range ticker.C {
 			calendarSyncService.SyncAll(context.Background())
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			reminderService.CheckAndSend(context.Background())
 		}
 	}()
 

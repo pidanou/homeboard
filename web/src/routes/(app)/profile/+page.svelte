@@ -36,6 +36,16 @@
 	let timeFormatValue = $state<'auto' | '12' | '24'>('auto');
 	let timeFormatLoading = $state(false);
 
+	// Reminders
+	const REMINDER_LABELS: Record<string, () => string> = {
+		off: msg.profile_reminder_off,
+		'15': msg.profile_reminder_15,
+		'30': msg.profile_reminder_30,
+		'60': msg.profile_reminder_60,
+	};
+	let reminderValue = $state<'off' | '15' | '30' | '60'>('off');
+	let reminderLoading = $state(false);
+
 	// Name edit
 	let nameValue = $state('');
 	let nameLoading = $state(false);
@@ -71,6 +81,10 @@
 
 	$effect(() => {
 		if (user) timeFormatValue = user.time_format;
+	});
+
+	$effect(() => {
+		if (user) reminderValue = user.reminder_minutes_before ? (String(user.reminder_minutes_before) as '15' | '30' | '60') : 'off';
 	});
 
 	async function saveName() {
@@ -151,6 +165,23 @@
 			timeFormatValue = previous;
 		} finally {
 			timeFormatLoading = false;
+		}
+	}
+
+	async function saveReminder(value: string) {
+		if (!['off', '15', '30', '60'].includes(value)) return;
+		const previous = reminderValue;
+		reminderValue = value as 'off' | '15' | '30' | '60';
+		reminderLoading = true;
+		try {
+			await api.patch('/api/v1/profile/reminder', {
+				reminder_minutes_before: value === 'off' ? null : Number(value),
+			});
+			await loadCurrentUser();
+		} catch {
+			reminderValue = previous;
+		} finally {
+			reminderLoading = false;
 		}
 	}
 
@@ -353,6 +384,30 @@
 						<Bell class="w-4 h-4 mr-2" /> {msg.profile_enable_notifications()}
 					{/if}
 				</Button>
+
+				<div class="rounded-xl border border-border px-4 py-3 flex items-center justify-between gap-3">
+					<span class="font-medium text-sm">{msg.profile_reminder()}</span>
+					<ToggleGroup.Root
+						type="single"
+						bind:value={reminderValue}
+						onValueChange={(v) => v && saveReminder(v)}
+						variant="outline"
+						size="sm"
+					>
+						{#each ['off', '15', '30', '60'] as offset}
+							<ToggleGroup.Item
+								value={offset}
+								disabled={reminderLoading || !pushSubscribed}
+								class="text-xs font-semibold px-3 data-[state=on]:bg-foreground data-[state=on]:text-background data-[state=on]:hover:bg-foreground/90"
+							>
+								{REMINDER_LABELS[offset]()}
+							</ToggleGroup.Item>
+						{/each}
+					</ToggleGroup.Root>
+				</div>
+				{#if !pushSubscribed}
+					<p class="text-xs text-muted-foreground -mt-2">{msg.profile_reminder_requires_push()}</p>
+				{/if}
 			</section>
 		{/if}
 
