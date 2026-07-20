@@ -257,6 +257,17 @@ One focused sweep to reconcile the full UI against `docs/specs/design.md`.
 
 ---
 
+## M22 — List item categories (aisle grouping) ✅
+
+- ✅ Migration 000038: nullable `category TEXT` on `list_items`
+- ✅ Backend: `category` threaded through `ListItem` model, `UpdateItem` repository/service/handler (list_category_test.go covers set/clear)
+- ✅ Frontend: tag icon on each unchecked item opens inline free-text category edit (Enter/blur confirm, Escape cancel, empty clears)
+- ✅ "To buy" groups by category alphabetically once any item has one set, uncategorized items grouped last as "Other"; stays flat (no headers) when no items are categorized
+- ✅ "In cart" stays flat — no grouping while items are checked off
+- ⬜ Category presets/suggestions — deferred, see `docs/specs/lists.md`
+
+---
+
 ## Deferred / no milestone yet
 
 These are captured in spec out-of-scope tables. Promote to a milestone when prioritised.
@@ -274,7 +285,7 @@ These are captured in spec out-of-scope tables. Promote to a milestone when prio
 | Search / full-text filter | `board.md` |
 | Bulk actions (select multiple, bulk delete/assign) | `board.md` |
 | Subtasks | `board.md` |
-| List item categories / aisle grouping | `lists.md` |
+| ~~List item categories / aisle grouping~~ | ✅ M22 |
 | Activity feed / audit log | `app.md` |
 | File attachments | `app.md` |
 | Native mobile app (Flutter) | `app.md` |

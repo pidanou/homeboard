@@ -46,7 +46,9 @@ func (h *ListHandler) listLists(w http.ResponseWriter, r *http.Request) {
 
 func (h *ListHandler) createList(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
-	var body struct{ Name string `json:"name"` }
+	var body struct {
+		Name string `json:"name"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
 		http.Error(w, "name is required", http.StatusBadRequest)
 		return
@@ -65,7 +67,9 @@ func (h *ListHandler) createList(w http.ResponseWriter, r *http.Request) {
 func (h *ListHandler) renameList(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	listID := chi.URLParam(r, "listID")
-	var body struct{ Name string `json:"name"` }
+	var body struct {
+		Name string `json:"name"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
 		http.Error(w, "name is required", http.StatusBadRequest)
 		return
@@ -120,7 +124,9 @@ func (h *ListHandler) listItems(w http.ResponseWriter, r *http.Request) {
 func (h *ListHandler) addItem(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	listID := chi.URLParam(r, "listID")
-	var body struct{ Name string `json:"name"` }
+	var body struct {
+		Name string `json:"name"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
 		http.Error(w, "name is required", http.StatusBadRequest)
 		return
@@ -141,14 +147,15 @@ func (h *ListHandler) updateItem(w http.ResponseWriter, r *http.Request) {
 	listID := chi.URLParam(r, "listID")
 	itemID := chi.URLParam(r, "itemID")
 	var body struct {
-		Name    string `json:"name"`
-		Checked bool   `json:"checked"`
+		Name     string  `json:"name"`
+		Checked  bool    `json:"checked"`
+		Category *string `json:"category"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid body", http.StatusBadRequest)
 		return
 	}
-	if err := h.lists.UpdateItem(r.Context(), itemID, listID, familyID, body.Name, body.Checked); err != nil {
+	if err := h.lists.UpdateItem(r.Context(), itemID, listID, familyID, body.Name, body.Checked, body.Category); err != nil {
 		http.Error(w, "failed to update item", http.StatusInternalServerError)
 		return
 	}

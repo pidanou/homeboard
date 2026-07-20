@@ -49,6 +49,7 @@ A **List** is a named checklist scoped to the family. The canonical use case is 
 ### Reordering items
 - Drag handle on unchecked ("To buy") items only — grip icon, drag via pointer events (same mechanism as list tab reordering)
 - New items still default to the top (newest first) until manually reordered
+- When items are grouped by category, dragging an item across a group boundary re-categorizes it into the target group (in addition to reordering)
 - Checked ("In cart") items are not reorderable — they stay ordered by `checked_at DESC`
 
 ### Renaming an item *(not yet implemented)*
@@ -101,11 +102,21 @@ A **List** is a named checklist scoped to the family. The canonical use case is 
 
 ---
 
+### Item categories (aisle grouping)
+
+- Free-text `category` on an item, set via the tag icon on the item row (tap to type, Enter/blur to confirm, empty clears it)
+- Quick-add stays category-free — no friction added to the add flow
+- "To buy" only groups by category when at least one item in the list has one set; otherwise renders flat exactly as before
+- Groups sorted alphabetically by category name; uncategorized items form an "Other" group shown last
+- "In cart" stays flat, no grouping — categorization only matters while shopping
+
+---
+
 ## What's out of scope (flag for later)
 
 | Feature | Reason deferred |
 |---|---|
-| Item categories / aisle grouping | Useful but complex; solves a problem only on long lists |
+| Category presets / suggestions (e.g. a datalist of common aisles) | Free text solves the core need; add if users want faster tagging |
 | Quantity + unit (e.g. "2× Milk") | Nice to have, adds friction to quick-add flow |
 | Shared link / guest access | Not v1 |
 | Recurring items ("always buy milk") | Requires a different data model |
@@ -124,4 +135,5 @@ A **List** is a named checklist scoped to the family. The canonical use case is 
 | ✅ Section headers show count | — |
 | ✅ "All done!" nudge when to-buy empty but cart has items | — |
 | ✅ Drag-to-reorder unchecked items (grip handle, `manual_order` column) | — |
+| ✅ Item categories / aisle grouping (`category` column, migration 000038) | — |
 | Not implemented: inline item rename | Tap item text → inline edit |

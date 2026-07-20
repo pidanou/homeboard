@@ -82,7 +82,7 @@ func (r *ListRepository) CreateItem(ctx context.Context, item *model.ListItem) e
 
 func (r *ListRepository) ItemsByListID(ctx context.Context, listID string) ([]*model.ListItem, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, list_id, name, checked, created_at, checked_at, manual_order FROM list_items WHERE list_id = $1`,
+		`SELECT id, list_id, name, checked, created_at, checked_at, manual_order, category FROM list_items WHERE list_id = $1`,
 		listID,
 	)
 	if err != nil {
@@ -92,7 +92,7 @@ func (r *ListRepository) ItemsByListID(ctx context.Context, listID string) ([]*m
 	items := make([]*model.ListItem, 0)
 	for rows.Next() {
 		it := &model.ListItem{}
-		if err := rows.Scan(&it.ID, &it.ListID, &it.Name, &it.Checked, &it.CreatedAt, &it.CheckedAt, &it.ManualOrder); err != nil {
+		if err := rows.Scan(&it.ID, &it.ListID, &it.Name, &it.Checked, &it.CreatedAt, &it.CheckedAt, &it.ManualOrder, &it.Category); err != nil {
 			return nil, err
 		}
 		items = append(items, it)
@@ -103,9 +103,9 @@ func (r *ListRepository) ItemsByListID(ctx context.Context, listID string) ([]*m
 func (r *ListRepository) UpdateItem(ctx context.Context, item *model.ListItem, familyID string) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE list_items
-		 SET name = $1, checked = $2, checked_at = CASE WHEN $2 THEN now() ELSE NULL END
-		 WHERE id = $3 AND list_id IN (SELECT id FROM lists WHERE id = $4 AND family_id = $5)`,
-		item.Name, item.Checked, item.ID, item.ListID, familyID,
+		 SET name = $1, checked = $2, checked_at = CASE WHEN $2 THEN now() ELSE NULL END, category = $3
+		 WHERE id = $4 AND list_id IN (SELECT id FROM lists WHERE id = $5 AND family_id = $6)`,
+		item.Name, item.Checked, item.Category, item.ID, item.ListID, familyID,
 	)
 	return err
 }

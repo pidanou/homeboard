@@ -5,7 +5,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { X, Plus, Pencil, CornerDownLeft, Trash2, GripVertical } from 'lucide-svelte';
+	import { X, Plus, Pencil, CornerDownLeft, Trash2, GripVertical, Tag } from 'lucide-svelte';
 	import type { AppList, AppListItem } from '$lib/types';
 	import * as msg from '$lib/paraglide/messages.js';
 	import { sortable } from '$lib/sortable';
@@ -22,6 +22,8 @@
 	let renameListValue = $state('');
 	let renamingItem = $state<{ listID: string; itemID: string } | null>(null);
 	let renameItemValue = $state('');
+	let editingCategory = $state<{ listID: string; itemID: string } | null>(null);
+	let categoryValue = $state('');
 	let activeListID = $state<string | null>(null);
 	let dragListID = $state<string | null>(null);
 
@@ -91,7 +93,7 @@
 	async function toggleItem(listID: string, item: AppListItem) {
 		try {
 			await api.patch(`/api/v1/households/${familyID}/lists/${listID}/items/${item.id}`, {
-				name: item.name, checked: !item.checked,
+				name: item.name, checked: !item.checked, category: item.category ?? null,
 			});
 			itemsByList = {
 				...itemsByList,
@@ -114,13 +116,24 @@
 		} catch {}
 	}
 
-	async function reorderItems(listID: string, ids: string[]) {
+	async function reorderItems(listID: string, ids: string[], categories: (string | null)[]) {
 		const prev = itemsByList[listID] ?? [];
-		const reordered = ids.map((id, i) => ({ ...prev.find(p => p.id === id)!, manual_order: i }));
+		const changed: { id: string; name: string; checked: boolean; category: string | null }[] = [];
+		const reordered = ids.map((id, i) => {
+			const original = prev.find(p => p.id === id)!;
+			const category = categories[i];
+			if ((original.category ?? null) !== category) {
+				changed.push({ id, name: original.name, checked: original.checked, category });
+			}
+			return { ...original, manual_order: i, category };
+		});
 		const rest = prev.filter(i => i.checked);
 		itemsByList = { ...itemsByList, [listID]: [...reordered, ...rest] };
 		try {
 			await api.patch(`/api/v1/households/${familyID}/lists/${listID}/items/reorder`, { ids });
+			await Promise.all(changed.map(c =>
+				api.patch(`/api/v1/households/${familyID}/lists/${listID}/items/${c.id}`, { name: c.name, checked: c.checked, category: c.category })
+			));
 		} catch {
 			itemsByList = { ...itemsByList, [listID]: prev };
 		}
@@ -143,13 +156,47 @@
 		if (!item) { renamingItem = null; return; }
 		const name = capitalize(renameItemValue.trim());
 		try {
-			await api.patch(`/api/v1/households/${familyID}/lists/${listID}/items/${itemID}`, { name, checked: item.checked });
+			await api.patch(`/api/v1/households/${familyID}/lists/${listID}/items/${itemID}`, { name, checked: item.checked, category: item.category ?? null });
 			itemsByList = {
 				...itemsByList,
 				[listID]: (itemsByList[listID] ?? []).map(i => i.id === itemID ? { ...i, name } : i),
 			};
 		} catch {}
 		renamingItem = null;
+	}
+
+	async function submitCategory() {
+		if (!editingCategory) return;
+		const { listID, itemID } = editingCategory;
+		const item = (itemsByList[listID] ?? []).find(i => i.id === itemID);
+		if (!item) { editingCategory = null; return; }
+		const trimmed = categoryValue.trim();
+		const category = trimmed ? capitalize(trimmed) : null;
+		try {
+			await api.patch(`/api/v1/households/${familyID}/lists/${listID}/items/${itemID}`, { name: item.name, checked: item.checked, category });
+			itemsByList = {
+				...itemsByList,
+				[listID]: (itemsByList[listID] ?? []).map(i => i.id === itemID ? { ...i, category } : i),
+			};
+		} catch {}
+		editingCategory = null;
+	}
+
+	function groupedUnchecked(listID: string): { category: string | null; items: AppListItem[] }[] {
+		const items = unchecked(listID);
+		if (!items.some(i => i.category)) return [{ category: null, items }];
+		const map = new Map<string, AppListItem[]>();
+		for (const item of items) {
+			const key = item.category ?? '';
+			(map.get(key) ?? map.set(key, []).get(key)!).push(item);
+		}
+		return Array.from(map.entries())
+			.map(([category, items]) => ({ category: category || null, items }))
+			.sort((a, b) => {
+				if (a.category === null) return 1;
+				if (b.category === null) return -1;
+				return a.category.localeCompare(b.category);
+			});
 	}
 
 	function unchecked(listID: string) {
@@ -295,6 +342,7 @@
 		{@const lid = activeListID}
 		{@const uncheckedItems = unchecked(lid)}
 		{@const checkedItems = checked(lid)}
+		{@const groups = groupedUnchecked(lid)}
 
 		<!-- Add item -->
 		<div class="flex items-center gap-2 px-4 py-3 border-b border-border">
@@ -320,18 +368,48 @@
 			<p class="text-sm text-muted-foreground text-center py-16 italic">{msg.lists_empty_hint()}</p>
 		{:else}
 			<div class="flex flex-col pb-8">
-				<div class="flex flex-col divide-y divide-border" use:sortable={{ onReorder: (ids: string[]) => reorderItems(lid, ids) }}>
-					{#each uncheckedItems as item (item.id)}
-						<div class="flex items-center gap-2 px-4 py-3" data-id={item.id}>
-							<div data-drag-handle aria-label={msg.lists_drag_item_aria()} class="cursor-grab active:cursor-grabbing touch-none p-1 -ml-1 shrink-0 text-muted-foreground/40">
-								<GripVertical class="w-3.5 h-3.5" />
+				<div class="flex flex-col divide-y divide-border" use:sortable={{ onReorder: (ids: string[], categories: (string | null)[]) => reorderItems(lid, ids, categories) }}>
+					{#each groups as group (group.category ?? '__none__')}
+						{#if groups.length > 1}
+							<div class="px-4 pt-2 pb-1" data-category-header={group.category ?? ''}>
+								<span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.category ?? msg.lists_uncategorized()}</span>
 							</div>
-							<Checkbox checked={false} onCheckedChange={() => toggleItem(lid, item)} />
-							<span class="flex-1 text-sm">{item.name}</span>
-							<button onclick={() => deleteItem(lid, item.id)} class="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0" aria-label={msg.edit_dialog_delete()}>
-								<X class="w-3.5 h-3.5" />
-							</button>
-						</div>
+						{/if}
+						{#each group.items as item (item.id)}
+							<div class="flex items-center gap-2 px-4 py-3" data-id={item.id}>
+								<div data-drag-handle aria-label={msg.lists_drag_item_aria()} class="cursor-grab active:cursor-grabbing touch-none p-1 -ml-1 shrink-0 text-muted-foreground/40">
+									<GripVertical class="w-3.5 h-3.5" />
+								</div>
+								<Checkbox checked={false} onCheckedChange={() => toggleItem(lid, item)} />
+								<span class="flex-1 text-sm">{item.name}</span>
+								{#if editingCategory?.listID === lid && editingCategory?.itemID === item.id}
+									<input
+										class="w-20 text-xs bg-transparent border-none outline-none border-b border-primary shrink-0"
+										placeholder={msg.lists_category_placeholder()}
+										bind:value={categoryValue}
+										onblur={submitCategory}
+										onkeydown={(e) => { if (e.key === 'Enter') submitCategory(); if (e.key === 'Escape') editingCategory = null; }}
+										use:focusSelect
+									/>
+								{:else if item.category}
+									<button
+										onclick={() => { editingCategory = { listID: lid, itemID: item.id }; categoryValue = item.category ?? ''; }}
+										class="text-[11px] font-medium text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 shrink-0 max-w-20 truncate"
+									>{item.category}</button>
+								{:else}
+									<button
+										onclick={() => { editingCategory = { listID: lid, itemID: item.id }; categoryValue = ''; }}
+										class="p-1 text-muted-foreground/40 hover:text-foreground transition-colors shrink-0"
+										aria-label={msg.lists_category_aria()}
+									>
+										<Tag class="w-3.5 h-3.5" />
+									</button>
+								{/if}
+								<button onclick={() => deleteItem(lid, item.id)} class="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0" aria-label={msg.edit_dialog_delete()}>
+									<X class="w-3.5 h-3.5" />
+								</button>
+							</div>
+						{/each}
 					{/each}
 				</div>
 
@@ -412,6 +490,7 @@
 			{#each lists as list (list.id)}
 				{@const uncheckedItems = unchecked(list.id)}
 				{@const checkedItems = checked(list.id)}
+				{@const groups = groupedUnchecked(list.id)}
 				<div
 					data-list-id={list.id}
 					class={`w-72 flex flex-col rounded-xl border border-border bg-card overflow-hidden shrink-0 transition-opacity ${dragListID === list.id ? 'opacity-50' : ''}`}
@@ -488,31 +567,61 @@
 					{#if uncheckedItems.length === 0 && checkedItems.length === 0}
 						<p class="text-xs text-muted-foreground text-center py-8 italic">{msg.lists_empty_desktop()}</p>
 					{:else}
-						<div class="flex flex-col divide-y divide-border" use:sortable={{ onReorder: (ids: string[]) => reorderItems(list.id, ids) }}>
-							{#each uncheckedItems as item (item.id)}
-								<div class="flex items-center gap-2 px-4 py-2.5" data-id={item.id}>
-									<div data-drag-handle aria-label={msg.lists_drag_item_aria()} class="cursor-grab active:cursor-grabbing touch-none p-1 -ml-1 shrink-0 text-muted-foreground/40">
-										<GripVertical class="w-3.5 h-3.5" />
+						<div class="flex flex-col divide-y divide-border" use:sortable={{ onReorder: (ids: string[], categories: (string | null)[]) => reorderItems(list.id, ids, categories) }}>
+							{#each groups as group (group.category ?? '__none__')}
+								{#if groups.length > 1}
+									<div class="px-4 pt-2 pb-1" data-category-header={group.category ?? ''}>
+										<span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.category ?? msg.lists_uncategorized()}</span>
 									</div>
-									<Checkbox checked={false} onCheckedChange={() => toggleItem(list.id, item)} />
-									{#if renamingItem?.listID === list.id && renamingItem?.itemID === item.id}
-										<input
-											class="flex-1 text-sm bg-transparent border-none outline-none border-b border-primary"
-											bind:value={renameItemValue}
-											onblur={submitRenameItem}
-											onkeydown={(e) => { if (e.key === 'Enter') submitRenameItem(); if (e.key === 'Escape') renamingItem = null; }}
-											use:focusSelect
-										/>
-									{:else}
-										<button
-											class="flex-1 text-sm text-left"
-											ondblclick={() => { renamingItem = { listID: list.id, itemID: item.id }; renameItemValue = item.name; }}
-										>{item.name}</button>
-									{/if}
-									<button onclick={() => deleteItem(list.id, item.id)} class="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0" aria-label={msg.edit_dialog_delete()}>
-										<X class="w-3.5 h-3.5" />
-									</button>
-								</div>
+								{/if}
+								{#each group.items as item (item.id)}
+									<div class="flex items-center gap-2 px-4 py-2.5" data-id={item.id}>
+										<div data-drag-handle aria-label={msg.lists_drag_item_aria()} class="cursor-grab active:cursor-grabbing touch-none p-1 -ml-1 shrink-0 text-muted-foreground/40">
+											<GripVertical class="w-3.5 h-3.5" />
+										</div>
+										<Checkbox checked={false} onCheckedChange={() => toggleItem(list.id, item)} />
+										{#if renamingItem?.listID === list.id && renamingItem?.itemID === item.id}
+											<input
+												class="flex-1 text-sm bg-transparent border-none outline-none border-b border-primary"
+												bind:value={renameItemValue}
+												onblur={submitRenameItem}
+												onkeydown={(e) => { if (e.key === 'Enter') submitRenameItem(); if (e.key === 'Escape') renamingItem = null; }}
+												use:focusSelect
+											/>
+										{:else}
+											<button
+												class="flex-1 text-sm text-left"
+												ondblclick={() => { renamingItem = { listID: list.id, itemID: item.id }; renameItemValue = item.name; }}
+											>{item.name}</button>
+										{/if}
+										{#if editingCategory?.listID === list.id && editingCategory?.itemID === item.id}
+											<input
+												class="w-20 text-xs bg-transparent border-none outline-none border-b border-primary shrink-0"
+												placeholder={msg.lists_category_placeholder()}
+												bind:value={categoryValue}
+												onblur={submitCategory}
+												onkeydown={(e) => { if (e.key === 'Enter') submitCategory(); if (e.key === 'Escape') editingCategory = null; }}
+												use:focusSelect
+											/>
+										{:else if item.category}
+											<button
+												onclick={() => { editingCategory = { listID: list.id, itemID: item.id }; categoryValue = item.category ?? ''; }}
+												class="text-[11px] font-medium text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 shrink-0 max-w-20 truncate"
+											>{item.category}</button>
+										{:else}
+											<button
+												onclick={() => { editingCategory = { listID: list.id, itemID: item.id }; categoryValue = ''; }}
+												class="p-1 text-muted-foreground/40 hover:text-foreground transition-colors shrink-0"
+												aria-label={msg.lists_category_aria()}
+											>
+												<Tag class="w-3.5 h-3.5" />
+											</button>
+										{/if}
+										<button onclick={() => deleteItem(list.id, item.id)} class="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0" aria-label={msg.edit_dialog_delete()}>
+											<X class="w-3.5 h-3.5" />
+										</button>
+									</div>
+								{/each}
 							{/each}
 						</div>
 
