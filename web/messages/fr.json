@@ -91,6 +91,7 @@
 	"board_filter_birthdays": "Anniversaires",
 	"board_filter_done": "Terminé",
 	"board_clear_filters": "Effacer",
+	"board_search_placeholder": "Rechercher des tâches et événements",
 	"dialog_new_item_title": "Nouveau ticket",
 	"dialog_type_task": "Tâche",
 	"dialog_type_event": "Événement",

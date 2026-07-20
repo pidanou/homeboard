@@ -282,7 +282,7 @@ These are captured in spec out-of-scope tables. Promote to a milestone when prio
 | ~~External calendar sync (ICS export/import/one-way subscription)~~ | ✅ M20 |
 | External calendar sync — CalDAV, Google Calendar OAuth API, two-way sync | `calendar.md` |
 | ~~Push notifications (due-soon reminders)~~ | ✅ M21 |
-| Search / full-text filter | `board.md` |
+| ~~Search / full-text filter~~ | ✅ done |
 | Bulk actions (select multiple, bulk delete/assign) | `board.md` |
 | Subtasks | `board.md` |
 | ~~List item categories / aisle grouping~~ | ✅ M22 |

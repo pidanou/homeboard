@@ -91,6 +91,7 @@
 	"board_filter_birthdays": "Birthdays",
 	"board_filter_done": "Done",
 	"board_clear_filters": "Clear",
+	"board_search_placeholder": "Search tasks and events",
 	"dialog_new_item_title": "New ticket",
 	"dialog_type_task": "Task",
 	"dialog_type_event": "Event",

@@ -91,6 +91,7 @@
 	"board_filter_birthdays": "Cumpleaños",
 	"board_filter_done": "Hecho",
 	"board_clear_filters": "Borrar",
+	"board_search_placeholder": "Buscar tareas y eventos",
 	"dialog_new_item_title": "Nuevo ticket",
 	"dialog_type_task": "Tarea",
 	"dialog_type_event": "Evento",

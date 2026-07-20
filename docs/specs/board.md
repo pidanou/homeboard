@@ -167,6 +167,10 @@ Opened by tapping any card on the board.
 
 ---
 
+## Search
+
+A search input above the filter row. Client-side substring match (case-insensitive) against task/event title and description. Combines with all other active filters (AND logic).
+
 ## Filter panel
 
 Opened by the "Filter" button. Shows a badge with the count of active filters.
@@ -233,7 +237,6 @@ When sort is not "Date", time grouping (Overdue / Today / This week / Later) is 
 
 | Feature | Notes |
 |---|---|
-| Search / full-text filter | High value; needs backend index or client-side scan |
 | Bulk actions (select multiple, bulk delete/assign) | Needed once lists grow long |
 | Drag to reorder / manual ordering | Complex on mobile; sort covers it for now |
 | Task status beyond todo/done (e.g. in progress) | Requires UI change in card + filter + board logic |
@@ -253,7 +256,7 @@ When sort is not "Date", time grouping (Overdue / Today / This week / Later) is 
 | Implemented: create/edit dialogs with all fields | — |
 | Implemented: optimistic checkbox toggle | — |
 | Implemented: SSE real-time refresh | — |
-| Not implemented: search | Flag for later |
+| Implemented: search (client-side substring match on title + description, combines with other filters) | — |
 | Not implemented: bulk actions | Flag for later |
 | Not implemented: "in progress" task status | Flag for later |
 | Not implemented: bulk clear done tasks | Flag for later |
