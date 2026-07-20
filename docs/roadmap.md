@@ -124,7 +124,7 @@ OAuth and invite polish.
 - ✅ Auto-reload data on reconnect (page reload when `online` event fires)
 - ✅ Web Push notifications via VAPID — new event/task fires push to all family members; toggle in household settings; auto-removes expired subscriptions; works on Chrome, Firefox, Edge, Android; iOS 16.4+ when added to home screen
 - ⬜ App shell cached via service worker (install prompt) — deferred; Capacitor covers native distribution
-- ⬜ iOS home screen icon + splash screen
+- ✅ iOS home screen icon + splash screen — `apple-touch-icon.png`/`icon-192`/`icon-512` re-exported full-bleed (no transparency, which iOS/Android render as black); `<link rel="manifest">` was missing from `app.html` entirely, added — Safari 15.4+ auto-generates the splash screen from the manifest's `background_color` + icon once it's linked, no per-device `apple-touch-startup-image` set needed
 
 ---
 
