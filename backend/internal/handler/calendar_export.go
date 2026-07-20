@@ -36,7 +36,7 @@ func (h *CalendarExportHandler) PublicRoutes() http.Handler {
 func (h *CalendarExportHandler) get(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	if err := requireAdmin(r, familyID, h.families); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 	token := h.export.GetOrNil(r.Context(), familyID)
@@ -47,14 +47,14 @@ func (h *CalendarExportHandler) get(w http.ResponseWriter, r *http.Request) {
 func (h *CalendarExportHandler) regenerate(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	if err := requireAdmin(r, familyID, h.families); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 	userID := r.Context().Value(ContextKeyUserID).(string)
 
 	token, err := h.export.Regenerate(r.Context(), familyID, userID)
 	if err != nil {
-		http.Error(w, "failed to generate export token", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "generate_export_token_failed")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -64,11 +64,11 @@ func (h *CalendarExportHandler) regenerate(w http.ResponseWriter, r *http.Reques
 func (h *CalendarExportHandler) revoke(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	if err := requireAdmin(r, familyID, h.families); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 	if err := h.export.Revoke(r.Context(), familyID); err != nil {
-		http.Error(w, "failed to revoke export token", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "revoke_export_token_failed")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -78,7 +78,7 @@ func (h *CalendarExportHandler) serveICS(w http.ResponseWriter, r *http.Request)
 	token := chi.URLParam(r, "token")
 	data, err := h.export.BuildICS(r.Context(), token)
 	if err != nil {
-		http.Error(w, "export not found", http.StatusNotFound)
+		writeError(w, http.StatusNotFound, "export_not_found")
 		return
 	}
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")

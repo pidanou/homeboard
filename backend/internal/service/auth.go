@@ -206,6 +206,8 @@ func (s *AuthService) RequestPasswordReset(ctx context.Context, email string) er
 }
 
 var ErrInvalidResetToken = errors.New("invalid or expired reset token")
+var ErrNoPasswordSet = errors.New("account has no password set")
+var ErrInvalidCurrentPassword = errors.New("invalid current password")
 
 func (s *AuthService) ResetPassword(ctx context.Context, token, newPassword string) error {
 	if !s.allowPasswordLogin {
@@ -267,10 +269,10 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID, currentPasswor
 		return err
 	}
 	if user.PasswordHash == nil {
-		return errors.New("account has no password set")
+		return ErrNoPasswordSet
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(currentPassword)); err != nil {
-		return errors.New("invalid current password")
+		return ErrInvalidCurrentPassword
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {

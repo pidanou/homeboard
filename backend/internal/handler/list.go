@@ -37,7 +37,7 @@ func (h *ListHandler) listLists(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	lists, err := h.lists.ListsByFamily(r.Context(), familyID)
 	if err != nil {
-		http.Error(w, "failed to list lists", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "list_lists_failed")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -50,12 +50,12 @@ func (h *ListHandler) createList(w http.ResponseWriter, r *http.Request) {
 		Name string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
-		http.Error(w, "name is required", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "name_required")
 		return
 	}
 	list, err := h.lists.Create(r.Context(), familyID, body.Name)
 	if err != nil {
-		http.Error(w, "failed to create list", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "create_list_failed")
 		return
 	}
 	h.hub.Broadcast(familyID)
@@ -71,11 +71,11 @@ func (h *ListHandler) renameList(w http.ResponseWriter, r *http.Request) {
 		Name string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
-		http.Error(w, "name is required", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "name_required")
 		return
 	}
 	if err := h.lists.Rename(r.Context(), listID, familyID, body.Name); err != nil {
-		http.Error(w, "failed to rename list", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "rename_list_failed")
 		return
 	}
 	h.hub.Broadcast(familyID)
@@ -88,11 +88,11 @@ func (h *ListHandler) reorderLists(w http.ResponseWriter, r *http.Request) {
 		ListIDs []string `json:"list_ids"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || len(body.ListIDs) == 0 {
-		http.Error(w, "list_ids is required", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "ids_required")
 		return
 	}
 	if err := h.lists.Reorder(r.Context(), familyID, body.ListIDs); err != nil {
-		http.Error(w, "failed to reorder lists", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "reorder_lists_failed")
 		return
 	}
 	h.hub.Broadcast(familyID)
@@ -103,7 +103,7 @@ func (h *ListHandler) deleteList(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	listID := chi.URLParam(r, "listID")
 	if err := h.lists.Delete(r.Context(), listID, familyID); err != nil {
-		http.Error(w, "failed to delete list", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "delete_list_failed")
 		return
 	}
 	h.hub.Broadcast(familyID)
@@ -114,7 +114,7 @@ func (h *ListHandler) listItems(w http.ResponseWriter, r *http.Request) {
 	listID := chi.URLParam(r, "listID")
 	items, err := h.lists.ItemsByList(r.Context(), listID)
 	if err != nil {
-		http.Error(w, "failed to list items", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "list_items_failed")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -128,12 +128,12 @@ func (h *ListHandler) addItem(w http.ResponseWriter, r *http.Request) {
 		Name string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
-		http.Error(w, "name is required", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "name_required")
 		return
 	}
 	item, err := h.lists.AddItem(r.Context(), listID, familyID, body.Name)
 	if err != nil {
-		http.Error(w, "failed to add item", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "add_item_failed")
 		return
 	}
 	h.hub.Broadcast(familyID)
@@ -152,11 +152,11 @@ func (h *ListHandler) updateItem(w http.ResponseWriter, r *http.Request) {
 		Category *string `json:"category"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "invalid body", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
 	if err := h.lists.UpdateItem(r.Context(), itemID, listID, familyID, body.Name, body.Checked, body.Category); err != nil {
-		http.Error(w, "failed to update item", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "update_item_failed")
 		return
 	}
 	h.hub.Broadcast(familyID)
@@ -168,7 +168,7 @@ func (h *ListHandler) deleteItem(w http.ResponseWriter, r *http.Request) {
 	listID := chi.URLParam(r, "listID")
 	itemID := chi.URLParam(r, "itemID")
 	if err := h.lists.DeleteItem(r.Context(), itemID, listID, familyID); err != nil {
-		http.Error(w, "failed to delete item", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "delete_item_failed")
 		return
 	}
 	h.hub.Broadcast(familyID)
@@ -179,7 +179,7 @@ func (h *ListHandler) clearChecked(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	listID := chi.URLParam(r, "listID")
 	if err := h.lists.ClearChecked(r.Context(), listID, familyID); err != nil {
-		http.Error(w, "failed to clear checked items", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "clear_checked_items_failed")
 		return
 	}
 	h.hub.Broadcast(familyID)
@@ -193,11 +193,11 @@ func (h *ListHandler) reorderItems(w http.ResponseWriter, r *http.Request) {
 		IDs []string `json:"ids"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || len(body.IDs) == 0 {
-		http.Error(w, "ids is required", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "ids_required")
 		return
 	}
 	if err := h.lists.ReorderItems(r.Context(), listID, familyID, body.IDs); err != nil {
-		http.Error(w, "failed to reorder items", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "reorder_items_failed")
 		return
 	}
 	h.hub.Broadcast(familyID)

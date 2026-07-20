@@ -31,7 +31,7 @@ func (h *CategoryHandler) list(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	categories, err := h.categories.ListForFamily(r.Context(), familyID)
 	if err != nil {
-		http.Error(w, "failed to list categories", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "list_categories_failed")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -41,7 +41,7 @@ func (h *CategoryHandler) list(w http.ResponseWriter, r *http.Request) {
 func (h *CategoryHandler) create(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	if err := requireAdmin(r, familyID, h.families); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 	var body struct {
@@ -49,7 +49,7 @@ func (h *CategoryHandler) create(w http.ResponseWriter, r *http.Request) {
 		Color string `json:"color"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
-		http.Error(w, "name is required", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "name_required")
 		return
 	}
 	if body.Color == "" {
@@ -57,7 +57,7 @@ func (h *CategoryHandler) create(w http.ResponseWriter, r *http.Request) {
 	}
 	category, err := h.categories.Create(r.Context(), familyID, body.Name, body.Color)
 	if err != nil {
-		http.Error(w, "failed to create category", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "create_category_failed")
 		return
 	}
 	h.hub.Broadcast(familyID)
@@ -70,7 +70,7 @@ func (h *CategoryHandler) update(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	categoryID := chi.URLParam(r, "categoryID")
 	if err := requireAdmin(r, familyID, h.families); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 	var body struct {
@@ -78,12 +78,12 @@ func (h *CategoryHandler) update(w http.ResponseWriter, r *http.Request) {
 		Color string `json:"color"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
-		http.Error(w, "name is required", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "name_required")
 		return
 	}
 	cat, err := h.categories.Update(r.Context(), categoryID, familyID, body.Name, body.Color)
 	if err != nil {
-		http.Error(w, "failed to update category", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "update_category_failed")
 		return
 	}
 	h.hub.Broadcast(familyID)
@@ -95,11 +95,11 @@ func (h *CategoryHandler) delete(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	categoryID := chi.URLParam(r, "categoryID")
 	if err := requireAdmin(r, familyID, h.families); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 	if err := h.categories.Delete(r.Context(), categoryID, familyID); err != nil {
-		http.Error(w, "failed to delete category", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "delete_category_failed")
 		return
 	}
 	h.hub.Broadcast(familyID)

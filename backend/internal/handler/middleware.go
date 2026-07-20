@@ -2,7 +2,7 @@ package handler
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -15,14 +15,20 @@ type contextKey string
 
 const ContextKeyUserID contextKey = "userID"
 
+var (
+	ErrUnauthorized  = errors.New("unauthorized")
+	ErrAdminRequired = errors.New("admin required")
+	ErrForbidden     = errors.New("forbidden")
+)
+
 func requireAdmin(r *http.Request, familyID string, families *service.HouseholdService) error {
 	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
 	if !ok || callerID == "" {
-		return fmt.Errorf("unauthorized")
+		return ErrUnauthorized
 	}
 	role, err := families.GetMemberRole(r.Context(), callerID, familyID)
 	if err != nil || role != "admin" {
-		return fmt.Errorf("admin required")
+		return ErrAdminRequired
 	}
 	return nil
 }
@@ -30,10 +36,10 @@ func requireAdmin(r *http.Request, familyID string, families *service.HouseholdS
 func requireMember(r *http.Request, familyID string, families *service.HouseholdService) error {
 	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
 	if !ok || callerID == "" {
-		return fmt.Errorf("unauthorized")
+		return ErrUnauthorized
 	}
 	if _, err := families.GetMemberRole(r.Context(), callerID, familyID); err != nil {
-		return fmt.Errorf("forbidden")
+		return ErrForbidden
 	}
 	return nil
 }
@@ -43,7 +49,7 @@ func RequireFamilyMember(families *service.HouseholdService) func(http.Handler) 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if err := requireMember(r, chi.URLParam(r, "familyID"), families); err != nil {
-				http.Error(w, err.Error(), http.StatusForbidden)
+				writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 				return
 			}
 			next.ServeHTTP(w, r)
@@ -63,7 +69,7 @@ func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
 			if !strings.HasPrefix(authHeader, "Bearer ") {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				writeError(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
 
@@ -75,19 +81,19 @@ func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 				return []byte(jwtSecret), nil
 			})
 			if err != nil || !token.Valid {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				writeError(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
 
 			claims, ok := token.Claims.(jwt.MapClaims)
 			if !ok {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				writeError(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
 
 			userID, ok := claims["sub"].(string)
 			if !ok {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				writeError(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
 

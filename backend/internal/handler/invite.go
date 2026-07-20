@@ -42,12 +42,12 @@ func (h *InviteHandler) PublicRoutes() http.Handler {
 func (h *InviteHandler) delete(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	if err := requireAdmin(r, familyID, h.families); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 	token := chi.URLParam(r, "token")
 	if err := h.invites.Delete(r.Context(), token); err != nil {
-		http.Error(w, "failed to delete invite", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "delete_invite_failed")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -56,13 +56,13 @@ func (h *InviteHandler) delete(w http.ResponseWriter, r *http.Request) {
 func (h *InviteHandler) list(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	if err := requireAdmin(r, familyID, h.families); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 
 	invites, err := h.invites.ListForFamily(r.Context(), familyID)
 	if err != nil {
-		http.Error(w, "failed to list invites", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "list_invites_failed")
 		return
 	}
 
@@ -74,7 +74,7 @@ func (h *InviteHandler) create(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(ContextKeyUserID).(string)
 	familyID := chi.URLParam(r, "familyID")
 	if err := requireAdmin(r, familyID, h.families); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 
@@ -86,7 +86,7 @@ func (h *InviteHandler) create(w http.ResponseWriter, r *http.Request) {
 
 	invite, err := h.invites.Create(r.Context(), familyID, userID, body.Email)
 	if err != nil {
-		http.Error(w, "failed to create invite", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "create_invite_failed")
 		return
 	}
 
@@ -98,12 +98,12 @@ func (h *InviteHandler) create(w http.ResponseWriter, r *http.Request) {
 func (h *InviteHandler) resend(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	if err := requireAdmin(r, familyID, h.families); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 	token := chi.URLParam(r, "token")
 	if err := h.invites.Resend(r.Context(), token); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, codeFor(err, "invalid_request"))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -114,7 +114,7 @@ func (h *InviteHandler) get(w http.ResponseWriter, r *http.Request) {
 
 	invite, err := h.invites.GetByToken(r.Context(), token)
 	if err != nil {
-		http.Error(w, "invite not found", http.StatusNotFound)
+		writeError(w, http.StatusNotFound, "invite_not_found")
 		return
 	}
 
@@ -131,39 +131,39 @@ func (h *InviteHandler) registerAndAccept(w http.ResponseWriter, r *http.Request
 		Name     string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
 
 	// Fully validate invite (exists, not used, not expired) before creating the account
 	if err := h.invites.Validate(r.Context(), token); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, codeFor(err, "invalid_request"))
 		return
 	}
 
 	user, err := h.auth.CreateUser(r.Context(), body.Email, body.Password, body.Name)
 	if err != nil {
-		http.Error(w, "registration failed", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "registration_failed")
 		return
 	}
 
 	result, err := h.invites.Accept(r.Context(), token, user.ID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, codeFor(err, "accept_invite_failed"))
 		return
 	}
 
 	jwt, err := h.auth.IssueToken(user.ID)
 	if err != nil {
-		http.Error(w, "failed to issue token", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "issue_token_failed")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]any{
-		"token":     jwt,
-		"family_id": result.FamilyID,
+		"token":                    jwt,
+		"family_id":                result.FamilyID,
 		"unlinked_virtual_members": result.UnlinkedVirtualMembers,
 	})
 }
@@ -171,14 +171,14 @@ func (h *InviteHandler) registerAndAccept(w http.ResponseWriter, r *http.Request
 func (h *InviteHandler) accept(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(ContextKeyUserID).(string)
 	if !ok || userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	token := chi.URLParam(r, "token")
 
 	result, err := h.invites.Accept(r.Context(), token, userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, codeFor(err, "accept_invite_failed"))
 		return
 	}
 

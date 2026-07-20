@@ -44,29 +44,29 @@ func (h *SSEHandler) stream(w http.ResponseWriter, r *http.Request) {
 		return []byte(h.jwtSecret), nil
 	})
 	if err != nil || !token.Valid {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	userID, _ := claims["sub"].(string)
 	if userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	ctx := context.WithValue(r.Context(), ContextKeyUserID, userID)
 	if _, err := h.families.GetMemberRole(ctx, userID, familyID); err != nil {
-		http.Error(w, "forbidden", http.StatusForbidden)
+		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "streaming_unsupported")
 		return
 	}
 

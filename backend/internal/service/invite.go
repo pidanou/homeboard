@@ -13,6 +13,13 @@ import (
 	"github.com/pidanou/homeboard/internal/repository"
 )
 
+var (
+	ErrInviteNotFound = errors.New("invite not found")
+	ErrInviteNoEmail  = errors.New("invite has no email address on file")
+	ErrInviteUsed     = errors.New("invite already used")
+	ErrInviteExpired  = errors.New("invite expired")
+)
+
 type InviteService struct {
 	invites    repository.InviteRepository
 	families   repository.HouseholdRepository
@@ -60,16 +67,16 @@ func (s *InviteService) Create(ctx context.Context, familyID, createdBy, email s
 func (s *InviteService) Resend(ctx context.Context, token string) error {
 	invite, err := s.invites.GetByToken(ctx, token)
 	if err != nil {
-		return errors.New("invite not found")
+		return ErrInviteNotFound
 	}
 	if invite.Email == nil {
-		return errors.New("invite has no email address on file")
+		return ErrInviteNoEmail
 	}
 	if invite.UsedAt != nil {
-		return errors.New("invite already used")
+		return ErrInviteUsed
 	}
 	if time.Now().UTC().After(invite.ExpiresAt) {
-		return errors.New("invite expired")
+		return ErrInviteExpired
 	}
 	s.sendInviteEmail(ctx, invite)
 	return nil
@@ -93,20 +100,20 @@ func (s *InviteService) sendInviteEmail(ctx context.Context, invite *model.Invit
 }
 
 type AcceptResult struct {
-	FamilyID               string                  `json:"family_id"`
-	UnlinkedVirtualMembers []*model.VirtualMember  `json:"unlinked_virtual_members"`
+	FamilyID               string                 `json:"family_id"`
+	UnlinkedVirtualMembers []*model.VirtualMember `json:"unlinked_virtual_members"`
 }
 
 func (s *InviteService) Accept(ctx context.Context, token, userID string) (*AcceptResult, error) {
 	invite, err := s.invites.GetByToken(ctx, token)
 	if err != nil {
-		return nil, errors.New("invite not found")
+		return nil, ErrInviteNotFound
 	}
 	if invite.UsedAt != nil {
-		return nil, errors.New("invite already used")
+		return nil, ErrInviteUsed
 	}
 	if time.Now().UTC().After(invite.ExpiresAt) {
-		return nil, errors.New("invite expired")
+		return nil, ErrInviteExpired
 	}
 
 	member := &model.HouseholdMember{
@@ -141,13 +148,13 @@ func (s *InviteService) GetByToken(ctx context.Context, token string) (*model.In
 func (s *InviteService) Validate(ctx context.Context, token string) error {
 	invite, err := s.invites.GetByToken(ctx, token)
 	if err != nil {
-		return errors.New("invite not found")
+		return ErrInviteNotFound
 	}
 	if invite.UsedAt != nil {
-		return errors.New("invite already used")
+		return ErrInviteUsed
 	}
 	if time.Now().UTC().After(invite.ExpiresAt) {
-		return errors.New("invite expired")
+		return ErrInviteExpired
 	}
 	return nil
 }

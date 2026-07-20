@@ -30,32 +30,32 @@ func (h *CalendarImportHandler) Routes() http.Handler {
 func (h *CalendarImportHandler) upload(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	if err := requireMember(r, familyID, h.families); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 	userID := r.Context().Value(ContextKeyUserID).(string)
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxImportBytes)
 	if err := r.ParseMultipartForm(maxImportBytes); err != nil {
-		http.Error(w, "file too large or invalid upload", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "file_too_large")
 		return
 	}
 	file, _, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, "missing file", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "missing_file")
 		return
 	}
 	defer file.Close()
 
 	data, err := io.ReadAll(file)
 	if err != nil {
-		http.Error(w, "failed to read file", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "read_file_failed")
 		return
 	}
 
 	imported, skipped, err := h.importSvc.ImportFile(r.Context(), familyID, userID, data)
 	if err != nil {
-		http.Error(w, "failed to import calendar", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "import_calendar_failed")
 		return
 	}
 

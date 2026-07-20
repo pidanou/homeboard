@@ -47,7 +47,7 @@ func (h *TaskHandler) list(w http.ResponseWriter, r *http.Request) {
 
 	tasks, err := h.tasks.ListForFamily(r.Context(), familyID)
 	if err != nil {
-		http.Error(w, "failed to list tasks", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "list_tasks_failed")
 		return
 	}
 
@@ -69,24 +69,24 @@ func (h *TaskHandler) create(w http.ResponseWriter, r *http.Request) {
 		CategoryID  *string `json:"category_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Title == "" {
-		http.Error(w, "title is required", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "title_required")
 		return
 	}
 
 	startDate, err := parseOptionalTime(body.StartDate)
 	if err != nil {
-		http.Error(w, "invalid start_date format", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_start_date")
 		return
 	}
 	endDate, err := parseOptionalTime(body.EndDate)
 	if err != nil {
-		http.Error(w, "invalid end_date format", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_end_date")
 		return
 	}
 
 	task, err := h.tasks.Create(r.Context(), familyID, userID, body.Title, body.Description, body.Important, body.AssignedTo, startDate, endDate, body.CategoryID)
 	if err != nil {
-		http.Error(w, "failed to create task", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "create_task_failed")
 		return
 	}
 
@@ -103,7 +103,7 @@ func (h *TaskHandler) update(w http.ResponseWriter, r *http.Request) {
 
 	task, err := h.tasks.GetByID(r.Context(), taskID, familyID)
 	if err != nil {
-		http.Error(w, "task not found", http.StatusNotFound)
+		writeError(w, http.StatusNotFound, "task_not_found")
 		return
 	}
 
@@ -118,7 +118,7 @@ func (h *TaskHandler) update(w http.ResponseWriter, r *http.Request) {
 		CategoryID  *string `json:"category_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
 
@@ -140,7 +140,7 @@ func (h *TaskHandler) update(w http.ResponseWriter, r *http.Request) {
 	if body.StartDate != nil {
 		startDate, err := parseOptionalTime(body.StartDate)
 		if err != nil {
-			http.Error(w, "invalid start_date format", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_start_date")
 			return
 		}
 		task.StartDate = startDate
@@ -148,7 +148,7 @@ func (h *TaskHandler) update(w http.ResponseWriter, r *http.Request) {
 	if body.EndDate != nil {
 		endDate, err := parseOptionalTime(body.EndDate)
 		if err != nil {
-			http.Error(w, "invalid end_date format", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_end_date")
 			return
 		}
 		task.EndDate = endDate
@@ -158,7 +158,7 @@ func (h *TaskHandler) update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.tasks.Update(r.Context(), task); err != nil {
-		http.Error(w, "failed to update task", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "update_task_failed")
 		return
 	}
 
@@ -172,11 +172,11 @@ func (h *TaskHandler) reorder(w http.ResponseWriter, r *http.Request) {
 		IDs []string `json:"ids"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || len(body.IDs) == 0 {
-		http.Error(w, "ids is required", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "ids_required")
 		return
 	}
 	if err := h.tasks.Reorder(r.Context(), familyID, body.IDs); err != nil {
-		http.Error(w, "failed to reorder tasks", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "reorder_tasks_failed")
 		return
 	}
 	h.hub.Broadcast(familyID)
@@ -188,7 +188,7 @@ func (h *TaskHandler) delete(w http.ResponseWriter, r *http.Request) {
 	taskID := chi.URLParam(r, "taskID")
 
 	if err := h.tasks.Delete(r.Context(), taskID, familyID); err != nil {
-		http.Error(w, "failed to delete task", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "delete_task_failed")
 		return
 	}
 

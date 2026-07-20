@@ -47,17 +47,17 @@ func (h *EventHandler) list(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	from, err := time.Parse(time.RFC3339, r.URL.Query().Get("from"))
 	if err != nil {
-		http.Error(w, "invalid from date", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_date_range")
 		return
 	}
 	to, err := time.Parse(time.RFC3339, r.URL.Query().Get("to"))
 	if err != nil {
-		http.Error(w, "invalid to date", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_date_range")
 		return
 	}
 	events, err := h.events.ListForRange(r.Context(), familyID, from, to)
 	if err != nil {
-		http.Error(w, "failed to list events", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "list_events_failed")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -83,23 +83,23 @@ func (h *EventHandler) create(w http.ResponseWriter, r *http.Request) {
 		BirthdayOf     *string  `json:"birthday_of"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Title == "" {
-		http.Error(w, "title is required", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "title_required")
 		return
 	}
 	startAt, err := time.Parse(time.RFC3339, body.StartAt)
 	if err != nil {
-		http.Error(w, "invalid start_at", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_start_at")
 		return
 	}
 	endAt, err := time.Parse(time.RFC3339, body.EndAt)
 	if err != nil {
-		http.Error(w, "invalid end_at", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_end_at")
 		return
 	}
 
 	event, err := h.events.Create(r.Context(), familyID, userID, body.Title, body.Description, body.Location, startAt, endAt, body.AllDay, body.AttendeeIDs, body.CategoryID, body.RecurrenceRule, body.Type, body.BirthdayOf, body.Important)
 	if err != nil {
-		http.Error(w, "failed to create event", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "create_event_failed")
 		return
 	}
 	h.hub.Broadcast(familyID)
@@ -128,17 +128,17 @@ func (h *EventHandler) update(w http.ResponseWriter, r *http.Request) {
 		Important      bool     `json:"important"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
 	startAt, err := time.Parse(time.RFC3339, body.StartAt)
 	if err != nil {
-		http.Error(w, "invalid start_at", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_start_at")
 		return
 	}
 	endAt, err := time.Parse(time.RFC3339, body.EndAt)
 	if err != nil {
-		http.Error(w, "invalid end_at", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_end_at")
 		return
 	}
 
@@ -153,7 +153,7 @@ func (h *EventHandler) update(w http.ResponseWriter, r *http.Request) {
 			BirthdayOf: body.BirthdayOf, Important: body.Important,
 		}
 		if err := h.events.UpdateOccurrence(r.Context(), parentID, familyID, userID, *occDate, exc); err != nil {
-			http.Error(w, "failed to update occurrence", http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "update_occurrence_failed")
 			return
 		}
 	} else {
@@ -165,7 +165,7 @@ func (h *EventHandler) update(w http.ResponseWriter, r *http.Request) {
 			RecurrenceRule: body.RecurrenceRule, BirthdayOf: body.BirthdayOf, Important: body.Important,
 		}
 		if err := h.events.Update(r.Context(), event); err != nil {
-			http.Error(w, "failed to update event", http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "update_event_failed")
 			return
 		}
 	}
@@ -182,12 +182,12 @@ func (h *EventHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 	if occDate != nil {
 		if err := h.events.CancelOccurrence(r.Context(), parentID, familyID, *occDate); err != nil {
-			http.Error(w, "failed to cancel occurrence", http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "cancel_occurrence_failed")
 			return
 		}
 	} else {
 		if err := h.events.Delete(r.Context(), parentID, familyID); err != nil {
-			http.Error(w, "failed to delete event", http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "delete_event_failed")
 			return
 		}
 	}
