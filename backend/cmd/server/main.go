@@ -49,7 +49,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	pool, err := pgxpool.New(context.Background(), dbURL)
+	poolConfig, err := pgxpool.ParseConfig(dbURL)
+	if err != nil {
+		slog.Error("failed to parse DATABASE_URL", "err", err)
+		os.Exit(1)
+	}
+	dbConfig := config.LoadDB()
+	poolConfig.MaxConns = dbConfig.MaxConns
+	poolConfig.MinConns = dbConfig.MinConns
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
 	if err != nil {
 		slog.Error("failed to connect to database", "err", err)
 		os.Exit(1)
