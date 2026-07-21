@@ -7,6 +7,7 @@ export type CurrentUser = {
 	avatar_url: string | null;
 	locale: string;
 	time_format: 'auto' | '12' | '24';
+	reminder_minutes_before: number | null;
 };
 
 let user = $state<CurrentUser | null>(null);

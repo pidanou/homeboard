@@ -53,8 +53,8 @@ func (s *ListService) ItemsByList(ctx context.Context, listID string) ([]*model.
 	return s.lists.ItemsByListID(ctx, listID)
 }
 
-func (s *ListService) UpdateItem(ctx context.Context, itemID, listID, familyID, name string, checked bool) error {
-	return s.lists.UpdateItem(ctx, &model.ListItem{ID: itemID, ListID: listID, Name: name, Checked: checked}, familyID)
+func (s *ListService) UpdateItem(ctx context.Context, itemID, listID, familyID, name string, checked bool, category *string) error {
+	return s.lists.UpdateItem(ctx, &model.ListItem{ID: itemID, ListID: listID, Name: name, Checked: checked, Category: category}, familyID)
 }
 
 func (s *ListService) DeleteItem(ctx context.Context, itemID, listID, familyID string) error {

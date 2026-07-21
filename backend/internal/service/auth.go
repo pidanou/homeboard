@@ -2,9 +2,12 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -16,13 +19,22 @@ import (
 
 type AuthService struct {
 	users              repository.UserRepository
+	passwordResets     repository.PasswordResetRepository
 	jwtSecret          []byte
 	mailer             *EmailService
+	appBaseURL         string
 	allowPasswordLogin bool
 }
 
-func NewAuthService(users repository.UserRepository, jwtSecret string, mailer *EmailService) *AuthService {
-	return &AuthService{users: users, jwtSecret: []byte(jwtSecret), mailer: mailer, allowPasswordLogin: true}
+func NewAuthService(users repository.UserRepository, passwordResets repository.PasswordResetRepository, jwtSecret string, mailer *EmailService, appBaseURL string) *AuthService {
+	return &AuthService{
+		users:              users,
+		passwordResets:     passwordResets,
+		jwtSecret:          []byte(jwtSecret),
+		mailer:             mailer,
+		appBaseURL:         strings.TrimRight(appBaseURL, "/"),
+		allowPasswordLogin: true,
+	}
 }
 
 // SetAllowPasswordLogin toggles whether password-based register/login are accepted.
@@ -153,6 +165,88 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (string
 	return signed, nil
 }
 
+// RequestPasswordReset emails a reset link when the address belongs to a
+// password-login account. It never reports whether the email exists —
+// callers should always show the same generic confirmation.
+func (s *AuthService) RequestPasswordReset(ctx context.Context, email string) error {
+	if !s.allowPasswordLogin {
+		return ErrPasswordLoginDisabled
+	}
+	user, err := s.users.GetByEmail(ctx, email)
+	if err != nil || user.PasswordHash == nil {
+		return nil
+	}
+
+	if err := s.passwordResets.DeleteByUserID(ctx, user.ID); err != nil {
+		return fmt.Errorf("clear existing reset tokens: %w", err)
+	}
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Errorf("generate token: %w", err)
+	}
+	reset := &model.PasswordResetToken{
+		Token:     hex.EncodeToString(b),
+		UserID:    user.ID,
+		CreatedAt: time.Now().UTC(),
+		ExpiresAt: time.Now().UTC().Add(time.Hour),
+	}
+	if err := s.passwordResets.Create(ctx, reset); err != nil {
+		return fmt.Errorf("create reset token: %w", err)
+	}
+
+	s.mailer.Send(email, emailData{
+		Subject:    "Reset your Family Board password",
+		Heading:    "Reset your password",
+		Name:       user.Name,
+		Body:       "We received a request to reset your password. This link expires in 1 hour. If you didn't request this, you can ignore this email.",
+		ButtonText: "Reset password",
+		ButtonURL:  fmt.Sprintf("%s/reset-password/%s", s.appBaseURL, reset.Token),
+	})
+	return nil
+}
+
+var ErrInvalidResetToken = errors.New("invalid or expired reset token")
+var ErrNoPasswordSet = errors.New("account has no password set")
+var ErrInvalidCurrentPassword = errors.New("invalid current password")
+
+func (s *AuthService) ResetPassword(ctx context.Context, token, newPassword string) error {
+	if !s.allowPasswordLogin {
+		return ErrPasswordLoginDisabled
+	}
+	reset, err := s.passwordResets.GetByToken(ctx, token)
+	if err != nil {
+		return ErrInvalidResetToken
+	}
+	if reset.UsedAt != nil || time.Now().UTC().After(reset.ExpiresAt) {
+		return ErrInvalidResetToken
+	}
+
+	user, err := s.users.GetByID(ctx, reset.UserID)
+	if err != nil {
+		return err
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+	hashStr := string(hash)
+	user.PasswordHash = &hashStr
+	if err := s.users.Update(ctx, user); err != nil {
+		return fmt.Errorf("update user: %w", err)
+	}
+	if err := s.passwordResets.MarkUsed(ctx, token); err != nil {
+		return fmt.Errorf("mark token used: %w", err)
+	}
+
+	s.mailer.Send(user.Email, emailData{
+		Subject: "Your Family Board password was changed",
+		Heading: "Password changed",
+		Name:    user.Name,
+		Body:    fmt.Sprintf("Your password was changed at %s UTC.\n\nIf this wasn't you, contact your administrator immediately.", time.Now().UTC().Format("2006-01-02 15:04:05")),
+	})
+	return nil
+}
+
 func (s *AuthService) GetProfile(ctx context.Context, userID string) (*model.User, error) {
 	return s.users.GetByID(ctx, userID)
 }
@@ -175,10 +269,10 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID, currentPasswor
 		return err
 	}
 	if user.PasswordHash == nil {
-		return errors.New("account has no password set")
+		return ErrNoPasswordSet
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(currentPassword)); err != nil {
-		return errors.New("invalid current password")
+		return ErrInvalidCurrentPassword
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
@@ -235,6 +329,23 @@ func (s *AuthService) SetTimeFormat(ctx context.Context, userID, format string) 
 		return nil, err
 	}
 	user.TimeFormat = format
+	if err := s.users.Update(ctx, user); err != nil {
+		return nil, fmt.Errorf("update user: %w", err)
+	}
+	return user, nil
+}
+
+var supportedReminderMinutes = map[int]bool{15: true, 30: true, 60: true}
+
+func (s *AuthService) SetReminderMinutesBefore(ctx context.Context, userID string, minutes *int) (*model.User, error) {
+	if minutes != nil && !supportedReminderMinutes[*minutes] {
+		return nil, errors.New("unsupported reminder offset")
+	}
+	user, err := s.users.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	user.ReminderMinutesBefore = minutes
 	if err := s.users.Update(ctx, user); err != nil {
 		return nil, fmt.Errorf("update user: %w", err)
 	}

@@ -178,12 +178,15 @@ Consistent with the Board page filter panel:
 
 ---
 
-## Reminders / notifications *(deferred)*
+## Reminders / notifications
 
-- Push notifications via PWA Web Push API
-- Trigger: X minutes before an event start (configurable: 15 / 30 / 60 min)
-- Requires: service worker with push subscription, server-side notification sender
-- Per-user setting, not per-family (each member configures their own)
+- Push notification sent X minutes before a task's due date or an event's start, via the existing PWA Web Push subscription
+- Per-user setting (`/profile`), off by default: `reminder_minutes_before` on `users`, one of `15` / `30` / `60`, or unset (disabled)
+- Task reminders go only to the task's assignee (`assigned_to`); unassigned tasks never notify anyone
+- Event reminders go to the event's attendees (`attendee_ids`) if set, otherwise the whole household — matching create-time push behavior
+- Delivery: a 1-minute `time.Ticker` goroutine (`backend/cmd/server/main.go`) checks all users with reminders enabled against due tasks/events in their offset window
+- Idempotency: a `sent_reminders` table (`UNIQUE(user_id, item_type, item_id, occurrence_at)`) ensures each occurrence notifies a user at most once, even across recurring-event occurrences
+- Notification payload includes a deep-link `url` (task → board, event → calendar); tapping the notification opens that view
 
 ---
 
@@ -200,3 +203,4 @@ Consistent with the Board page filter panel:
 | No "Today" button | Add jump-to-today |
 | Swipe not implemented | Add swipe navigation for month/week |
 | No calendar import/export/sync | ✅ ICS export, ICS import, one-way subscription sync (see above) |
+| No due-soon reminders | ✅ Time-based push reminders for tasks/events (see above) |

@@ -4,7 +4,7 @@
     import { api, sseUrl } from "$lib/api/client";
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
-    import { CheckSquare, CalendarDays } from "lucide-svelte";
+    import { CheckSquare, CalendarDays, Search } from "lucide-svelte";
     import type { Task, CalEvent, Member, AppCategory } from "$lib/types";
     import { localDayMs } from "$lib/dates";
     import BoardToolbar from "$lib/components/BoardToolbar.svelte";
@@ -26,6 +26,7 @@
     let filterMembers = $state(new Set<string>());
     let filterCategory = $state(new Set<string>());
     let quickTitle = $state("");
+    let searchQuery = $state("");
 
     let createDialog: { open: (t?: "task" | "event") => void } | undefined =
         $state();
@@ -123,6 +124,11 @@
                 (ev.attendee_ids ?? []).some((id) => filterMembers.has(id));
             const matchesCategory = (id: string | undefined) =>
                 filterCategory.size === 0 || (!!id && filterCategory.has(id));
+            const q = searchQuery.trim().toLowerCase();
+            const matchesSearch = (item: { title: string; description?: string }) =>
+                !q ||
+                item.title.toLowerCase().includes(q) ||
+                (item.description ?? "").toLowerCase().includes(q);
             const showTasks = filterTypes.size === 0 || filterTypes.has("task");
             const showEvents = filterTypes.size === 0 || filterTypes.has("event");
             const showBirthdays =
@@ -133,7 +139,8 @@
                     (t) =>
                         t.status === "done" &&
                         matchesMember(t) &&
-                        matchesCategory(t.category_id),
+                        matchesCategory(t.category_id) &&
+                        matchesSearch(t),
                 )) {
                     items.push({ kind: "task", data: t, sortKey: 0 });
                 }
@@ -145,7 +152,8 @@
                     (t) =>
                         t.status !== "done" &&
                         matchesMember(t) &&
-                        matchesCategory(t.category_id),
+                        matchesCategory(t.category_id) &&
+                        matchesSearch(t),
                 )) {
                     const sortKey = t.end_date
                         ? new Date(t.end_date).getTime()
@@ -158,7 +166,8 @@
                     (ev) =>
                         ev.birthday_of &&
                         matchesMemberEv(ev) &&
-                        matchesCategory(ev.category_id),
+                        matchesCategory(ev.category_id) &&
+                        matchesSearch(ev),
                 )) {
                     items.push({
                         kind: "event",
@@ -173,7 +182,8 @@
                         !ev.birthday_of &&
                         new Date(ev.end_at) >= now &&
                         matchesMemberEv(ev) &&
-                        matchesCategory(ev.category_id),
+                        matchesCategory(ev.category_id) &&
+                        matchesSearch(ev),
                 )) {
                     items.push({
                         kind: "event",
@@ -262,6 +272,16 @@
                 <CalendarDays class="w-3.5 h-3.5 mr-1" />{m.board_add_event_button()}
             </Button>
         </div>
+    </div>
+    <div class="relative mb-3">
+        <Search
+            class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none"
+        />
+        <Input
+            bind:value={searchQuery}
+            placeholder={m.board_search_placeholder()}
+            class="pl-8 h-8 text-sm bg-muted/20"
+        />
     </div>
     <BoardToolbar
         bind:filterTypes

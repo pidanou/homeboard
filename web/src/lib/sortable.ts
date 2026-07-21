@@ -1,7 +1,9 @@
 // Svelte action for vertical list drag-to-reorder via Pointer Events (touch + mouse).
 // Usage: <ul use:sortable={{ onReorder }}>  — each child must have data-id attribute.
+// Non-draggable group headers (data-category-header="Name") may be interspersed as
+// siblings — items report the header text of the nearest preceding header, or null.
 
-export type ReorderCallback = (ids: string[]) => void;
+export type ReorderCallback = (ids: string[], categories: (string | null)[]) => void;
 
 export function sortable(node: HTMLElement, options: { onReorder: ReorderCallback }) {
 	let dragEl: HTMLElement | null = null;
@@ -73,8 +75,19 @@ export function sortable(node: HTMLElement, options: { onReorder: ReorderCallbac
 		placeholder.replaceWith(dragEl);
 		placeholder = null;
 
-		const ids = getItems().map((el) => el.dataset.id!);
-		options.onReorder(ids);
+		const ids: string[] = [];
+		const categories: (string | null)[] = [];
+		let currentCategory: string | null = null;
+		for (const el of Array.from(node.children) as HTMLElement[]) {
+			if (el.dataset.categoryHeader !== undefined) {
+				currentCategory = el.dataset.categoryHeader || null;
+				continue;
+			}
+			if (!el.dataset.id) continue;
+			ids.push(el.dataset.id);
+			categories.push(currentCategory);
+		}
+		options.onReorder(ids, categories);
 		dragEl = null;
 	}
 

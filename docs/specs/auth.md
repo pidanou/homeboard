@@ -77,6 +77,8 @@ Backend and frontend are different origins, so the callback can't hand off a JWT
 | `GET` | `/api/v1/auth/oidc/callback` | public | IdP redirects here; redirects to the frontend with a handoff code or error reason |
 | `POST` | `/api/v1/auth/oidc/exchange` | public | `{code}` → `{token}`, single-use, 60s TTL |
 | `GET` | `/api/v1/config` | public | Exposes `oidcEnabled`, `oidcProviderName`, `allowPasswordLogin` |
+| `POST` | `/api/v1/auth/forgot-password` | public | `{email}` → always 200, generic message; silently no-ops for unknown/OIDC-only accounts; gated by `ALLOW_PASSWORD_LOGIN` (403 if disabled) |
+| `POST` | `/api/v1/auth/reset-password` | public | `{token, password}` → 204; single-use token, 1h TTL, 400 if invalid/expired/used |
 
 ---
 
@@ -97,7 +99,7 @@ Backend and frontend are different origins, so the callback can't hand off a JWT
 | Google OAuth (hardcoded, per-provider) | ☐ not planned — superseded by generic OIDC |
 | Apple OAuth (hardcoded, per-provider) | ☐ not planned — superseded by generic OIDC |
 | Unlink / view-linked-identity UI | ☐ not yet implemented |
-| Forgot password / reset flow | ☐ not yet implemented (tracked separately in roadmap M10) |
+| Forgot password / reset flow | ✅ implemented — `POST /auth/forgot-password` + `POST /auth/reset-password`, `password_reset_tokens` table, 1h single-use tokens, enumeration-safe |
 
 ---
 

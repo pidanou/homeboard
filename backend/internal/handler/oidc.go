@@ -131,12 +131,12 @@ func (h *OIDCHandler) clearFlowCookie(w http.ResponseWriter) {
 func (h *OIDCHandler) login(w http.ResponseWriter, r *http.Request) {
 	state, err := randomToken()
 	if err != nil {
-		http.Error(w, "failed to start oidc flow", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "oidc_start_failed")
 		return
 	}
 	nonce, err := randomToken()
 	if err != nil {
-		http.Error(w, "failed to start oidc flow", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "oidc_start_failed")
 		return
 	}
 	verifier := oauth2.GenerateVerifier()
@@ -148,7 +148,7 @@ func (h *OIDCHandler) login(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(oidcFlowTTL).Unix(),
 	})
 	if err != nil {
-		http.Error(w, "failed to start oidc flow", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "oidc_start_failed")
 		return
 	}
 
@@ -168,38 +168,38 @@ func (h *OIDCHandler) login(w http.ResponseWriter, r *http.Request) {
 func (h *OIDCHandler) callback(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(oidcFlowCookieName)
 	if err != nil {
-		http.Error(w, "oidc flow expired, please try again", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "oidc_flow_expired")
 		return
 	}
 	payload, err := h.verifyCookie(cookie.Value)
 	h.clearFlowCookie(w)
 	if err != nil {
-		http.Error(w, "oidc flow expired, please try again", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "oidc_flow_expired")
 		return
 	}
 
 	// CSRF: state must match what we handed the IdP (double-submit cookie pattern).
 	if subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("state")), []byte(payload.State)) != 1 {
-		http.Error(w, "invalid state", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "oidc_invalid_state")
 		return
 	}
 
 	code := r.URL.Query().Get("code")
 	if code == "" {
-		http.Error(w, "missing authorization code", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "oidc_missing_code")
 		return
 	}
 
 	idToken, err := h.oidc.Exchange(r.Context(), code, payload.Verifier)
 	if err != nil {
-		http.Error(w, "oidc exchange failed", http.StatusBadGateway)
+		writeError(w, http.StatusBadGateway, "oidc_exchange_failed")
 		return
 	}
 
 	// Replay defense: go-oidc verifies signature/issuer/audience/expiry but does
 	// NOT check the nonce for us — that's on the caller.
 	if subtle.ConstantTimeCompare([]byte(idToken.Nonce), []byte(payload.Nonce)) != 1 {
-		http.Error(w, "invalid nonce", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "oidc_invalid_nonce")
 		return
 	}
 
@@ -209,7 +209,7 @@ func (h *OIDCHandler) callback(w http.ResponseWriter, r *http.Request) {
 		Name          string `json:"name"`
 	}
 	if err := idToken.Claims(&rawClaims); err != nil {
-		http.Error(w, "invalid id token claims", http.StatusBadGateway)
+		writeError(w, http.StatusBadGateway, "oidc_invalid_claims")
 		return
 	}
 
@@ -227,13 +227,13 @@ func (h *OIDCHandler) callback(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.oidc.IssueToken(user.ID)
 	if err != nil {
-		http.Error(w, "failed to issue token", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "issue_token_failed")
 		return
 	}
 
 	handoffCode, err := h.handoff.Put(token)
 	if err != nil {
-		http.Error(w, "failed to complete login", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "complete_login_failed")
 		return
 	}
 
@@ -258,13 +258,13 @@ func (h *OIDCHandler) exchange(w http.ResponseWriter, r *http.Request) {
 		Code string `json:"code"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Code == "" {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
 
 	token, err := h.handoff.Consume(body.Code)
 	if err != nil {
-		http.Error(w, "invalid or expired code", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_or_expired_code")
 		return
 	}
 

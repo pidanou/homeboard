@@ -2,12 +2,22 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/pidanou/homeboard/internal/model"
 	"github.com/pidanou/homeboard/internal/repository"
+)
+
+var (
+	ErrHouseholdAdminRequired = errors.New("only admins can perform this action")
+	ErrTargetNotMember        = errors.New("target user is not a member of this household")
+	ErrInvalidRole            = errors.New("invalid role")
+	ErrCannotChangeOwnRole    = errors.New("cannot change your own role")
+	ErrCannotDemoteLastAdmin  = errors.New("cannot demote the last admin")
+	ErrCannotRemoveSelf       = errors.New("cannot remove yourself")
 )
 
 type HouseholdService struct {
@@ -73,7 +83,7 @@ func (s *HouseholdService) GetMembers(ctx context.Context, familyID string) ([]*
 func (s *HouseholdService) CreateVirtualMember(ctx context.Context, familyID, name, callerID string) (*model.VirtualMember, error) {
 	role, err := s.families.GetMemberRole(ctx, callerID, familyID)
 	if err != nil || role != "admin" {
-		return nil, fmt.Errorf("only admins can create virtual members")
+		return nil, ErrHouseholdAdminRequired
 	}
 	m := &model.VirtualMember{
 		ID:        uuid.NewString(),
@@ -90,7 +100,7 @@ func (s *HouseholdService) CreateVirtualMember(ctx context.Context, familyID, na
 func (s *HouseholdService) DeleteVirtualMember(ctx context.Context, id, familyID, callerID string) error {
 	role, err := s.families.GetMemberRole(ctx, callerID, familyID)
 	if err != nil || role != "admin" {
-		return fmt.Errorf("only admins can remove virtual members")
+		return ErrHouseholdAdminRequired
 	}
 	return s.families.DeleteVirtualMember(ctx, id, familyID)
 }
@@ -99,8 +109,20 @@ func (s *HouseholdService) GetUnlinkedVirtualMembers(ctx context.Context, family
 	return s.families.GetUnlinkedVirtualMembers(ctx, familyID)
 }
 
-func (s *HouseholdService) LinkVirtualMember(ctx context.Context, virtualID, familyID, userID string) error {
-	return s.families.LinkVirtualMember(ctx, virtualID, familyID, userID)
+// LinkVirtualMember links a virtual member to a real account. Linking to
+// another user (not the caller) requires the caller to be an admin, and the
+// target must already be a real member of the household.
+func (s *HouseholdService) LinkVirtualMember(ctx context.Context, virtualID, familyID, targetUserID, callerID string) error {
+	if targetUserID != callerID {
+		callerRole, err := s.families.GetMemberRole(ctx, callerID, familyID)
+		if err != nil || callerRole != "admin" {
+			return ErrHouseholdAdminRequired
+		}
+		if _, err := s.families.GetMemberRole(ctx, targetUserID, familyID); err != nil {
+			return ErrTargetNotMember
+		}
+	}
+	return s.families.LinkVirtualMember(ctx, virtualID, familyID, targetUserID)
 }
 
 func (s *HouseholdService) GetMemberRole(ctx context.Context, userID, familyID string) (string, error) {
@@ -109,14 +131,14 @@ func (s *HouseholdService) GetMemberRole(ctx context.Context, userID, familyID s
 
 func (s *HouseholdService) UpdateMemberRole(ctx context.Context, targetID, familyID, role, callerID string) error {
 	if role != "admin" && role != "member" {
-		return fmt.Errorf("invalid role")
+		return ErrInvalidRole
 	}
 	callerRole, err := s.families.GetMemberRole(ctx, callerID, familyID)
 	if err != nil || callerRole != "admin" {
-		return fmt.Errorf("only admins can change roles")
+		return ErrHouseholdAdminRequired
 	}
 	if callerID == targetID {
-		return fmt.Errorf("cannot change your own role")
+		return ErrCannotChangeOwnRole
 	}
 	if role == "member" {
 		count, err := s.families.CountAdmins(ctx, familyID)
@@ -124,7 +146,7 @@ func (s *HouseholdService) UpdateMemberRole(ctx context.Context, targetID, famil
 			return err
 		}
 		if count <= 1 {
-			return fmt.Errorf("cannot demote the last admin")
+			return ErrCannotDemoteLastAdmin
 		}
 	}
 	return s.families.UpdateMemberRole(ctx, targetID, familyID, role)
@@ -132,11 +154,11 @@ func (s *HouseholdService) UpdateMemberRole(ctx context.Context, targetID, famil
 
 func (s *HouseholdService) RemoveMember(ctx context.Context, userID, familyID, callerID string) error {
 	if userID == callerID {
-		return fmt.Errorf("cannot remove yourself")
+		return ErrCannotRemoveSelf
 	}
 	callerRole, err := s.families.GetMemberRole(ctx, callerID, familyID)
 	if err != nil || callerRole != "admin" {
-		return fmt.Errorf("only admins can remove members")
+		return ErrHouseholdAdminRequired
 	}
 	return s.families.RemoveMember(ctx, userID, familyID)
 }
@@ -144,7 +166,7 @@ func (s *HouseholdService) RemoveMember(ctx context.Context, userID, familyID, c
 func (s *HouseholdService) UpdateName(ctx context.Context, familyID, name, callerID string) error {
 	role, err := s.families.GetMemberRole(ctx, callerID, familyID)
 	if err != nil || role != "admin" {
-		return fmt.Errorf("only admins can rename the household")
+		return ErrHouseholdAdminRequired
 	}
 	return s.families.UpdateName(ctx, familyID, name)
 }
@@ -156,7 +178,7 @@ func (s *HouseholdService) Exists(ctx context.Context) (bool, error) {
 func (s *HouseholdService) SetPhoto(ctx context.Context, familyID, callerID string, url *string) error {
 	role, err := s.families.GetMemberRole(ctx, callerID, familyID)
 	if err != nil || role != "admin" {
-		return fmt.Errorf("only admins can change the household photo")
+		return ErrHouseholdAdminRequired
 	}
 	return s.families.SetHouseholdPhoto(ctx, familyID, url)
 }
@@ -164,7 +186,7 @@ func (s *HouseholdService) SetPhoto(ctx context.Context, familyID, callerID stri
 func (s *HouseholdService) SetPhotoOriginal(ctx context.Context, familyID, callerID string, url *string) error {
 	role, err := s.families.GetMemberRole(ctx, callerID, familyID)
 	if err != nil || role != "admin" {
-		return fmt.Errorf("only admins can change the household photo")
+		return ErrHouseholdAdminRequired
 	}
 	return s.families.SetHouseholdPhotoOriginal(ctx, familyID, url)
 }
@@ -172,7 +194,7 @@ func (s *HouseholdService) SetPhotoOriginal(ctx context.Context, familyID, calle
 func (s *HouseholdService) SetWallpaper(ctx context.Context, familyID, callerID string, url *string) error {
 	role, err := s.families.GetMemberRole(ctx, callerID, familyID)
 	if err != nil || role != "admin" {
-		return fmt.Errorf("only admins can change the wallpaper")
+		return ErrHouseholdAdminRequired
 	}
 	return s.families.SetHouseholdWallpaper(ctx, familyID, url)
 }
@@ -180,7 +202,7 @@ func (s *HouseholdService) SetWallpaper(ctx context.Context, familyID, callerID 
 func (s *HouseholdService) SetWallpaperOriginal(ctx context.Context, familyID, callerID string, url *string) error {
 	role, err := s.families.GetMemberRole(ctx, callerID, familyID)
 	if err != nil || role != "admin" {
-		return fmt.Errorf("only admins can change the wallpaper")
+		return ErrHouseholdAdminRequired
 	}
 	return s.families.SetHouseholdWallpaperOriginal(ctx, familyID, url)
 }

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -21,6 +20,8 @@ func (h *AuthHandler) Routes() http.Handler {
 	r := chi.NewRouter()
 	r.Post("/register", h.register)
 	r.Post("/login", h.login)
+	r.Post("/forgot-password", h.forgotPassword)
+	r.Post("/reset-password", h.resetPassword)
 	return r
 }
 
@@ -31,21 +32,17 @@ func (h *AuthHandler) register(w http.ResponseWriter, r *http.Request) {
 		Name     string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
 
 	user, err := h.auth.Register(r.Context(), body.Email, body.Password, body.Name)
 	if err != nil {
-		if errors.Is(err, service.ErrRegistrationClosed) {
-			http.Error(w, "registration is closed", http.StatusForbidden)
-			return
+		status := http.StatusInternalServerError
+		if err == service.ErrRegistrationClosed || err == service.ErrPasswordLoginDisabled {
+			status = http.StatusForbidden
 		}
-		if errors.Is(err, service.ErrPasswordLoginDisabled) {
-			http.Error(w, "password login is disabled", http.StatusForbidden)
-			return
-		}
-		http.Error(w, "registration failed", http.StatusInternalServerError)
+		writeError(w, status, codeFor(err, "registration_failed"))
 		return
 	}
 
@@ -60,20 +57,67 @@ func (h *AuthHandler) login(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
 
 	token, err := h.auth.Login(r.Context(), body.Email, body.Password)
 	if err != nil {
-		if errors.Is(err, service.ErrPasswordLoginDisabled) {
-			http.Error(w, "password login is disabled", http.StatusForbidden)
+		if err == service.ErrPasswordLoginDisabled {
+			writeError(w, http.StatusForbidden, "password_login_disabled")
 			return
 		}
-		http.Error(w, "invalid credentials", http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "invalid_credentials")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"token": token})
+}
+
+func (h *AuthHandler) forgotPassword(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request")
+		return
+	}
+
+	if err := h.auth.RequestPasswordReset(r.Context(), body.Email); err != nil {
+		status := http.StatusInternalServerError
+		if err == service.ErrPasswordLoginDisabled {
+			status = http.StatusForbidden
+		}
+		writeError(w, status, codeFor(err, "process_request_failed"))
+		return
+	}
+
+	// Always a generic success — never reveal whether the email exists.
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "if that email exists, a reset link was sent"})
+}
+
+func (h *AuthHandler) resetPassword(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Token    string `json:"token"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request")
+		return
+	}
+
+	if err := h.auth.ResetPassword(r.Context(), body.Token, body.Password); err != nil {
+		status := http.StatusInternalServerError
+		if err == service.ErrPasswordLoginDisabled {
+			status = http.StatusForbidden
+		} else if err == service.ErrInvalidResetToken {
+			status = http.StatusBadRequest
+		}
+		writeError(w, status, codeFor(err, "reset_password_failed"))
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

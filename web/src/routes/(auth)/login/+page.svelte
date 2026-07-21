@@ -56,6 +56,9 @@
 		<Button type="submit" disabled={loading} class="w-full">
 			{loading ? m.auth_signing_in() : m.auth_sign_in()}
 		</Button>
+		<p class="text-sm text-center">
+			<a href="{base}/forgot-password" class="text-primary underline-offset-4 hover:underline">{m.auth_forgot_password_link()}</a>
+		</p>
 		<p class="text-sm text-center text-muted-foreground">
 			{m.auth_no_account()} <a href="{base}/register" class="text-primary underline-offset-4 hover:underline">{m.auth_register_link()}</a>
 		</p>

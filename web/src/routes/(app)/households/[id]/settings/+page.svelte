@@ -4,7 +4,8 @@
     import { api, getBaseUrl, getBaseOrigin } from "$lib/api/client";
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
-    import { X, Pencil, Clock, Camera, Image } from "lucide-svelte";
+    import { X, Pencil, Clock, Camera, Image, Link2 } from "lucide-svelte";
+    import * as Select from "$lib/components/ui/select";
     import UserAvatar from "$lib/components/UserAvatar.svelte";
     import AvatarCrop from "$lib/components/AvatarCrop.svelte";
     import WallpaperCrop from "$lib/components/WallpaperCrop.svelte";
@@ -14,7 +15,7 @@
     import { households, updateHouseholdName, updateHouseholdPhoto, updateHouseholdWallpaper } from "$lib/stores/households";
     import * as msg from "$lib/paraglide/messages.js";
 
-    type Invite = { token: string; expires_at: string };
+    type Invite = { token: string; expires_at: string; email?: string | null };
     type Member = {
         user_id: string;
         name: string;
@@ -65,9 +66,11 @@
     );
 
     let invite = $state<Invite | null>(null);
+    let inviteEmail = $state("");
     let members = $state<Member[]>([]);
     let categories = $state<AppCategory[]>([]);
     let copied = $state<string | null>(null);
+    let resent = $state(false);
 
     // name editing
     let editingName = $state(false);
@@ -214,6 +217,8 @@
     let newCategoryColor = $state<CategoryColor>("blue");
     let addingVirtual = $state(false);
     let newVirtualName = $state("");
+    let linkingVirtualID = $state<string | null>(null);
+    let linkTargetUserID = $state("");
     let editingCatID = $state<string | null>(null);
     let editingCatName = $state("");
     let editingCatColor = $state<CategoryColor>("blue");
@@ -318,6 +323,19 @@
         } catch {}
     }
 
+    async function linkVirtualMember(virtualID: string, targetUserID: string) {
+        if (!targetUserID) return;
+        try {
+            await api.post(
+                `/api/v1/households/${familyID}/members/virtual/${virtualID}/link`,
+                { userId: targetUserID },
+            );
+            members = members.filter((m) => m.user_id !== virtualID);
+            linkingVirtualID = null;
+            linkTargetUserID = "";
+        } catch {}
+    }
+
     async function updateRole(userID: string, role: "admin" | "member") {
         try {
             await api.put(
@@ -372,8 +390,9 @@
         try {
             invite = await api.post<Invite>(
                 `/api/v1/households/${familyID}/invites`,
-                {},
+                { email: inviteEmail.trim() || undefined },
             );
+            inviteEmail = "";
         } catch {}
     }
 
@@ -384,6 +403,18 @@
                 `/api/v1/households/${familyID}/invites/${invite.token}`,
             );
             invite = null;
+        } catch {}
+    }
+
+    async function resendInvite() {
+        try {
+            if (!invite) return;
+            await api.post(
+                `/api/v1/households/${familyID}/invites/${invite.token}/resend`,
+                {},
+            );
+            resent = true;
+            setTimeout(() => (resent = false), 2000);
         } catch {}
     }
 
@@ -607,6 +638,7 @@
                     class="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border"
                 >
                     {#each members as member (member.user_id)}
+                        <div>
                         <div class="flex items-center gap-3 px-4 py-3">
                             <UserAvatar
                                 name={member.name}
@@ -632,6 +664,17 @@
                                         {msg.settings_profile_badge()}
                                     </span>
                                     {#if isAdmin}
+                                        <button
+                                            onclick={() =>
+                                                (linkingVirtualID =
+                                                    linkingVirtualID === member.user_id
+                                                        ? null
+                                                        : member.user_id)}
+                                            class="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                            aria-label={msg.settings_link_profile_aria()}
+                                        >
+                                            <Link2 class="w-4 h-4" />
+                                        </button>
                                         <button
                                             onclick={() =>
                                                 deleteVirtualMember(member.user_id)}
@@ -682,6 +725,42 @@
                                     {/if}
                                 </div>
                             {/if}
+                        </div>
+                        {#if isAdmin && linkingVirtualID === member.user_id}
+                            <div class="flex items-center gap-2 px-4 py-3 bg-muted/30 border-t border-border">
+                                <Select.Root type="single" bind:value={linkTargetUserID}>
+                                    <Select.Trigger class="w-full"
+                                        >{members.find(
+                                            (m) => m.user_id === linkTargetUserID,
+                                        )?.name ?? msg.settings_link_profile_placeholder()}</Select.Trigger
+                                    >
+                                    <Select.Content>
+                                        {#each members.filter((m) => !m.virtual) as real (real.user_id)}
+                                            <Select.Item value={real.user_id}
+                                                >{real.name}</Select.Item
+                                            >
+                                        {/each}
+                                    </Select.Content>
+                                </Select.Root>
+                                <Button
+                                    size="sm"
+                                    disabled={!linkTargetUserID}
+                                    onclick={() =>
+                                        linkVirtualMember(
+                                            member.user_id,
+                                            linkTargetUserID,
+                                        )}>{msg.settings_link_profile_confirm()}</Button
+                                >
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onclick={() => {
+                                        linkingVirtualID = null;
+                                        linkTargetUserID = "";
+                                    }}>{msg.dialog_cancel()}</Button
+                                >
+                            </div>
+                        {/if}
                         </div>
                     {/each}
                 </div>
@@ -817,18 +896,27 @@
         <!-- Invite link -->
         {#if isAdmin}
             <section class="py-4 flex flex-col gap-4">
-                <div class="flex items-center justify-between gap-3">
-                    <h2
-                        class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                    >
-                        {msg.settings_invite_link()}
-                    </h2>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onclick={generateInvite}
-                    >
-                        {invite ? msg.settings_regenerate() : msg.settings_generate_link()}
+                <h2
+                    class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                >
+                    {msg.settings_invite_link()}
+                </h2>
+
+                <div class="flex gap-2">
+                    <Input
+                        type="email"
+                        placeholder={msg.settings_invite_email_placeholder()}
+                        bind:value={inviteEmail}
+                        class="flex-1"
+                    />
+                    <Button size="sm" variant="outline" onclick={generateInvite}>
+                        {#if invite}
+                            {msg.settings_regenerate()}
+                        {:else if inviteEmail.trim()}
+                            {msg.settings_send_invite()}
+                        {:else}
+                            {msg.settings_generate_link()}
+                        {/if}
                     </Button>
                 </div>
 
@@ -860,6 +948,13 @@
                                     : msg.settings_days_left({ days: daysLeft })}
                             </span>
                         </div>
+                        {#if invite.email}
+                            <p
+                                class="px-4 pt-3 text-xs text-muted-foreground font-sans"
+                            >
+                                {msg.settings_invite_sent_to({ email: invite.email })}
+                            </p>
+                        {/if}
                         <div class="flex gap-2 px-4 py-3">
                             <Button
                                 variant="outline"
@@ -871,6 +966,16 @@
                                     ? msg.settings_copied()
                                     : msg.settings_copy_link()}
                             </Button>
+                            {#if invite.email}
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onclick={resendInvite}
+                                    >{resent
+                                        ? msg.settings_resent()
+                                        : msg.settings_resend()}</Button
+                                >
+                            {/if}
                             <Button
                                 variant="destructive"
                                 size="sm"

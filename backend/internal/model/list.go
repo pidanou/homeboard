@@ -18,4 +18,5 @@ type ListItem struct {
 	CreatedAt   time.Time  `json:"created_at"`
 	CheckedAt   *time.Time `json:"checked_at"`
 	ManualOrder *int       `json:"manual_order,omitempty"`
+	Category    *string    `json:"category,omitempty"`
 }

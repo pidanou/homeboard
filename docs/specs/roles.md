@@ -24,6 +24,7 @@ Virtual members have no role — they cannot act.
 | **Manage categories** (create / edit / delete) | ✓ | ✗ |
 | **Create virtual members** | ✓ | ✗ |
 | **Remove virtual members** | ✓ | ✗ |
+| **Link a virtual member to another member's account** | ✓ | ✗ (can only self-link, e.g. from the invite-accept prompt) |
 | **Kick real members** | ✓ | ✗ |
 | **Generate / revoke invite links** | ✓ | ✗ |
 | **Change member roles** | ✓ | ✗ |
@@ -49,8 +50,10 @@ Virtual members have no role — they cannot act.
 | `DELETE` | `/api/v1/families/{familyID}/members/{memberID}` | admin | Kick a real member |
 | `POST` | `/api/v1/families/{familyID}/members/virtual` | admin | Create virtual member |
 | `DELETE` | `/api/v1/families/{familyID}/members/virtual/{memberID}` | admin | Remove virtual member |
-| `POST` | `/api/v1/families/{familyID}/invites` | admin | Generate invite link |
+| `POST` | `/api/v1/families/{familyID}/members/virtual/{memberID}/link` | any member | Link a virtual member to a real account. Body: `{"userId": "..."}` (optional). Omitted or set to the caller's own ID → self-link, no admin check. Set to another member's ID → requires admin, and that ID must already be a real member of the household |
+| `POST` | `/api/v1/families/{familyID}/invites` | admin | Generate invite link. Optional body `{"email": "..."}` also emails the link |
 | `DELETE` | `/api/v1/families/{familyID}/invites/{token}` | admin | Revoke invite link |
+| `POST` | `/api/v1/families/{familyID}/invites/{token}/resend` | admin | Re-send the invite email; 400 if the invite has no stored email, is used, or is expired |
 | `POST` | `/api/v1/families/{familyID}/categories` | admin | Create category |
 | `PUT` | `/api/v1/families/{familyID}/categories/{categoryID}` | admin | Edit category |
 | `DELETE` | `/api/v1/families/{familyID}/categories/{categoryID}` | admin | Delete category |
@@ -85,5 +88,7 @@ Virtual members have no role — they cannot act.
 | Role badge in settings UI | ✅ implemented |
 | Role toggle button (admin only) in settings UI | ✅ implemented |
 | Conditional kick button (admin only) in settings UI | ✅ implemented |
+| Admin manual link of a virtual member to another member's real account | ✅ implemented |
 | New members join as `member` | ✅ implemented (invite accept sets role = "member") |
+| Email invite link + resend | ✅ implemented (optional `email` on create sends the invite; `/resend` re-sends it) |
 | Leave family flow | ☐ not yet implemented |

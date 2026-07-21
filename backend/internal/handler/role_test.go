@@ -47,6 +47,7 @@ func newTestEnv(t *testing.T) *testEnv {
 
 	householdRepo := pgRepo.NewHouseholdRepository(pool)
 	inviteRepo := pgRepo.NewInviteRepository(pool)
+	passwordResetRepo := pgRepo.NewPasswordResetRepository(pool)
 	labelRepo := pgRepo.NewCategoryRepository(pool)
 	userRepo := pgRepo.NewUserRepository(pool)
 	eventRepo := pgRepo.NewEventRepository(pool)
@@ -54,9 +55,9 @@ func newTestEnv(t *testing.T) *testEnv {
 	calendarSubscriptionRepo := pgRepo.NewCalendarSubscriptionRepository(pool)
 
 	householdSvc := service.NewHouseholdService(householdRepo)
-	inviteSvc := service.NewInviteService(inviteRepo, householdRepo)
+	inviteSvc := service.NewInviteService(inviteRepo, householdRepo, nil, "http://localhost")
 	labelSvc := service.NewCategoryService(labelRepo)
-	authSvc := service.NewAuthService(userRepo, testJWTSecret, nil)
+	authSvc := service.NewAuthService(userRepo, passwordResetRepo, testJWTSecret, nil, "http://localhost")
 	eventSvc := service.NewEventService(eventRepo)
 	calendarExportSvc := service.NewCalendarExportService(calendarExportTokenRepo, eventRepo, householdRepo)
 	calendarImportSvc := service.NewCalendarImportService(eventSvc)
@@ -74,7 +75,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	r.Mount("/calendar", calendarExportH.PublicRoutes())
 	r.Group(func(r chi.Router) {
 		r.Use(handler.AuthMiddleware(testJWTSecret))
-		r.Mount("/families", householdH.Routes())
+		r.Mount("/households", householdH.Routes())
 		r.Route("/households/{familyID}/invites", func(r chi.Router) {
 			r.Mount("/", inviteH.Routes())
 		})
@@ -262,6 +263,55 @@ func TestCreateVirtualMember(t *testing.T) {
 		t.Cleanup(func() {
 			e.pool.Exec(context.Background(), `DELETE FROM virtual_members WHERE id = $1`, vm.ID)
 		})
+	})
+}
+
+func TestLinkVirtualMember(t *testing.T) {
+	e := newTestEnv(t)
+	familyID, adminID, memberID := e.seedFamily(t)
+	ctx := context.Background()
+
+	seedVirtual := func() string {
+		vmID := uuid.NewString()
+		e.pool.Exec(ctx, `INSERT INTO virtual_members (id, family_id, name, created_at) VALUES ($1, $2, 'Kid', $3)`,
+			vmID, familyID, time.Now().UTC())
+		t.Cleanup(func() { e.pool.Exec(ctx, `DELETE FROM virtual_members WHERE id = $1`, vmID) })
+		return vmID
+	}
+
+	t.Run("member can self-link", func(t *testing.T) {
+		vmID := seedVirtual()
+		resp := e.do("POST", fmt.Sprintf("/households/%s/members/virtual/%s/link", familyID, vmID), e.token(memberID), map[string]string{})
+		if resp.StatusCode != http.StatusNoContent {
+			t.Errorf("want 204, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("member cannot link another account", func(t *testing.T) {
+		vmID := seedVirtual()
+		resp := e.do("POST", fmt.Sprintf("/households/%s/members/virtual/%s/link", familyID, vmID), e.token(memberID),
+			map[string]string{"userId": adminID})
+		if resp.StatusCode != http.StatusForbidden {
+			t.Errorf("want 403, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("admin can link another account", func(t *testing.T) {
+		vmID := seedVirtual()
+		resp := e.do("POST", fmt.Sprintf("/households/%s/members/virtual/%s/link", familyID, vmID), e.token(adminID),
+			map[string]string{"userId": memberID})
+		if resp.StatusCode != http.StatusNoContent {
+			t.Errorf("want 204, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("admin cannot link to a non-member", func(t *testing.T) {
+		vmID := seedVirtual()
+		resp := e.do("POST", fmt.Sprintf("/households/%s/members/virtual/%s/link", familyID, vmID), e.token(adminID),
+			map[string]string{"userId": uuid.NewString()})
+		if resp.StatusCode != http.StatusForbidden {
+			t.Errorf("want 403, got %d", resp.StatusCode)
+		}
 	})
 }
 

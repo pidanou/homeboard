@@ -70,11 +70,13 @@ func main() {
 	oidcIdentityRepo := postgres.NewOIDCIdentityRepository(pool)
 	householdRepo := postgres.NewHouseholdRepository(pool)
 	inviteRepo := postgres.NewInviteRepository(pool)
+	passwordResetRepo := postgres.NewPasswordResetRepository(pool)
 	taskRepo := postgres.NewTaskRepository(pool)
 	eventRepo := postgres.NewEventRepository(pool)
 	labelRepo := postgres.NewCategoryRepository(pool)
 	listRepo := postgres.NewListRepository(pool)
 	pushRepo := postgres.NewPushRepository(pool)
+	reminderRepo := postgres.NewReminderRepository(pool)
 	calendarExportTokenRepo := postgres.NewCalendarExportTokenRepository(pool)
 	calendarSubscriptionRepo := postgres.NewCalendarSubscriptionRepository(pool)
 
@@ -88,7 +90,8 @@ func main() {
 		os.Getenv("SMTP_TLS") == "true",
 	)
 	authConfig := config.LoadAuth()
-	authService := service.NewAuthService(userRepo, authConfig.JWTSecret, mailer)
+	appBaseURL := os.Getenv("APP_BASE_URL")
+	authService := service.NewAuthService(userRepo, passwordResetRepo, authConfig.JWTSecret, mailer, appBaseURL)
 	authService.SetAllowPasswordLogin(authConfig.AllowPasswordLogin)
 
 	var oidcHandler *handler.OIDCHandler
@@ -99,13 +102,13 @@ func main() {
 			slog.Warn("oidc discovery failed, starting with OIDC disabled", "issuer", authConfig.OIDC.IssuerURL, "err", err)
 		} else {
 			handoffStore := service.NewOIDCHandoffStore()
-			oidcHandler = handler.NewOIDCHandler(oidcService, handoffStore, authConfig.JWTSecret, os.Getenv("APP_BASE_URL"), authConfig.OIDC.RedirectURL)
+			oidcHandler = handler.NewOIDCHandler(oidcService, handoffStore, authConfig.JWTSecret, appBaseURL, authConfig.OIDC.RedirectURL)
 			oidcProviderName = authConfig.OIDC.ProviderName
 		}
 	}
 
 	householdService := service.NewHouseholdService(householdRepo)
-	inviteService := service.NewInviteService(inviteRepo, householdRepo)
+	inviteService := service.NewInviteService(inviteRepo, householdRepo, mailer, appBaseURL)
 	taskService := service.NewTaskService(taskRepo)
 	eventService := service.NewEventService(eventRepo)
 	labelService := service.NewCategoryService(labelRepo)
@@ -114,6 +117,7 @@ func main() {
 	calendarExportService := service.NewCalendarExportService(calendarExportTokenRepo, eventRepo, householdRepo)
 	calendarImportService := service.NewCalendarImportService(eventService)
 	calendarSyncService := service.NewCalendarSyncService(calendarSubscriptionRepo, eventRepo)
+	reminderService := service.NewReminderService(reminderRepo, taskRepo, eventRepo, pushService)
 
 	// SSE hub
 	hub := handler.NewHub()
@@ -147,7 +151,7 @@ func main() {
 			}
 		}
 	}
-	if origin := os.Getenv("APP_BASE_URL"); origin != "" && allowedOrigins[0] != "*" {
+	if origin := appBaseURL; origin != "" && allowedOrigins[0] != "*" {
 		allowedOrigins = append(allowedOrigins, origin)
 	}
 
@@ -243,6 +247,14 @@ func main() {
 		defer ticker.Stop()
 		for range ticker.C {
 			calendarSyncService.SyncAll(context.Background())
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			reminderService.CheckAndSend(context.Background())
 		}
 	}()
 

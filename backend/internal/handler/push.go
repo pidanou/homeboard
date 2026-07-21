@@ -39,12 +39,12 @@ func (h *PushHandler) subscribe(w http.ResponseWriter, r *http.Request) {
 		P256DH   string `json:"p256dh"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Endpoint == "" {
-		http.Error(w, "invalid subscription", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_push_subscription")
 		return
 	}
 
 	if err := h.push.Subscribe(r.Context(), userID, body.Endpoint, body.Auth, body.P256DH); err != nil {
-		http.Error(w, "failed to save subscription", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "save_subscription_failed")
 		return
 	}
 
@@ -58,12 +58,12 @@ func (h *PushHandler) unsubscribe(w http.ResponseWriter, r *http.Request) {
 		Endpoint string `json:"endpoint"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Endpoint == "" {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
 
 	if err := h.push.Unsubscribe(r.Context(), userID, body.Endpoint); err != nil {
-		http.Error(w, "failed to remove subscription", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "remove_subscription_failed")
 		return
 	}
 

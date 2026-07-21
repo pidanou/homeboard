@@ -81,7 +81,7 @@ Kids and non-app family members.
 - ✅ Settings > Members: "+ Without account" button + inline name form; virtual members shown with person-off icon + "No account" label + delete button
 - ✅ Invite acceptance: `POST /invites/{token}/accept` now returns `{ family_id, unlinked_virtual_members }` — frontend shows "Are you one of these?" prompt before redirect
 - ✅ Link action: migrates task assignments + event attendees from virtual ID to real user ID in a single transaction
-- ⬜ Settings > Members: manual link/unlink for admins (admin can link a virtual member to an existing real account) — deferred
+- ✅ Settings > Members: manual link for admins — link icon on a virtual profile row lets an admin link it to another member's existing real account (`POST .../members/virtual/{memberID}/link` takes an optional `userId`; self-link needs no admin check, linking to someone else does); reverse "unlink" deferred, see `docs/specs/app.md`
 
 ---
 
@@ -110,12 +110,12 @@ Secondary calendar views; lower priority than M8.
 
 ---
 
-## M10 — Auth improvements 🚧
+## M10 — Auth improvements ✅
 OAuth and invite polish.
 
 - ✅ Generic OIDC login (single configurable issuer — see `docs/specs/auth.md`), replaces the originally-planned hardcoded Google/Apple OAuth since this is a self-hosted app where operators run their own IdP
-- ⬜ Forgot password / reset flow
-- ⬜ Resend invite email
+- ✅ Forgot password / reset flow (see `docs/specs/auth.md`)
+- ✅ Resend invite email (see `docs/specs/roles.md`)
 
 ---
 
@@ -124,33 +124,7 @@ OAuth and invite polish.
 - ✅ Auto-reload data on reconnect (page reload when `online` event fires)
 - ✅ Web Push notifications via VAPID — new event/task fires push to all family members; toggle in household settings; auto-removes expired subscriptions; works on Chrome, Firefox, Edge, Android; iOS 16.4+ when added to home screen
 - ⬜ App shell cached via service worker (install prompt) — deferred; Capacitor covers native distribution
-- ⬜ iOS home screen icon + splash screen
-
----
-
-## M11b — Capacitor native wrapper ⬜
-Wrap the existing SvelteKit app in a Capacitor native shell for iOS and Android distribution. **No rewrite** — same codebase, native WebView + plugin access.
-
-**Why Capacitor over Flutter/React Native:**
-- Zero code rewrite — SvelteKit stays as-is
-- Three targets from one codebase: self-hosted PWA + iOS App Store + Google Play
-- Access to native plugins (push, haptics, safe area, status bar, camera)
-- Capacitor detects native context via `Capacitor.isNativePlatform()` — conditional behavior where needed
-
-**Steps when ready:**
-1. `npm install @capacitor/core @capacitor/cli && npx cap init`
-2. `npx cap add ios && npx cap add android`
-3. SvelteKit build → `npx cap sync` copies output into native projects
-4. Add `@capacitor/push-notifications` — use instead of Web Push when native
-5. Add `@capacitor/status-bar`, `@capacitor/splash-screen`, `@capacitor/haptics`
-6. CI: add Xcode + Android Studio build steps
-
-**Distribution targets after this milestone:**
-- Self-hosted PWA: `docker compose up` (unchanged)
-- iOS: Capacitor → Xcode → App Store
-- Android: Capacitor → Android Studio → Play Store
-
-> **If traction grows beyond Capacitor:** Flutter (one codebase, true native UI, good if team stays JS/Dart) or fully native Swift/Kotlin (maximum platform integration — widgets, Watch, CarPlay). The Go backend requires zero changes for either path — it's just another REST client.
+- ✅ iOS home screen icon + splash screen — `apple-touch-icon.png`/`icon-192`/`icon-512` re-exported full-bleed (no transparency, which iOS/Android render as black); `<link rel="manifest">` was missing from `app.html` entirely, added — Safari 15.4+ auto-generates the splash screen from the manifest's `background_color` + icon once it's linked, no per-device `apple-touch-startup-image` set needed
 
 ---
 
@@ -246,6 +220,59 @@ One focused sweep to reconcile the full UI against `docs/specs/design.md`.
 
 ---
 
+## M21 — Time-based reminders ✅
+
+- ✅ Migration 000035: `reminder_minutes_before` on `users` (nullable, one of 15/30/60); `sent_reminders` idempotency table
+- ✅ Backend: `ReminderService` — 1-minute ticker goroutine checks due tasks (assignee only) and events (attendees, else household) against each user's offset window; `sent_reminders` prevents double-send, including per-occurrence for recurring events
+- ✅ `PushService.SendToUser` + payload `url` field for deep-linking (task → board, event → calendar); service worker opens the link on notification click
+- ✅ Profile page: "Remind me" toggle group (Off/15/30/60 min), disabled until push notifications are enabled
+- ✅ `PATCH /api/v1/profile/reminder`
+- ✅ Integration tests (`reminder_test.go`): fires once within window, unassigned tasks never fire, event attendee filtering
+
+---
+
+## M22 — List item categories (aisle grouping) ✅
+
+- ✅ Migration 000038: nullable `category TEXT` on `list_items`
+- ✅ Backend: `category` threaded through `ListItem` model, `UpdateItem` repository/service/handler (list_category_test.go covers set/clear)
+- ✅ Frontend: tag icon on each unchecked item opens inline free-text category edit (Enter/blur confirm, Escape cancel, empty clears)
+- ✅ "To buy" groups by category alphabetically once any item has one set, uncategorized items grouped last as "Other"; stays flat (no headers) when no items are categorized
+- ✅ "In cart" stays flat — no grouping while items are checked off
+- ⬜ Category presets/suggestions — deferred, see `docs/specs/lists.md`
+
+---
+
+## M23 — Native wrapper (Capacitor, revisit if not) ⬜
+Wrap the existing SvelteKit app in a native shell for iOS and Android distribution. Placed last deliberately — revisit the approach based on how the project has evolved by the time this is picked up, not decided today.
+
+**Default plan: Capacitor.** No rewrite — same codebase, native WebView + plugin access.
+- Zero code rewrite — SvelteKit stays as-is
+- Three targets from one codebase: self-hosted PWA + iOS App Store + Google Play
+- Access to native plugins (push, haptics, safe area, status bar, camera)
+- Capacitor detects native context via `Capacitor.isNativePlatform()` — conditional behavior where needed
+
+**Steps when ready (if Capacitor still fits):**
+1. `npm install @capacitor/core @capacitor/cli && npx cap init`
+2. `npx cap add ios && npx cap add android`
+3. SvelteKit build → `npx cap sync` copies output into native projects
+4. Add `@capacitor/push-notifications` — use instead of Web Push when native
+5. Add `@capacitor/status-bar`, `@capacitor/splash-screen`, `@capacitor/haptics`
+6. CI: add Xcode + Android Studio build steps
+
+**Re-evaluate before starting — pick Flutter or native Swift/Kotlin instead if:**
+- The app has grown a lot of native-feeling interaction (gestures, animations) that a WebView renders poorly
+- Deep native integration becomes a priority — home screen widgets, Apple Watch/Wear OS, CarPlay/Android Auto, background processing beyond what Capacitor plugins cover
+- Team capacity/interest shifts toward maintaining a dedicated native codebase
+
+The Go backend requires zero changes for any of these paths — it's just another REST client either way.
+
+**Distribution targets after this milestone (any path):**
+- Self-hosted PWA: `docker compose up` (unchanged)
+- iOS: App Store
+- Android: Google Play
+
+---
+
 ## Deferred / no milestone yet
 
 These are captured in spec out-of-scope tables. Promote to a milestone when prioritised.
@@ -259,11 +286,11 @@ These are captured in spec out-of-scope tables. Promote to a milestone when prio
 | ~~Inline list rename~~ | ✅ done |
 | ~~External calendar sync (ICS export/import/one-way subscription)~~ | ✅ M20 |
 | External calendar sync — CalDAV, Google Calendar OAuth API, two-way sync | `calendar.md` |
-| Push notifications | `calendar.md`, `app.md` |
-| Search / full-text filter | `board.md` |
+| ~~Push notifications (due-soon reminders)~~ | ✅ M21 |
+| ~~Search / full-text filter~~ | ✅ done |
 | Bulk actions (select multiple, bulk delete/assign) | `board.md` |
 | Subtasks | `board.md` |
-| List item categories / aisle grouping | `lists.md` |
+| ~~List item categories / aisle grouping~~ | ✅ M22 |
 | Activity feed / audit log | `app.md` |
 | File attachments | `app.md` |
-| Native mobile app (Flutter) | `app.md` |
+| ~~Native mobile app~~ | 🚧 M23 |

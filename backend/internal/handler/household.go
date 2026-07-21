@@ -51,7 +51,7 @@ func (h *HouseholdHandler) list(w http.ResponseWriter, r *http.Request) {
 
 	families, err := h.families.ListForUser(r.Context(), userID)
 	if err != nil {
-		http.Error(w, "failed to list families", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "list_families_failed")
 		return
 	}
 
@@ -65,11 +65,11 @@ func (h *HouseholdHandler) create(w http.ResponseWriter, r *http.Request) {
 	if os.Getenv("ALLOW_MULTI_HOUSEHOLD") != "true" {
 		exists, err := h.families.Exists(r.Context())
 		if err != nil {
-			http.Error(w, "failed to check households", http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "check_households_failed")
 			return
 		}
 		if exists {
-			http.Error(w, "only one household allowed in single-family mode", http.StatusForbidden)
+			writeError(w, http.StatusForbidden, "single_household_mode")
 			return
 		}
 	}
@@ -78,13 +78,13 @@ func (h *HouseholdHandler) create(w http.ResponseWriter, r *http.Request) {
 		Name string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
 
 	family, err := h.families.Create(r.Context(), body.Name, userID)
 	if err != nil {
-		http.Error(w, "failed to create family", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "create_family_failed")
 		return
 	}
 
@@ -96,13 +96,13 @@ func (h *HouseholdHandler) create(w http.ResponseWriter, r *http.Request) {
 func (h *HouseholdHandler) get(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	if err := requireMember(r, familyID, h.families); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 
 	family, err := h.families.GetByID(r.Context(), familyID)
 	if err != nil {
-		http.Error(w, "family not found", http.StatusNotFound)
+		writeError(w, http.StatusNotFound, "family_not_found")
 		return
 	}
 
@@ -113,13 +113,13 @@ func (h *HouseholdHandler) get(w http.ResponseWriter, r *http.Request) {
 func (h *HouseholdHandler) members(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	if err := requireMember(r, familyID, h.families); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 
 	members, err := h.families.GetMembers(r.Context(), familyID)
 	if err != nil {
-		http.Error(w, "failed to get members", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "get_members_failed")
 		return
 	}
 
@@ -131,19 +131,19 @@ func (h *HouseholdHandler) createVirtual(w http.ResponseWriter, r *http.Request)
 	familyID := chi.URLParam(r, "familyID")
 	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
 	if !ok || callerID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	var body struct {
 		Name string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
-		http.Error(w, "name required", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "name_required")
 		return
 	}
 	m, err := h.families.CreateVirtualMember(r.Context(), familyID, body.Name, callerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -156,11 +156,11 @@ func (h *HouseholdHandler) deleteVirtual(w http.ResponseWriter, r *http.Request)
 	memberID := chi.URLParam(r, "memberID")
 	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
 	if !ok || callerID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	if err := h.families.DeleteVirtualMember(r.Context(), memberID, familyID, callerID); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -171,18 +171,18 @@ func (h *HouseholdHandler) updateRole(w http.ResponseWriter, r *http.Request) {
 	memberID := chi.URLParam(r, "memberID")
 	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
 	if !ok || callerID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	var body struct {
 		Role string `json:"role"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
 	if err := h.families.UpdateMemberRole(r.Context(), memberID, familyID, body.Role, callerID); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, codeFor(err, "invalid_request"))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -191,12 +191,12 @@ func (h *HouseholdHandler) updateRole(w http.ResponseWriter, r *http.Request) {
 func (h *HouseholdHandler) unlinkedVirtual(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	if err := requireMember(r, familyID, h.families); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 	members, err := h.families.GetUnlinkedVirtualMembers(r.Context(), familyID)
 	if err != nil {
-		http.Error(w, "failed to get virtual members", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "get_virtual_members_failed")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -208,11 +208,11 @@ func (h *HouseholdHandler) removeMember(w http.ResponseWriter, r *http.Request) 
 	memberID := chi.URLParam(r, "memberID")
 	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
 	if !ok || callerID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	if err := h.families.RemoveMember(r.Context(), memberID, familyID, callerID); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -222,18 +222,18 @@ func (h *HouseholdHandler) updateName(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
 	if !ok || callerID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	var body struct {
 		Name string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
-		http.Error(w, "name required", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "name_required")
 		return
 	}
 	if err := h.families.UpdateName(r.Context(), familyID, body.Name, callerID); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -242,13 +242,21 @@ func (h *HouseholdHandler) updateName(w http.ResponseWriter, r *http.Request) {
 func (h *HouseholdHandler) linkVirtual(w http.ResponseWriter, r *http.Request) {
 	familyID := chi.URLParam(r, "familyID")
 	memberID := chi.URLParam(r, "memberID")
-	userID, ok := r.Context().Value(ContextKeyUserID).(string)
-	if !ok || userID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
+	if !ok || callerID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	if err := h.families.LinkVirtualMember(r.Context(), memberID, familyID, userID); err != nil {
-		http.Error(w, "failed to link virtual member", http.StatusInternalServerError)
+	var body struct {
+		UserID string `json:"userId"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	targetUserID := body.UserID
+	if targetUserID == "" {
+		targetUserID = callerID
+	}
+	if err := h.families.LinkVirtualMember(r.Context(), memberID, familyID, targetUserID, callerID); err != nil {
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -265,7 +273,7 @@ func (h *HouseholdHandler) serveWallpaper(w http.ResponseWriter, r *http.Request
 func (h *HouseholdHandler) serveHouseholdImage(w http.ResponseWriter, r *http.Request, kind string) {
 	familyID := chi.URLParam(r, "familyID")
 	if err := requireMember(r, familyID, h.families); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
 	family, err := h.families.GetByID(r.Context(), familyID)
@@ -314,19 +322,19 @@ func (h *HouseholdHandler) uploadHouseholdImage(w http.ResponseWriter, r *http.R
 	familyID := chi.URLParam(r, "familyID")
 	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
 	if !ok || callerID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		http.Error(w, "file too large", http.StatusRequestEntityTooLarge)
+		writeError(w, http.StatusRequestEntityTooLarge, "file_too_large")
 		return
 	}
 
 	file, _, err := r.FormFile(kind)
 	if err != nil {
-		http.Error(w, kind+" file required", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "image_required")
 		return
 	}
 	defer file.Close()
@@ -338,24 +346,24 @@ func (h *HouseholdHandler) uploadHouseholdImage(w http.ResponseWriter, r *http.R
 	extMap := map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
 	ext, ok := extMap[ct]
 	if !ok {
-		http.Error(w, "unsupported image type", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "unsupported_image_type")
 		return
 	}
 
 	if err := os.MkdirAll(filepath.Join(h.uploadDir, subdir), 0755); err != nil {
-		http.Error(w, "storage error", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "storage_error")
 		return
 	}
 
 	filename := uuid.NewString() + ext
 	dst, err := os.Create(filepath.Join(h.uploadDir, subdir, filename))
 	if err != nil {
-		http.Error(w, "storage error", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "storage_error")
 		return
 	}
 	defer dst.Close()
 	if _, err := io.Copy(dst, file); err != nil {
-		http.Error(w, "storage error", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "storage_error")
 		return
 	}
 
@@ -388,7 +396,7 @@ func (h *HouseholdHandler) uploadHouseholdImage(w http.ResponseWriter, r *http.R
 		setErr = h.families.SetWallpaper(r.Context(), familyID, callerID, &imageURL)
 	}
 	if setErr != nil {
-		http.Error(w, setErr.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(setErr, "forbidden"))
 		return
 	}
 
@@ -449,13 +457,13 @@ func (h *HouseholdHandler) deleteHouseholdImage(w http.ResponseWriter, r *http.R
 	familyID := chi.URLParam(r, "familyID")
 	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
 	if !ok || callerID == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	old, err := h.families.GetByID(r.Context(), familyID)
 	if err != nil {
-		http.Error(w, "not found", http.StatusNotFound)
+		writeError(w, http.StatusNotFound, "not_found")
 		return
 	}
 
@@ -476,7 +484,7 @@ func (h *HouseholdHandler) deleteHouseholdImage(w http.ResponseWriter, r *http.R
 		setErr = h.families.SetWallpaper(r.Context(), familyID, callerID, nil)
 	}
 	if setErr != nil {
-		http.Error(w, setErr.Error(), http.StatusForbidden)
+		writeError(w, http.StatusForbidden, codeFor(setErr, "forbidden"))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
