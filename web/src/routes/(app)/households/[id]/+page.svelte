@@ -11,6 +11,9 @@
 	import DayView from '$lib/components/DayView.svelte';
 	import CreateDialog from '$lib/components/CreateDialog.svelte';
 	import EditDialog from '$lib/components/EditDialog.svelte';
+	import UserAvatar from '$lib/components/UserAvatar.svelte';
+	import TodayUpcomingCard from '$lib/components/TodayUpcomingCard.svelte';
+	import TodayListsCard from '$lib/components/TodayListsCard.svelte';
 	import * as Popover from '$lib/components/ui/popover';
 	import * as m from '$lib/paraglide/messages.js';
 
@@ -19,6 +22,7 @@
 	const todayMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 	const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 	const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+	const weekEnd = new Date(todayEnd.getTime() + 7 * 86400000);
 
 	let members = $state<Member[]>([]);
 	let tasks = $state<Task[]>([]);
@@ -48,7 +52,7 @@
 		const [membersRes, tasksRes, eventsRes, catsRes] = await Promise.allSettled([
 			api.get<Member[]>(`/api/v1/households/${familyID}/members`),
 			api.get<Task[]>(`/api/v1/households/${familyID}/tasks`),
-			api.get<CalEvent[]>(`/api/v1/households/${familyID}/events?from=${todayStart.toISOString()}&to=${todayEnd.toISOString()}`),
+			api.get<CalEvent[]>(`/api/v1/households/${familyID}/events?from=${todayStart.toISOString()}&to=${weekEnd.toISOString()}`),
 			api.get<AppCategory[]>(`/api/v1/households/${familyID}/categories`),
 		]);
 		if (membersRes.status === 'fulfilled') members = membersRes.value ?? [];
@@ -79,10 +83,12 @@
 	}
 
 	const sortedEvents = $derived(
-		[...events].sort((a, b) => {
-			if (a.all_day !== b.all_day) return a.all_day ? -1 : 1;
-			return new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
-		}),
+		events
+			.filter((e) => localDayMs(e.start_at) === todayMs)
+			.sort((a, b) => {
+				if (a.all_day !== b.all_day) return a.all_day ? -1 : 1;
+				return new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
+			}),
 	);
 
 	let dueTodayTasks = $state<Task[]>([]);
@@ -125,11 +131,20 @@
 
 <div class="h-full flex flex-col">
 	<!-- Header -->
-	<div class="px-4 md:px-6 pt-4 md:pt-6 pb-3 shrink-0">
-		<h1 class="text-xl font-semibold">{m.nav_today()}</h1>
-		<p class="text-xs text-muted-foreground">
-			{fmtWeekdayDate(now)}
-		</p>
+	<div class="px-4 md:px-6 pt-4 md:pt-6 pb-3 shrink-0 flex items-start justify-between gap-3">
+		<div>
+			<h1 class="text-xl font-semibold">{m.nav_today()}</h1>
+			<p class="text-xs text-muted-foreground">
+				{fmtWeekdayDate(now)}
+			</p>
+		</div>
+		{#if members.length > 0}
+			<div class="flex items-center -space-x-2 shrink-0 pt-0.5">
+				{#each members as member (member.user_id)}
+					<UserAvatar name={member.name} avatarUrl={member.avatar_url} userId={member.user_id} size={28} class="ring-2 ring-background" />
+				{/each}
+			</div>
+		{/if}
 	</div>
 
 	<div class="flex-1 min-h-0 overflow-y-auto md:overflow-hidden px-4 md:px-6 pb-4">
@@ -165,6 +180,20 @@
 						<p class="text-sm text-muted-foreground/50 italic">{m.today_nothing_todo()}</p>
 					{/if}
 				</div>
+
+				<TodayListsCard {familyID} />
+
+				<TodayUpcomingCard
+					{events}
+					{tasks}
+					{members}
+					{categories}
+					{todayMs}
+					{now}
+					onTaskClick={(task) => editDialog?.openTask(task)}
+					onEventClick={(event) => editDialog?.openEvent(event)}
+					ontoggle={toggleTask}
+				/>
 			</div>
 
 			<!-- Schedule column: fills remaining height -->

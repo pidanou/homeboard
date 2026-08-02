@@ -52,6 +52,7 @@ SSE push to all family members.
 Full UI structure.
 
 - ✅ Today page (overdue / events / due-today sections)
+- ✅ Today page: Lists preview, Upcoming (next 7 days), and household members widgets
 - ✅ Board page (time groups, filter, sort, quick-add)
 - ✅ Lists page (multi-list, check/uncheck, clear checked)
 - ✅ Sidebar (desktop) + bottom tab bar (mobile)
