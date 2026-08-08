@@ -173,6 +173,8 @@
 	"settings_remove_member_aria": "Mitglied entfernen",
 	"settings_link_profile": "Verknüpfen",
 	"settings_link_profile_aria": "Mit einem Konto verknüpfen",
+	"settings_change_photo_aria": "Foto ändern",
+	"settings_remove_photo_aria": "Foto entfernen",
 	"settings_link_profile_title": "\"{name}\" mit einem Konto verknüpfen",
 	"settings_link_profile_placeholder": "Mitglied auswählen…",
 	"settings_link_profile_confirm": "Verknüpfen",

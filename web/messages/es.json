@@ -167,6 +167,8 @@
 	"settings_remove_member_aria": "Eliminar miembro",
 	"settings_link_profile": "Vincular",
 	"settings_link_profile_aria": "Vincular a una cuenta",
+	"settings_change_photo_aria": "Cambiar foto",
+	"settings_remove_photo_aria": "Eliminar foto",
 	"settings_link_profile_title": "Vincular \"{name}\" a una cuenta",
 	"settings_link_profile_placeholder": "Elegir un miembro…",
 	"settings_link_profile_confirm": "Vincular",

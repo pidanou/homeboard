@@ -7,6 +7,7 @@ front.env
 # Go
 backend/bin/
 backend/web/
+backend/uploads/
 
 # Node
 web/node_modules/

@@ -15,6 +15,8 @@ type HouseholdRepository interface {
 	CreateVirtualMember(ctx context.Context, m *model.VirtualMember) error
 	DeleteVirtualMember(ctx context.Context, id, familyID string) error
 	GetUnlinkedVirtualMembers(ctx context.Context, familyID string) ([]*model.VirtualMember, error)
+	GetVirtualMemberByID(ctx context.Context, id, familyID string) (*model.VirtualMember, error)
+	SetVirtualMemberAvatar(ctx context.Context, id, familyID string, url *string) error
 	LinkVirtualMember(ctx context.Context, virtualID, familyID, userID string) error
 	RemoveMember(ctx context.Context, userID, familyID string) error
 	GetMemberRole(ctx context.Context, userID, familyID string) (string, error)

@@ -167,6 +167,8 @@
 	"settings_remove_member_aria": "Retirer le membre",
 	"settings_link_profile": "Lier",
 	"settings_link_profile_aria": "Lier à un compte",
+	"settings_change_photo_aria": "Changer la photo",
+	"settings_remove_photo_aria": "Supprimer la photo",
 	"settings_link_profile_title": "Lier « {name} » à un compte",
 	"settings_link_profile_placeholder": "Choisir un membre…",
 	"settings_link_profile_confirm": "Lier",

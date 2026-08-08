@@ -87,7 +87,7 @@ func (r *HouseholdRepository) DeleteVirtualMember(ctx context.Context, id, famil
 
 func (r *HouseholdRepository) GetUnlinkedVirtualMembers(ctx context.Context, familyID string) ([]*model.VirtualMember, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, family_id, name, linked_user_id, created_at FROM virtual_members
+		`SELECT id, family_id, name, avatar_url, linked_user_id, created_at FROM virtual_members
 		 WHERE family_id = $1 AND linked_user_id IS NULL ORDER BY created_at`,
 		familyID,
 	)
@@ -98,12 +98,33 @@ func (r *HouseholdRepository) GetUnlinkedVirtualMembers(ctx context.Context, fam
 	var members []*model.VirtualMember
 	for rows.Next() {
 		m := &model.VirtualMember{}
-		if err := rows.Scan(&m.ID, &m.FamilyID, &m.Name, &m.LinkedUserID, &m.CreatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.FamilyID, &m.Name, &m.AvatarURL, &m.LinkedUserID, &m.CreatedAt); err != nil {
 			return nil, err
 		}
 		members = append(members, m)
 	}
 	return members, rows.Err()
+}
+
+func (r *HouseholdRepository) GetVirtualMemberByID(ctx context.Context, id, familyID string) (*model.VirtualMember, error) {
+	m := &model.VirtualMember{}
+	err := r.pool.QueryRow(ctx,
+		`SELECT id, family_id, name, avatar_url, linked_user_id, created_at FROM virtual_members
+		 WHERE id = $1 AND family_id = $2`,
+		id, familyID,
+	).Scan(&m.ID, &m.FamilyID, &m.Name, &m.AvatarURL, &m.LinkedUserID, &m.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("get virtual member by id: %w", err)
+	}
+	return m, nil
+}
+
+func (r *HouseholdRepository) SetVirtualMemberAvatar(ctx context.Context, id, familyID string, url *string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE virtual_members SET avatar_url = $1 WHERE id = $2 AND family_id = $3`,
+		url, id, familyID,
+	)
+	return err
 }
 
 func (r *HouseholdRepository) LinkVirtualMember(ctx context.Context, virtualID, familyID, userID string) error {

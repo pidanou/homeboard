@@ -4,7 +4,7 @@
     import { api, getBaseUrl, getBaseOrigin } from "$lib/api/client";
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
-    import { X, Pencil, Clock, Camera, Image, Link2 } from "lucide-svelte";
+    import { X, Pencil, Clock, Camera, Image, ImageOff, Link2 } from "lucide-svelte";
     import * as Select from "$lib/components/ui/select";
     import UserAvatar from "$lib/components/UserAvatar.svelte";
     import AvatarCrop from "$lib/components/AvatarCrop.svelte";
@@ -210,6 +210,48 @@
         } finally {
             wallpaperLoading = false;
         }
+    }
+
+    // member avatar upload (admin-set photos for virtual members)
+    let memberAvatarFileInput = $state<HTMLInputElement>(null!);
+    let memberAvatarCropOpen = $state(false);
+    let memberAvatarCropComponent = $state<AvatarCrop>(null!);
+    let avatarUploadTargetID = $state<string | null>(null);
+
+    function openMemberAvatarUpload(memberID: string) {
+        avatarUploadTargetID = memberID;
+        memberAvatarFileInput.click();
+    }
+
+    function onMemberAvatarSelected(e: Event) {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        memberAvatarFileInput.value = "";
+        if (!file) return;
+        memberAvatarCropOpen = true;
+        setTimeout(() => memberAvatarCropComponent.loadFile(file), 50);
+    }
+
+    async function onMemberAvatarCropConfirm(blob: Blob) {
+        const id = avatarUploadTargetID;
+        if (!id) return;
+        const fd = new FormData();
+        fd.append("avatar", blob, "avatar.jpg");
+        const res = await api.upload<{ avatar_url: string }>(
+            `/api/v1/households/${familyID}/members/virtual/${id}/avatar`,
+            fd,
+        );
+        members = members.map((m) =>
+            m.user_id === id ? { ...m, avatar_url: res.avatar_url } : m,
+        );
+    }
+
+    async function removeMemberAvatar(id: string) {
+        await api.delete(
+            `/api/v1/households/${familyID}/members/virtual/${id}/avatar`,
+        );
+        members = members.map((m) =>
+            m.user_id === id ? { ...m, avatar_url: null } : m,
+        );
     }
 
     // category state
@@ -577,6 +619,8 @@
         <input bind:this={wallpaperFileInput} type="file" accept="image/*" class="hidden" onchange={onWallpaperSelected} />
         <AvatarCrop bind:this={photoCropComponent} bind:open={photoCropOpen} onconfirm={onPhotoCropConfirm} />
         <WallpaperCrop bind:this={wallpaperCropComponent} bind:open={wallpaperCropOpen} onconfirm={onWallpaperCropConfirm} />
+        <input bind:this={memberAvatarFileInput} type="file" accept="image/*" class="hidden" onchange={onMemberAvatarSelected} />
+        <AvatarCrop bind:this={memberAvatarCropComponent} bind:open={memberAvatarCropOpen} onconfirm={onMemberAvatarCropConfirm} />
 
         <!-- Members -->
         <section class="py-4 flex flex-col gap-4">
@@ -642,9 +686,7 @@
                         <div class="flex items-center gap-3 px-4 py-3">
                             <UserAvatar
                                 name={member.name}
-                                avatarUrl={member.virtual
-                                    ? null
-                                    : member.avatar_url}
+                                avatarUrl={member.avatar_url}
                                 userId={member.user_id}
                                 size={32}
                             />
@@ -664,6 +706,24 @@
                                         {msg.settings_profile_badge()}
                                     </span>
                                     {#if isAdmin}
+                                        <button
+                                            onclick={() =>
+                                                openMemberAvatarUpload(member.user_id)}
+                                            class="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                            aria-label={msg.settings_change_photo_aria()}
+                                        >
+                                            <Camera class="w-4 h-4" />
+                                        </button>
+                                        {#if member.avatar_url}
+                                            <button
+                                                onclick={() =>
+                                                    removeMemberAvatar(member.user_id)}
+                                                class="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                                aria-label={msg.settings_remove_photo_aria()}
+                                            >
+                                                <ImageOff class="w-4 h-4" />
+                                            </button>
+                                        {/if}
                                         <button
                                             onclick={() =>
                                                 (linkingVirtualID =

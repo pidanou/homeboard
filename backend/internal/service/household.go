@@ -71,10 +71,11 @@ func (s *HouseholdService) GetMembers(ctx context.Context, familyID string) ([]*
 	}
 	for _, vm := range virtual {
 		real = append(real, &model.HouseholdMember{
-			FamilyID: vm.FamilyID,
-			UserID:   vm.ID,
-			Name:     vm.Name,
-			Virtual:  true,
+			FamilyID:  vm.FamilyID,
+			UserID:    vm.ID,
+			Name:      vm.Name,
+			AvatarURL: vm.AvatarURL,
+			Virtual:   true,
 		})
 	}
 	return real, nil
@@ -107,6 +108,18 @@ func (s *HouseholdService) DeleteVirtualMember(ctx context.Context, id, familyID
 
 func (s *HouseholdService) GetUnlinkedVirtualMembers(ctx context.Context, familyID string) ([]*model.VirtualMember, error) {
 	return s.families.GetUnlinkedVirtualMembers(ctx, familyID)
+}
+
+func (s *HouseholdService) GetVirtualMemberByID(ctx context.Context, id, familyID string) (*model.VirtualMember, error) {
+	return s.families.GetVirtualMemberByID(ctx, id, familyID)
+}
+
+func (s *HouseholdService) SetVirtualMemberAvatar(ctx context.Context, id, familyID, callerID string, url *string) error {
+	role, err := s.families.GetMemberRole(ctx, callerID, familyID)
+	if err != nil || role != "admin" {
+		return ErrHouseholdAdminRequired
+	}
+	return s.families.SetVirtualMemberAvatar(ctx, id, familyID, url)
 }
 
 // LinkVirtualMember links a virtual member to a real account. Linking to

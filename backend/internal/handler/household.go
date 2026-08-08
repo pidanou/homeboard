@@ -36,6 +36,8 @@ func (h *HouseholdHandler) Routes() http.Handler {
 	r.Put("/{familyID}/members/{memberID}/role", h.updateRole)
 	r.Delete("/{familyID}/members/virtual/{memberID}", h.deleteVirtual)
 	r.Post("/{familyID}/members/virtual/{memberID}/link", h.linkVirtual)
+	r.Post("/{familyID}/members/virtual/{memberID}/avatar", h.uploadVirtualAvatar)
+	r.Delete("/{familyID}/members/virtual/{memberID}/avatar", h.deleteVirtualAvatar)
 	r.Get("/{familyID}/members/virtual/unlinked", h.unlinkedVirtual)
 	r.Get("/{familyID}/photo", h.servePhoto)
 	r.Post("/{familyID}/photo", h.uploadPhoto)
@@ -256,6 +258,103 @@ func (h *HouseholdHandler) linkVirtual(w http.ResponseWriter, r *http.Request) {
 		targetUserID = callerID
 	}
 	if err := h.families.LinkVirtualMember(r.Context(), memberID, familyID, targetUserID, callerID); err != nil {
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *HouseholdHandler) uploadVirtualAvatar(w http.ResponseWriter, r *http.Request) {
+	familyID := chi.URLParam(r, "familyID")
+	memberID := chi.URLParam(r, "memberID")
+	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
+	if !ok || callerID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 6<<20)
+	if err := r.ParseMultipartForm(6 << 20); err != nil {
+		writeError(w, http.StatusRequestEntityTooLarge, "file_too_large")
+		return
+	}
+
+	file, _, err := r.FormFile("avatar")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "image_required")
+		return
+	}
+	defer file.Close()
+
+	sniff := make([]byte, 512)
+	n, _ := file.Read(sniff)
+	ct := http.DetectContentType(sniff[:n])
+	file.Seek(0, io.SeekStart)
+	extMap := map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
+	ext, ok := extMap[ct]
+	if !ok {
+		writeError(w, http.StatusBadRequest, "unsupported_image_type")
+		return
+	}
+
+	subdir := "household/" + familyID + "/avatars"
+	if err := os.MkdirAll(filepath.Join(h.uploadDir, subdir), 0755); err != nil {
+		writeError(w, http.StatusInternalServerError, "storage_error")
+		return
+	}
+
+	filename := uuid.NewString() + ext
+	dst, err := os.Create(filepath.Join(h.uploadDir, subdir, filename))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "storage_error")
+		return
+	}
+	defer dst.Close()
+	if _, err := io.Copy(dst, file); err != nil {
+		writeError(w, http.StatusInternalServerError, "storage_error")
+		return
+	}
+
+	relPath := fmt.Sprintf("/api/v1/uploads/%s/%s", subdir, filename)
+	avatarURL := relPath
+	if h.baseURL != "" {
+		avatarURL = h.baseURL + relPath
+	}
+
+	old, _ := h.families.GetVirtualMemberByID(r.Context(), memberID, familyID)
+	if old != nil && old.AvatarURL != nil {
+		h.deleteLocalFile(*old.AvatarURL, subdir)
+	}
+
+	if err := h.families.SetVirtualMemberAvatar(r.Context(), memberID, familyID, callerID, &avatarURL); err != nil {
+		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"avatar_url": avatarURL})
+}
+
+func (h *HouseholdHandler) deleteVirtualAvatar(w http.ResponseWriter, r *http.Request) {
+	familyID := chi.URLParam(r, "familyID")
+	memberID := chi.URLParam(r, "memberID")
+	callerID, ok := r.Context().Value(ContextKeyUserID).(string)
+	if !ok || callerID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	subdir := "household/" + familyID + "/avatars"
+	old, err := h.families.GetVirtualMemberByID(r.Context(), memberID, familyID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "not_found")
+		return
+	}
+	if old.AvatarURL != nil {
+		h.deleteLocalFile(*old.AvatarURL, subdir)
+	}
+
+	if err := h.families.SetVirtualMemberAvatar(r.Context(), memberID, familyID, callerID, nil); err != nil {
 		writeError(w, http.StatusForbidden, codeFor(err, "forbidden"))
 		return
 	}
