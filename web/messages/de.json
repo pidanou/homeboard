@@ -258,6 +258,8 @@
 	"profile_update_button": "Update",
 	"profile_language": "Sprache",
 	"profile_time_format": "Zeitformat",
+	"profile_color_theme": "Farbthema",
+	"profile_color_theme_reset": "Zurücksetzen",
 	"profile_time_format_auto": "Automatisch",
 	"profile_time_format_12h": "12h",
 	"profile_time_format_24h": "24h",

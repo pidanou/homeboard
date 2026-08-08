@@ -10,7 +10,9 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import * as ToggleGroup from '$lib/components/ui/toggle-group';
 	import { logout } from '$lib/auth';
+	import { accentColor, setAccentColor, resetAccentColor, DEFAULT_ACCENT } from '$lib/theme';
 	import { subscribePush, unsubscribePush, isPushSubscribed } from '$lib/push';
+	import ColorPicker from 'svelte-awesome-color-picker';
 	import { Camera, ChevronLeft, LogOut, Bell, BellOff } from 'lucide-svelte';
 	import * as msg from '$lib/paraglide/messages.js';
 	import { getLocale, setLocale, locales } from '$lib/paraglide/runtime';
@@ -166,6 +168,10 @@
 		} finally {
 			timeFormatLoading = false;
 		}
+	}
+
+	function saveAccentColor(value: string) {
+		setAccentColor(value);
 	}
 
 	async function saveReminder(value: string) {
@@ -351,6 +357,27 @@
 							</ToggleGroup.Item>
 						{/each}
 					</ToggleGroup.Root>
+				</div>
+
+				<!-- Color theme row -->
+				<div class="rounded-xl border border-border px-4 py-3 flex items-center justify-between gap-3">
+					<span class="font-medium text-sm">{msg.profile_color_theme()}</span>
+					<div
+						class="flex items-center gap-2"
+						style="--cp-bg-color: var(--popover); --cp-border-color: var(--border); --cp-text-color: var(--foreground); --cp-input-color: var(--input); --cp-button-hover-color: var(--muted); --focus-color: var(--ring); --input-size: 36px; --picker-z-index: 50;"
+					>
+						{#if $accentColor !== DEFAULT_ACCENT}
+							<Button variant="ghost" size="sm" class="text-xs" onclick={resetAccentColor}>
+								{msg.profile_color_theme_reset()}
+							</Button>
+						{/if}
+						<ColorPicker
+							hex={$accentColor}
+							label=""
+							isAlpha={false}
+							onInput={(c) => c.hex && saveAccentColor(c.hex)}
+						/>
+					</div>
 				</div>
 			</section>
 		{:else}

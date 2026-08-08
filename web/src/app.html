@@ -16,6 +16,23 @@
 			if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
 				document.documentElement.classList.add('dark');
 			}
+			const accent = localStorage.getItem('accentColor');
+			if (accent) {
+				const c = accent.replace('#', '');
+				const lin = (v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+				const lum =
+					0.2126 * lin(parseInt(c.substr(0, 2), 16) / 255) +
+					0.7152 * lin(parseInt(c.substr(2, 2), 16) / 255) +
+					0.0722 * lin(parseInt(c.substr(4, 2), 16) / 255);
+				const fg = lum > 0.45 ? '#1a1410' : '#fdfaf7';
+				const root = document.documentElement.style;
+				root.setProperty('--primary', accent);
+				root.setProperty('--primary-foreground', fg);
+				root.setProperty('--ring', accent);
+				root.setProperty('--sidebar-primary', accent);
+				root.setProperty('--sidebar-primary-foreground', fg);
+				root.setProperty('--sidebar-ring', accent);
+			}
 		</script>
 		%sveltekit.head%
 	</head>

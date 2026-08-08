@@ -252,6 +252,8 @@
 	"profile_update_button": "Mettre à jour",
 	"profile_language": "Langue",
 	"profile_time_format": "Format de l'heure",
+	"profile_color_theme": "Thème de couleur",
+	"profile_color_theme_reset": "Réinitialiser",
 	"profile_time_format_auto": "Auto",
 	"profile_time_format_12h": "12h",
 	"profile_time_format_24h": "24h",
