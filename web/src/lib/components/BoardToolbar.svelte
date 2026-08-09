@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Member, AppCategory } from "$lib/types";
-    import { dotClass } from "$lib/categories";
+    import { dotStyle } from "$lib/categories";
     import { X, Tag } from "lucide-svelte";
     import UserAvatar from "$lib/components/UserAvatar.svelte";
     import * as msg from "$lib/paraglide/messages.js";
@@ -100,7 +100,8 @@
                 )}"
             >
                 <span
-                    class="w-2 h-2 rounded-full {dotClass(cat.color)} shrink-0"
+                    class="w-2 h-2 rounded-full shrink-0"
+                    style={dotStyle(cat.color)}
                 ></span>
                 {cat.name}
             </button>

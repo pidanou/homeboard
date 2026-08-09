@@ -5,6 +5,7 @@
 
 	const favicon = '/favicon.png';
 	import { Toaster } from 'svelte-sonner';
+	import { initAccentColor } from '$lib/theme';
 	import '../app.css';
 
 	let { children } = $props();
@@ -17,6 +18,7 @@
 		};
 		if (!localStorage.getItem('theme')) apply(mq.matches);
 		mq.addEventListener('change', onChange);
+		initAccentColor();
 	});
 </script>
 

@@ -1,9 +1,11 @@
 <script lang="ts">
 	import type { AppCategory } from '$lib/types';
-	import { chipClass, dotClass, LABEL_COLORS, type LabelColor } from '$lib/categories';
+	import { chipStyle, dotStyle, resolveHex, LABEL_COLORS } from '$lib/categories';
 	import { api } from '$lib/api/client';
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
+	import ColorPicker from 'svelte-awesome-color-picker';
+	import { Palette } from 'lucide-svelte';
 	import * as msg from '$lib/paraglide/messages.js';
 
 	let { familyID, categories, selectedID = $bindable<string | undefined>(undefined) }: {
@@ -17,7 +19,7 @@
 
 	let adding = $state(false);
 	let newName = $state('');
-	let newColor = $state<LabelColor>('blue');
+	let newColor = $state('blue');
 
 	function select(id: string) {
 		selectedID = selectedID === id ? undefined : id;
@@ -47,9 +49,10 @@
 					type="button"
 					onclick={() => select(cat.id)}
 					class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer
-						{selectedID === cat.id ? chipClass(cat.color) : 'opacity-40 ' + chipClass(cat.color)}"
+						{selectedID === cat.id ? '' : 'opacity-40'}"
+					style={chipStyle(cat.color)}
 				>
-					<span class="w-1.5 h-1.5 rounded-full {dotClass(cat.color)} shrink-0"></span>
+					<span class="w-1.5 h-1.5 rounded-full shrink-0" style={dotStyle(cat.color)}></span>
 					{cat.name}
 				</button>
 			{/each}
@@ -70,10 +73,22 @@
 						type="button"
 						aria-label={color}
 						onclick={() => (newColor = color)}
-						class="w-4 h-4 rounded-full transition-transform cursor-pointer {dotClass(color)}
+						style={dotStyle(color)}
+						class="w-4 h-4 rounded-full transition-transform cursor-pointer
 							{newColor === color ? 'ring-2 ring-offset-1 ring-foreground scale-110' : ''}"
 					></button>
 				{/each}
+				<div class="relative" title="Custom color" style="--cp-bg-color: var(--popover); --cp-border-color: var(--border); --cp-text-color: var(--foreground); --cp-input-color: var(--input); --cp-button-hover-color: var(--muted); --focus-color: var(--ring); --input-size: 16px; --picker-z-index: 50;">
+					<ColorPicker
+						hex={resolveHex(newColor)}
+						label=""
+						isAlpha={false}
+						onInput={(c) => c.hex && (newColor = c.hex)}
+					/>
+					<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+						<Palette class="w-2.5 h-2.5 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]" />
+					</div>
+				</div>
 			</div>
 			<div class="flex gap-1.5">
 				<Button size="sm" class="h-6 text-xs px-2" onclick={createCategory} disabled={!newName.trim()}>{msg.action_add()}</Button>

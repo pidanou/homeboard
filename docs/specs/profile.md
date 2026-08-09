@@ -162,10 +162,11 @@ No inline crop in the action sheet — crop UI opens as a full-screen overlay af
 
 | Feature | Status |
 |---|---|
-| Display name editing | Not implemented |
-| Avatar upload + crop | Not implemented |
-| Avatar fallback (initials) | Partially implemented (virtual members) |
+| Display name editing | Implemented |
+| Avatar upload + crop | Implemented |
+| Avatar upload for virtual members (no account) | Implemented — admin uploads from household Settings, since virtual members can't log in to set their own |
+| Avatar fallback (initials) | Implemented |
 | Email change flow | Not implemented |
-| Password change | Not implemented |
-| Profile settings page | Not implemented |
+| Password change | Implemented |
+| Profile settings page | Implemented |
 | Time format preference (auto/12h/24h) | Implemented |

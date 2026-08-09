@@ -4,9 +4,11 @@
     import { api, getBaseUrl, getBaseOrigin } from "$lib/api/client";
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
-    import { X, Pencil, Clock, Camera, Image, Link2 } from "lucide-svelte";
+    import { X, Pencil, Clock, Camera, Image, ImageOff, Link2, Palette } from "lucide-svelte";
     import * as Select from "$lib/components/ui/select";
     import UserAvatar from "$lib/components/UserAvatar.svelte";
+    import ColorPicker from "svelte-awesome-color-picker";
+    import { dotStyle, resolveHex } from "$lib/categories";
     import AvatarCrop from "$lib/components/AvatarCrop.svelte";
     import WallpaperCrop from "$lib/components/WallpaperCrop.svelte";
     import AuthImage from "$lib/components/AuthImage.svelte";
@@ -25,19 +27,9 @@
         joined_at: string;
         virtual?: boolean;
     };
-    type CategoryColor =
-        | "red"
-        | "orange"
-        | "yellow"
-        | "green"
-        | "teal"
-        | "blue"
-        | "purple"
-        | "pink"
-        | "gray";
-    type AppCategory = { id: string; name: string; color: CategoryColor };
+    type AppCategory = { id: string; name: string; color: string };
 
-    const CATEGORY_COLORS: CategoryColor[] = [
+    const CATEGORY_COLORS = [
         "red",
         "orange",
         "yellow",
@@ -48,17 +40,6 @@
         "pink",
         "gray",
     ];
-    const CATEGORY_DOT: Record<CategoryColor, string> = {
-        red: "bg-rose-500",
-        orange: "bg-orange-400",
-        yellow: "bg-amber-400",
-        green: "bg-emerald-600",
-        teal: "bg-teal-600",
-        blue: "bg-indigo-500",
-        purple: "bg-violet-500",
-        pink: "bg-pink-400",
-        gray: "bg-stone-400",
-    };
 
     const familyID = $derived($page.params.id);
     const householdName = $derived(
@@ -212,16 +193,58 @@
         }
     }
 
+    // member avatar upload (admin-set photos for virtual members)
+    let memberAvatarFileInput = $state<HTMLInputElement>(null!);
+    let memberAvatarCropOpen = $state(false);
+    let memberAvatarCropComponent = $state<AvatarCrop>(null!);
+    let avatarUploadTargetID = $state<string | null>(null);
+
+    function openMemberAvatarUpload(memberID: string) {
+        avatarUploadTargetID = memberID;
+        memberAvatarFileInput.click();
+    }
+
+    function onMemberAvatarSelected(e: Event) {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        memberAvatarFileInput.value = "";
+        if (!file) return;
+        memberAvatarCropOpen = true;
+        setTimeout(() => memberAvatarCropComponent.loadFile(file), 50);
+    }
+
+    async function onMemberAvatarCropConfirm(blob: Blob) {
+        const id = avatarUploadTargetID;
+        if (!id) return;
+        const fd = new FormData();
+        fd.append("avatar", blob, "avatar.jpg");
+        const res = await api.upload<{ avatar_url: string }>(
+            `/api/v1/households/${familyID}/members/virtual/${id}/avatar`,
+            fd,
+        );
+        members = members.map((m) =>
+            m.user_id === id ? { ...m, avatar_url: res.avatar_url } : m,
+        );
+    }
+
+    async function removeMemberAvatar(id: string) {
+        await api.delete(
+            `/api/v1/households/${familyID}/members/virtual/${id}/avatar`,
+        );
+        members = members.map((m) =>
+            m.user_id === id ? { ...m, avatar_url: null } : m,
+        );
+    }
+
     // category state
     let newCategoryName = $state("");
-    let newCategoryColor = $state<CategoryColor>("blue");
+    let newCategoryColor = $state("blue");
     let addingVirtual = $state(false);
     let newVirtualName = $state("");
     let linkingVirtualID = $state<string | null>(null);
     let linkTargetUserID = $state("");
     let editingCatID = $state<string | null>(null);
     let editingCatName = $state("");
-    let editingCatColor = $state<CategoryColor>("blue");
+    let editingCatColor = $state("blue");
 
     const myRole = $derived(
         members.find((m) => m.user_id === currentUser.value?.id)?.role ?? "member",
@@ -577,6 +600,8 @@
         <input bind:this={wallpaperFileInput} type="file" accept="image/*" class="hidden" onchange={onWallpaperSelected} />
         <AvatarCrop bind:this={photoCropComponent} bind:open={photoCropOpen} onconfirm={onPhotoCropConfirm} />
         <WallpaperCrop bind:this={wallpaperCropComponent} bind:open={wallpaperCropOpen} onconfirm={onWallpaperCropConfirm} />
+        <input bind:this={memberAvatarFileInput} type="file" accept="image/*" class="hidden" onchange={onMemberAvatarSelected} />
+        <AvatarCrop bind:this={memberAvatarCropComponent} bind:open={memberAvatarCropOpen} onconfirm={onMemberAvatarCropConfirm} />
 
         <!-- Members -->
         <section class="py-4 flex flex-col gap-4">
@@ -642,9 +667,7 @@
                         <div class="flex items-center gap-3 px-4 py-3">
                             <UserAvatar
                                 name={member.name}
-                                avatarUrl={member.virtual
-                                    ? null
-                                    : member.avatar_url}
+                                avatarUrl={member.avatar_url}
                                 userId={member.user_id}
                                 size={32}
                             />
@@ -664,6 +687,24 @@
                                         {msg.settings_profile_badge()}
                                     </span>
                                     {#if isAdmin}
+                                        <button
+                                            onclick={() =>
+                                                openMemberAvatarUpload(member.user_id)}
+                                            class="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                            aria-label={msg.settings_change_photo_aria()}
+                                        >
+                                            <Camera class="w-4 h-4" />
+                                        </button>
+                                        {#if member.avatar_url}
+                                            <button
+                                                onclick={() =>
+                                                    removeMemberAvatar(member.user_id)}
+                                                class="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                                aria-label={msg.settings_remove_photo_aria()}
+                                            >
+                                                <ImageOff class="w-4 h-4" />
+                                            </button>
+                                        {/if}
                                         <button
                                             onclick={() =>
                                                 (linkingVirtualID =
@@ -775,7 +816,7 @@
                 {msg.settings_categories()}
             </h2>
 
-            <div class="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
+            <div class="rounded-xl border border-border bg-card divide-y divide-border">
                 {#if categories.length === 0 && !isAdmin}
                     <div class="px-4 py-3 text-sm text-muted-foreground">{msg.settings_no_categories()}</div>
                 {/if}
@@ -796,21 +837,31 @@
                                             }
                                         }}
                                     />
-                                    <div class="flex gap-1.5">
+                                    <div class="flex items-center gap-1.5">
                                         {#each CATEGORY_COLORS as c}
                                             <button
                                                 type="button"
                                                 title={c}
                                                 onclick={() =>
                                                     (editingCatColor = c)}
-                                                class="w-5 h-5 rounded-full {CATEGORY_DOT[
-                                                    c
-                                                ]} transition-all
+                                                style={dotStyle(c)}
+                                                class="w-5 h-5 rounded-full transition-all
 												{editingCatColor === c
                                                     ? 'ring-2 ring-offset-1 ring-foreground'
                                                     : 'opacity-50 hover:opacity-90'}"
                                             ></button>
                                         {/each}
+                                        <div class="relative" title="Custom color" style="--cp-bg-color: var(--popover); --cp-border-color: var(--border); --cp-text-color: var(--foreground); --cp-input-color: var(--input); --cp-button-hover-color: var(--muted); --focus-color: var(--ring); --input-size: 20px; --picker-z-index: 50;">
+                                            <ColorPicker
+                                                hex={resolveHex(editingCatColor)}
+                                                label=""
+                                                isAlpha={false}
+                                                onInput={(c) => c.hex && (editingCatColor = c.hex)}
+                                            />
+                                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                <Palette class="w-3 h-3 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]" />
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="flex gap-2">
                                         <Button
@@ -836,9 +887,8 @@
                                         class="flex items-center gap-2.5 text-sm"
                                     >
                                         <span
-                                            class="w-2.5 h-2.5 rounded-full {CATEGORY_DOT[
-                                                cat.color
-                                            ]} shrink-0"
+                                            class="w-2.5 h-2.5 rounded-full shrink-0"
+                                            style={dotStyle(cat.color)}
                                         ></span>
                                         {cat.name}
                                     </span>
@@ -880,13 +930,25 @@
                             />
                             <Button size="sm" onclick={createCategory} disabled={!newCategoryName.trim()} class="h-8">{msg.action_add()}</Button>
                         </div>
-                        <div class="flex gap-1.5">
+                        <div class="flex items-center gap-1.5">
                             {#each CATEGORY_COLORS as c}
                                 <button type="button" onclick={() => (newCategoryColor = c)}
-                                    class="w-5 h-5 rounded-full {CATEGORY_DOT[c]} transition-all {newCategoryColor === c ? 'ring-2 ring-offset-1 ring-foreground' : 'opacity-50 hover:opacity-90'}"
+                                    style={dotStyle(c)}
+                                    class="w-5 h-5 rounded-full transition-all {newCategoryColor === c ? 'ring-2 ring-offset-1 ring-foreground' : 'opacity-50 hover:opacity-90'}"
                                     title={c}
                                 ></button>
                             {/each}
+                            <div class="relative" title="Custom color" style="--cp-bg-color: var(--popover); --cp-border-color: var(--border); --cp-text-color: var(--foreground); --cp-input-color: var(--input); --cp-button-hover-color: var(--muted); --focus-color: var(--ring); --input-size: 20px; --picker-z-index: 50;">
+                                <ColorPicker
+                                    hex={resolveHex(newCategoryColor)}
+                                    label=""
+                                    isAlpha={false}
+                                    onInput={(c) => c.hex && (newCategoryColor = c.hex)}
+                                />
+                                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <Palette class="w-3 h-3 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]" />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 {/if}

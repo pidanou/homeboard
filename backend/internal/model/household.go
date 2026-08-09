@@ -24,9 +24,10 @@ type HouseholdMember struct {
 }
 
 type VirtualMember struct {
-	ID            string    `json:"id"`
-	FamilyID      string    `json:"family_id"`
-	Name          string    `json:"name"`
-	LinkedUserID  *string   `json:"linked_user_id,omitempty"`
-	CreatedAt     time.Time `json:"created_at"`
+	ID           string    `json:"id"`
+	FamilyID     string    `json:"family_id"`
+	Name         string    `json:"name"`
+	AvatarURL    *string   `json:"avatar_url,omitempty"`
+	LinkedUserID *string   `json:"linked_user_id,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
 }
