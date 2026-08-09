@@ -2,7 +2,7 @@
 	import '@event-calendar/core/index.css';
 	import { Calendar, TimeGrid, Interaction } from '@event-calendar/core';
 	import type { CalEvent, Task, AppCategory } from '$lib/types';
-	import { CATEGORY_HEX } from '$lib/categories';
+	import { resolveHex } from '$lib/categories';
 	import { taskHasTime, hour12Option } from '$lib/dates';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import * as msg from '$lib/paraglide/messages.js';
@@ -24,7 +24,7 @@
 	function categoryHex(categoryID: string | undefined): string | null {
 		if (!categoryID) return null;
 		const cat = categories.find(c => c.id === categoryID);
-		return cat ? (CATEGORY_HEX[cat.color] ?? null) : null;
+		return cat ? resolveHex(cat.color) : null;
 	}
 
 	const ecEvents = $derived([

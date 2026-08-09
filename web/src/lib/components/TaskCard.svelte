@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Task, Member, AppCategory } from '$lib/types';
-	import { chipClass, dotClass } from '$lib/categories';
+	import { chipStyle, dotStyle } from '$lib/categories';
 	import { relativeDate, taskHasTime, fmtTime, localDayMs } from '$lib/dates';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { User, Star } from 'lucide-svelte';
@@ -67,8 +67,8 @@
 					{/if}
 				{/if}
 				{#if category}
-					<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium {chipClass(category.color)}">
-						<span class="w-1.5 h-1.5 rounded-full {dotClass(category.color)} shrink-0"></span>
+					<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium" style={chipStyle(category.color)}>
+						<span class="w-1.5 h-1.5 rounded-full shrink-0" style={dotStyle(category.color)}></span>
 						{category.name}
 					</span>
 				{/if}

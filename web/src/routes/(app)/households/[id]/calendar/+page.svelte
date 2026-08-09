@@ -12,7 +12,7 @@
 	import { X, CalendarDays, ChevronDown, Pencil, Trash2, SquareCheck } from 'lucide-svelte';
 import { Checkbox } from '$lib/components/ui/checkbox';
 	import type { CalEvent, Task, Member, AppCategory } from '$lib/types';
-	import { dotClass, CATEGORY_HEX } from '$lib/categories';
+	import { dotStyle, resolveHex } from '$lib/categories';
 	import { fmtTime, taskHasTime, fmtWeekdayDate, hour12Option } from '$lib/dates';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import EditDialog from '$lib/components/EditDialog.svelte';
@@ -25,7 +25,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 	function categoryHex(categoryID: string | undefined): string | null {
 		if (!categoryID) return null;
 		const cat = categories.find(c => c.id === categoryID);
-		return cat ? (CATEGORY_HEX[cat.color] ?? null) : null;
+		return cat ? resolveHex(cat.color) : null;
 	}
 
 	const familyID = $derived($page.params.id ?? '');
@@ -582,7 +582,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 		<div class="hidden sm:flex items-center gap-1.5 flex-wrap">
 			{#each categories as cat (cat.id)}
 				<button onclick={() => toggleCategory(cat.id)} class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer {chipCls(filterCategoryIDs.has(cat.id))}">
-					<span class="w-2 h-2 rounded-full {dotClass(cat.color)} shrink-0"></span>
+					<span class="w-2 h-2 rounded-full shrink-0" style={dotStyle(cat.color)}></span>
 					{cat.name}
 				</button>
 			{/each}
@@ -663,7 +663,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 								{/if}
 								{#if cat}
 									<span class="flex items-center gap-1 shrink-0">
-										<span class="w-1.5 h-1.5 rounded-full {dotClass(cat.color)}"></span>
+										<span class="w-1.5 h-1.5 rounded-full" style={dotStyle(cat.color)}></span>
 										<span class="text-xs text-muted-foreground hidden sm:block">{cat.name}</span>
 									</span>
 								{/if}
@@ -695,7 +695,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 								<span class="text-sm flex-1 min-w-0 truncate {task.important ? 'font-medium' : ''} {task.status === 'done' ? 'line-through text-muted-foreground' : ''}">{task.title}</span>
 								{#if cat}
 									<span class="flex items-center gap-1 shrink-0">
-										<span class="w-1.5 h-1.5 rounded-full {dotClass(cat.color)}"></span>
+										<span class="w-1.5 h-1.5 rounded-full" style={dotStyle(cat.color)}></span>
 										<span class="text-xs text-muted-foreground hidden sm:block">{cat.name}</span>
 									</span>
 								{/if}
